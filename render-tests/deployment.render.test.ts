@@ -410,6 +410,14 @@ describe("render.yaml free-plan compatibility", () => {
     expect(scripts["render:build"]).toContain("--frozen-lockfile")
   })
 
+  it("pins the same pnpm in the Blueprint as in packageManager", () => {
+    const blueprint = readFileSync(resolve(import.meta.dirname, "../render.yaml"), "utf8")
+    const pkg = JSON.parse(readFileSync(resolve(import.meta.dirname, "../package.json"), "utf8"))
+    const pinned = /key:\s*PNPM_VERSION\s*\n\s*value:\s*"?([\d.]+)"?/.exec(blueprint)?.[1]
+    const declared = /^pnpm@([\d.]+)$/.exec(pkg.packageManager as string)?.[1]
+    expect(pinned, "PNPM_VERSION must be set: without corepack we take Render's pnpm").toBe(declared)
+  })
+
   it("keeps the shutdown budget inside the 30s window the free plan pins us to", () => {
     const server = readFileSync(resolve(import.meta.dirname, "../apps/web/server.ts"), "utf8")
     const budget = Number(/SHUTDOWN_BUDGET_MS = ([\d_]+)/.exec(server)?.[1]?.replace(/_/g, ""))

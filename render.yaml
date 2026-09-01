@@ -31,6 +31,11 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
+      # Pin the package manager too. Without corepack we rely on the pnpm Render
+      # provides, and `--frozen-lockfile` against a lockfileVersion 9.0 file
+      # needs pnpm >= 9. Must match `packageManager` in package.json.
+      - key: PNPM_VERSION
+        value: "11.7.0"
       - key: NODE_ENV
         value: production
       # No NODE_OPTIONS here on purpose. Render applies service env vars to the
