@@ -10,42 +10,58 @@ Productionization + public deployment pass. `[x]` done and verified · `[ ]` pen
 - [x] Found: `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` referenced in config schema, agents, CLI, worker, README
 
 ## 1 · Agent-agnostic product
-- [ ] `SOLARI_API_KEY` is the ONLY credential the product needs
-- [ ] Remove OpenAI entirely; keep the Anthropic adapter as clearly-optional/experimental
-- [ ] Never surface a missing model key as an error
-- [ ] UI copy: Reference Agent (default) / Repository Agent, agent-agnostic narrative
+- [x] `SOLARI_API_KEY` is the ONLY credential the product needs
+- [x] OpenAI removed; Anthropic adapter is optional, experimental and lazily imported
+- [x] A missing model key reads as a note, never an error
+- [x] UI copy: Reference Agent first, Repository Agent second, optional adapter last
 
 ## 2 · Render platform
-- [ ] `docs/RENDER_NOTES.md` from the current official docs
-- [ ] `render.yaml` Blueprint (web service + Postgres), no hardcoded secrets
-- [ ] Bind `0.0.0.0:$PORT`; no localhost in production output
-- [ ] `healthCheckPath: /api/health`, cheap, no Solari session
-- [ ] Node 22 + pnpm pinned deterministically
+- [x] `docs/RENDER_NOTES.md` from the current official docs
+- [x] `render.yaml` Blueprint (web service + Postgres), no hardcoded secrets
+- [x] Binds `0.0.0.0:$PORT`; asserted by a deployment test
+- [x] `/api/health` — one `SELECT 1`, never a Solari call
+- [x] Node 22 pinned via `NODE_VERSION` + `.node-version`; pnpm pinned via corepack in the build command
 
 ## 3 · Single-service deploy mode
-- [ ] `GAUNTLET_DEPLOY_MODE=single` runs Next + the worker in ONE process
-- [ ] Worker loop is EXTRACTED and REUSED, never duplicated
-- [ ] Graceful SIGTERM: stop claiming, drain, release Solari, close pool, exit
-- [ ] Migrations run before serving; failure is fatal; seeding is opt-in and idempotent
+- [x] `GAUNTLET_DEPLOY_MODE=single` runs Next + the worker in ONE process
+- [x] Worker loop extracted to `createWorkerRuntime`; the standalone binary is now a thin wrapper
+- [x] Graceful SIGTERM verified: exits in ~1s, well inside the 60s window
+- [x] Migrations run before listening, are idempotent across restarts, and are fatal on failure
 
 ## 4 · Ephemeral filesystem
-- [ ] Replays durable in Postgres, not on local disk
-- [ ] Nothing important depends on the container's filesystem
+- [x] Replays stored gzipped in a `replay_artifacts` table
+- [x] Nothing important depends on the container's filesystem
 
 ## 5 · Public-demo safety
-- [ ] Real runs require `GAUNTLET_RUN_TOKEN` (HttpOnly cookie, constant-time compare)
-- [ ] Seeded demo stays fully public and read-only
-- [ ] Repository agents gated behind the same authorization
-- [ ] DB-backed limits: one active suite per session, caps on runs/variants/repetitions
+- [x] Real runs require `GAUNTLET_RUN_TOKEN`; cookie is an HMAC, not the token; constant-time compare
+- [x] Seeded demo stays fully public and read-only
+- [x] Repository agents gated behind the same authorization
+- [x] One active suite at a time (429 `busy`), plus the existing caps
 
 ## 6 · Never run untrusted code on Render
-- [ ] Regression test asserting repository agents cannot execute on the host
+- [x] Isolation tests, including a source scan verified to fail on an injected `execSync`
+
+## 6b · Worker resilience (found while testing, not from the brief)
+A suite was observed stuck in `preparing` with its claim released and no worker
+running. The cause was structural, not incidental: in `executeSuiteRun`,
+`getSuite` and `createRuntime` sat *outside* the `try`, so an ordinary
+environment failure — no Playwright browser installed, which is exactly the
+Render case — escaped past the `finally`. The claim was never released, the
+suite never reached a terminal state, and because the loop awaited the call, the
+whole worker died. The new one-suite-at-a-time limit then turned that into a
+deployment-wide outage: one wedged run blocks every later one until a redeploy.
+
+- [x] All setup moved inside the `try`; `runtime` is optional and shut down only if built
+- [x] A failure before the runner starts now marks the suite `failed`, preserving the real `GauntletError.code`
+- [x] The loop catches anything that escapes, so one bad suite cannot kill the worker
+- [x] Reclaim runs on a 60s sweep, not only at boot — a wedge self-heals without a redeploy
+- [x] 3 regression tests, verified to fail when the fix is removed
 
 ## 7 · Verification
-- [ ] `pnpm typecheck` / `lint` / `test` / `build` / `test:e2e` / `test:render`
-- [ ] `pnpm gauntlet demo`
-- [ ] Secret audit over working tree AND git history
-- [ ] Public GitHub repository pushed
+- [x] `pnpm typecheck` 14/14 · `lint` 12/12 · `test` 325 passed (23 files) · `build` 4/4 · `test:e2e` 36 passed · `test:render` 13 passed, 1 skipped
+- [ ] `pnpm gauntlet demo` (running)
+- [x] Secret audit over working tree AND all history blobs — only fake redaction fixtures
+- [ ] Public GitHub repository pushed (repo created: Konuktor/agent-gauntlet)
 - [ ] Render deployment live, health green
 - [ ] Real Solari acceptance test executed (needs a key)
 - [ ] Production screenshots at 1440×900 and 390×844

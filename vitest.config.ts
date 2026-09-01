@@ -9,5 +9,9 @@ export default defineConfig({
     testTimeout: 20_000,
     hookTimeout: 30_000,
     pool: "forks",
+    // The integration tests share one Postgres and truncate it between cases,
+    // so two files running at once wipe each other's rows. Serialising files
+    // costs ~12s and removes a whole class of flake.
+    fileParallelism: false,
   },
 })

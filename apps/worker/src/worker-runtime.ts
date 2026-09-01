@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto"
 import type { GauntletConfig } from "@gauntlet/config"
 import {
+  GauntletError,
   GauntletRunner,
   sleep,
   taskDefinitionSchema,
@@ -21,9 +22,13 @@ import {
 } from "@gauntlet/db"
 import { resolvePerturbation } from "@gauntlet/perturbations"
 import { DrizzleRunStore } from "./store.js"
+import type { Runtime } from "./runtime.js"
 import { createAgent, createRuntime, createTaskEvaluator, createWorkerLogger } from "./runtime.js"
 
 const POLL_INTERVAL_MS = 1_500
+
+/** How often to sweep for suites abandoned by a dead or wedged claim. */
+const RECLAIM_SWEEP_MS = 60_000
 
 export interface WorkerRuntimeOptions {
   config: GauntletConfig
@@ -70,6 +75,8 @@ export function createWorkerRuntime(options: WorkerRuntimeOptions): WorkerRuntim
   let activeController: AbortController | undefined
   let loop: Promise<void> | undefined
 
+  /** Runs until {@link shutdown}. Callers launch it (`void start()`) rather
+   *  than awaiting it: the returned promise settles only when the loop ends. */
   async function start(): Promise<void> {
     handle ??= createDb({ max: 5 })
     logger.info("worker started", {
@@ -84,7 +91,22 @@ export function createWorkerRuntime(options: WorkerRuntimeOptions): WorkerRuntim
     if (reclaimed > 0) logger.warn("requeued abandoned suite runs", { count: reclaimed })
 
     loop = (async () => {
+      let sinceLastSweep = 0
+
       while (!shuttingDown) {
+        // Reclaiming only at boot is not enough: a suite abandoned while this
+        // process keeps running would stay wedged until the next deploy, and
+        // the one-suite-at-a-time limit would block everything behind it.
+        sinceLastSweep += pollIntervalMs
+        if (sinceLastSweep >= RECLAIM_SWEEP_MS) {
+          sinceLastSweep = 0
+          const requeued = await reclaimStaleSuiteRuns(handle!.db).catch((error: unknown) => {
+            logger.warn("reclaim sweep failed", { error: describe(error) })
+            return 0
+          })
+          if (requeued > 0) logger.warn("requeued abandoned suite runs", { count: requeued })
+        }
+
         const claimed = await claimNextSuiteRun(handle!.db, workerId).catch((error: unknown) => {
           logger.error("could not poll the queue", { error: describe(error) })
           return null
@@ -95,7 +117,14 @@ export function createWorkerRuntime(options: WorkerRuntimeOptions): WorkerRuntim
           continue
         }
 
-        await executeSuiteRun(claimed)
+        await executeSuiteRun(claimed).catch((error: unknown) => {
+          // executeSuiteRun already handles its own failures; this is the
+          // last line of defence so one bad suite can never kill the worker.
+          logger.error("suite execution escaped its handler", {
+            suiteRunId: claimed.id,
+            error: describe(error),
+          })
+        })
       }
     })()
 
@@ -144,24 +173,30 @@ export function createWorkerRuntime(options: WorkerRuntimeOptions): WorkerRuntim
   }
 
   async function executeSuiteRun(suiteRun: SuiteRun): Promise<void> {
-      const db = handle!.db
+    const db = handle!.db
     const runLogger = logger.child({ suiteRunId: suiteRun.id })
     activeSuiteRunId = suiteRun.id
     activeController = new AbortController()
 
-    const suite = await getSuite(db, suiteRun.suiteId)
-    if (!suite) {
-      runLogger.error("suite vanished before it could run")
-      await transitionSuiteRun(db, suiteRun.id, "failed", {
-        errorCode: "config_invalid",
-        errorMessage: "The suite this run belongs to no longer exists.",
-        completedAt: new Date(),
-      })
-      return
-    }
-
-    const runtime = await createRuntime(config, runLogger)
+    // Everything below is inside the try. Building the runtime can fail for
+    // ordinary environment reasons — no Playwright browser installed, a Solari
+    // key that turns out to be invalid — and a throw from outside the
+    // try/finally would leave the claim held, the suite stuck in `preparing`,
+    // and (because the loop awaits this) the whole worker dead.
+    let runtime: Runtime | undefined
     try {
+      const suite = await getSuite(db, suiteRun.suiteId)
+      if (!suite) {
+        runLogger.error("suite vanished before it could run")
+        await transitionSuiteRun(db, suiteRun.id, "failed", {
+          errorCode: "config_invalid",
+          errorMessage: "The suite this run belongs to no longer exists.",
+          completedAt: new Date(),
+        })
+        return
+      }
+
+      runtime = await createRuntime(config, runLogger)
       const task = toTaskDefinition(suite.task)
       const agent = await createAgent(
         {
@@ -209,8 +244,22 @@ export function createWorkerRuntime(options: WorkerRuntimeOptions): WorkerRuntim
       })
     } catch (error) {
       runLogger.error("suite run failed", { error: describe(error) })
+      // The GauntletRunner marks its own failures terminal, but a failure
+      // BEFORE it starts — building the runtime, resolving the agent — would
+      // otherwise leave the suite stuck in `preparing` forever. With
+      // one-suite-at-a-time limiting, one such wedge blocks every future run.
+      await transitionSuiteRun(db, suiteRun.id, "failed", {
+        errorCode: error instanceof GauntletError ? error.code : "internal",
+        errorMessage: describe(error),
+        completedAt: new Date(),
+      }).catch((cause: unknown) => {
+        // Usually benign: the runner already reached a terminal state and the
+        // state machine refused the second write. Anything else means the run
+        // really is stuck, so it must not be swallowed silently.
+        runLogger.warn("could not mark the failed suite terminal", { error: describe(cause) })
+      })
     } finally {
-      await runtime.shutdown().catch((error: unknown) =>
+      await runtime?.shutdown().catch((error: unknown) =>
         runLogger.warn("runtime shutdown failed", { error: describe(error) }),
       )
       await releaseClaim(db, suiteRun.id).catch(() => {})

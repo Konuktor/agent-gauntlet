@@ -7,6 +7,8 @@
 *Benchmarks tell you whether your agent is smart.
 AgentGauntlet tells you whether it survives production.*
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Konuktor/agent-gauntlet)
+
 </div>
 
 ---
@@ -294,9 +296,12 @@ worker**: Render has no free plan for one, so `GAUNTLET_DEPLOY_MODE=single`
 hosts the existing worker runtime inside the web service's process — the same
 code, not a second copy.
 
+Use the button above, or:
+
 1. **Fork this repository** (or push your own copy).
 2. In Render, choose **New → Blueprint** and point it at your fork. Render reads
-   `render.yaml` and proposes the web service plus the database.
+   [`render.yaml`](https://github.com/Konuktor/agent-gauntlet/blob/master/render.yaml) and proposes the web service
+   plus the database.
 3. **Enter `SOLARI_API_KEY`** when prompted. Leave it blank to deploy a
    demo-only instance — the seeded dashboard works fully, and starting a real
    run is simply unavailable.
