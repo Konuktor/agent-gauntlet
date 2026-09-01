@@ -6,11 +6,12 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
-    "build": "tsup src/index.ts --format esm --target node22 --clean --out-dir dist",
+    "build": "tsup",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.122.0",
     "@gauntlet/agents": "workspace:*",
     "@gauntlet/config": "workspace:*",
     "@gauntlet/core": "workspace:*",
@@ -19,7 +20,17 @@
     "@gauntlet/fixture": "workspace:*",
     "@gauntlet/local-runtime": "workspace:*",
     "@gauntlet/perturbations": "workspace:*",
-    "@gauntlet/solari": "workspace:*"
+    "@gauntlet/solari": "workspace:*",
+    "@solarisdk/browser": "^0.1.2",
+    "@solarisdk/sdk": "^0.1.2",
+    "drizzle-orm": "^0.38.3",
+    "esbuild": "^0.24.2",
+    "patchright-core": "1.62.2",
+    "playwright": "^1.49.1",
+    "postgres": "^3.4.5",
+    "rrweb": "^2.1.1",
+    "yaml": "^2.7.0",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",

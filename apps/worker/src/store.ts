@@ -9,16 +9,16 @@ import {
   heartbeat as heartbeatQuery,
   type Database,
 } from "@gauntlet/db"
-import {
+import type {
   ArtifactStore,
-  type EvaluationResult,
-  type IndividualRunStatus,
-  type PlannedRun,
-  type RunEventInput,
-  type RunPatch,
-  type RunStore,
-  type SuiteMetrics,
-  type SuiteRunStatus,
+  EvaluationResult,
+  IndividualRunStatus,
+  PlannedRun,
+  RunEventInput,
+  RunPatch,
+  RunStore,
+  SuiteMetrics,
+  SuiteRunStatus,
 } from "@gauntlet/core"
 
 /**

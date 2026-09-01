@@ -152,7 +152,6 @@ export class FakeBrowserProvider implements BrowserProvider {
     this.live += 1
     this.peakConcurrent = Math.max(this.peakConcurrent, this.live)
     const id = `env-${index}`
-    const self = this
     const environment: BrowserEnvironment = {
       id,
       sessionId: `sess-${index}`,
@@ -161,11 +160,11 @@ export class FakeBrowserProvider implements BrowserProvider {
       page: fakePage(),
       signals: noopSignals,
       dispose: async () => {
-        if (!self.disposed.includes(id)) {
-          self.disposed.push(id)
-          self.live -= 1
+        if (!this.disposed.includes(id)) {
+          this.disposed.push(id)
+          this.live -= 1
         }
-        if (self.options.throwOnDispose) throw new Error("dispose exploded")
+        if (this.options.throwOnDispose) throw new Error("dispose exploded")
       },
     }
     this.created.push(environment)

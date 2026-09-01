@@ -12,7 +12,7 @@ import type { BrowserPerturbationOptions, FixturePerturbationConfig } from "../d
 import { classifyFailure, type Classification, type FailureEvidence } from "../failure/classifier.js"
 import { GauntletError } from "../errors.js"
 import { createRng } from "../random.js"
-import { Semaphore, sleep, withTimeout } from "../concurrency.js"
+import { sleep, withTimeout, type Semaphore } from "../concurrency.js"
 import { overlayProbeScript } from "../browser/page-scripts.js"
 import type { Logger } from "../logger.js"
 import type { PlannedRun, RunPatch, RunStore } from "./store.js"

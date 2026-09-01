@@ -1,0 +1,40 @@
+# AgentGauntlet — reliability gate configuration.
+#
+# `gauntlet run ./gauntlet.yaml` executes this suite and exits non-zero if any
+# configured threshold is missed. It needs no database, which is what makes it
+# usable as a CI step.
+version: 1
+
+agent:
+  type: reference
+  # naive | reference | resilient — the three built-in capability presets.
+  preset: reference
+
+task:
+  name: Complete Demo Checkout
+  description: >
+    Add Aurora Headphones to cart, apply coupon SAVE20, proceed to checkout,
+    enter Name: Ada Lovelace and City: London, continue to review, and stop
+    before submitting payment.
+  startUrl: "/"
+  maxSteps: 25
+  timeoutMs: 90000
+
+variants:
+  - baseline
+  - cookie_popup
+  - slow_api
+  - unexpected_modal
+  - mobile_viewport
+  - renamed_cta
+  - expired_session
+  - network_delay
+
+repetitions: 2
+
+thresholds:
+  # Overall pass rate across every scored run.
+  reliability: 0.85
+  # The control must hold. If baseline is failing, the task is broken, not the
+  # agent, and the perturbed numbers mean nothing.
+  baseline: 1.0

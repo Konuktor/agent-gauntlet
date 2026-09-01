@@ -49,7 +49,7 @@ describe("control plane", () => {
   it("reports health", async () => {
     const res = await fetch(`${base()}/__gauntlet/health`)
     expect(res.status).toBe(200)
-    expect((await res.json()).ok).toBe(true)
+    expect(((await res.json()) as { ok: boolean }).ok).toBe(true)
   })
 
   it("404s state for an unknown run rather than inventing one", async () => {
@@ -64,7 +64,7 @@ describe("control plane", () => {
   it("deletes a run", async () => {
     await register("delete-me")
     const res = await fetch(`${base()}/__gauntlet/session?run=delete-me`, { method: "DELETE" })
-    expect((await res.json()).ok).toBe(true)
+    expect(((await res.json()) as { ok: boolean }).ok).toBe(true)
     expect((await fetch(`${base()}/__gauntlet/state?run=delete-me`)).status).toBe(404)
   })
 })

@@ -2,48 +2,41 @@
 
 `[x]` done and verified · `[ ]` pending · `[!]` blocked
 
-## Phase 1 — scaffolding
-- [x] pnpm workspaces + Turborepo, strict TypeScript, ESLint 9 flat config, Prettier
-- [x] `packages/config`: Zod env schema, hard limits, secret redaction (20 tests)
-- [x] `.env.example`, `docker-compose.yml`, `vitest`/`playwright` configs
-- [x] Verified: `pnpm install`, `pnpm typecheck`
+Verification commands and their real output are recorded in the final report.
 
-## Phase 2 — database
-- [x] Drizzle schema, 9 tables, migration applied to Postgres 17
-- [x] DB-backed queue: `FOR UPDATE SKIP LOCKED` claim + heartbeat reclaim
-- [x] State-machine-guarded transitions, metrics refresh, event append
-- [x] Verified: `pnpm db:migrate`, 16 integration tests against real Postgres
+## Core product
+- [x] **Phase 1** — pnpm + Turborepo monorepo, strict TypeScript, ESLint 9, Prettier, Zod env schema, secret redaction
+- [x] **Phase 2** — Drizzle schema (9 tables), migrations, DB-backed queue (`FOR UPDATE SKIP LOCKED` + heartbeat reclaim), state-machine-guarded transitions
+- [x] **Phase 3** — Gauntlet Shop fixture: zero-dependency, per-run isolation, server-authoritative state endpoint, single-file bundle verified standalone
+- [x] **Phase 4** — 11 perturbations across ui/network/state/viewport/locale, deterministic from a derived seed, with a compile-time contract against the fixture's config shape
+- [x] **Phase 5** — Solari browser + sandbox + fixture providers; local Playwright providers with rrweb capture
+- [x] **Phase 6** — Reference Agent in three capability presets, plus an Anthropic-backed LLM agent
+- [x] **Phase 7** — Fixture-state evaluator, generic web assertions, 13-category deterministic failure classifier, failure clustering
+- [x] **Phase 8** — `GauntletRunner`: bounded concurrency, per-run pipeline, cleanup in `finally`, no automatic agent retries
+- [x] **Phase 9** — Repository agent contract, URL allowlist, sandbox execution, example agent
+- [x] **Phase 10** — Next.js API (Zod-validated), SSE live stream, worker with signal-safe shutdown
+- [x] **Phase 11** — Dashboard: landing, new suite, live run, results, run detail, regression comparison
+- [x] **Phase 12** — `gauntlet` CLI (demo/run/compare/doctor), database-free, threshold exit codes; GitHub Actions workflows
+- [x] **Phase 13** — 17 Playwright product E2E tests with deterministic seeding
+- [x] **Phase 14** — README, `SOLARI_NOTES.md`, `AGENT_CONTRACT.md`, `DEMO_SCRIPT.md`, `LAUNCH_POST.md`, cookbook pointer stub
+- [x] **Phase 15** — Final QA sweep
 
-## Phase 3 — Gauntlet Shop fixture
-- [x] Zero-dependency Node server, per-run isolation, server-authoritative state
-- [x] `/__gauntlet/{health,session,state}` control plane
-- [x] esbuild single-file bundle (33 KB) for sandbox delivery, verified standalone
-- [x] Verified: 44 tests incl. full HTTP task walkthrough and XSS escaping
+## Verified end to end
+- [x] 16-run gauntlet executed in local mode: **87.5%**, 14/16, 0 infrastructure errors, 16 rrweb replays captured
+- [x] Failure classification correct on real runs (`session_expired` → auth, `blocked_by_overlay` → unexpected_ui)
+- [x] CLI exit codes: `0` when thresholds are met, `1` when missed
+- [x] Dashboard inspected at 1440×900 and 390×844 from real screenshots
+- [x] Capability ladder measured: Naive 75.0% · Reference 87.5% · Resilient 100%
 
-## Phase 4 — perturbation engine
-- [x] 11 perturbations across ui / network / state / viewport / locale
-- [x] Deterministic from `sha256(suiteRunId|variant|repetition)`
-- [x] Compile-time contract between fixture config and domain config (verified to fail on drift)
-- [x] Verified: 19 tests, incl. "every perturbation actually perturbs"
+## Not executed
+- [!] **Real Solari acceptance test** — no `SOLARI_API_KEY` was available. The test
+  is written and skips with an explanatory message; see `docs/REAL_SOLARI_TEST.md`
+  for exactly what it does and how to run it.
 
-## Phase 5 — Solari + local adapters
-- [x] `SolariBrowserProvider` — `sessions.create()` for raw CDP, recording, release, replay
-- [x] `SolariSandboxProvider` — no-shell commands, preview URL, `kill()` in `finally`
-- [x] `SolariFixtureProvider` — sandbox-hosted shop on a public preview URL
-- [x] `LocalBrowserProvider` — real Playwright Chromium + rrweb capture (no credits)
-- [x] Verified: 47 adapter tests incl. 25 resource-lifecycle contracts
-- [ ] Real Solari smoke test (needs `SOLARI_API_KEY`)
-
-## Phase 6 — reference agents
-- [ ] Heuristic reference agent
-- [ ] LLM agent + Anthropic provider
-
-## Phase 7 — evaluators + failure classifier
-- [x] Deterministic classifier, 13 categories, failure clustering (17 tests)
-- [ ] `FixtureStateEvaluator` + generic web assertions
-
-## Phase 8 — orchestration
-- [ ] `GauntletRunner`, semaphores, cleanup
-
-## Phases 9-15
-- [ ] Repository agent contract, API + worker, dashboard, CLI, E2E, docs, QA
+## Stretch features
+- [x] Automatic failure clustering
+- [x] Agent comparison (three built-in capability presets on the same suite)
+- [x] Git provenance on a suite run (repo / branch / sha)
+- [ ] Live browser mosaic during a run
+- [ ] Reliability history across commits
+- [ ] Shareable read-only report

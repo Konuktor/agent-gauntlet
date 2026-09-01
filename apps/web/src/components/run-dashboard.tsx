@@ -30,7 +30,7 @@ export function RunDashboard({ initial }: { initial: SuiteRunView }) {
    * running behind a tab somebody forgot to close.
    */
   useEffect(() => {
-    if (!LIVE_STATUSES.has(view.status)) return
+    if (!live) return
     const source = new EventSource(`/api/suite-runs/${initial.id}/stream`)
 
     source.addEventListener("update", (event) => {
@@ -48,10 +48,10 @@ export function RunDashboard({ initial }: { initial: SuiteRunView }) {
     })
 
     return () => source.close()
-    // Re-subscribing on every view change would reconnect constantly; the
-    // stream is keyed to the run, and it ends itself when the run does.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initial.id, view.status === "queued" ? "live" : live ? "live" : "done"])
+    // Keyed on the run and on whether it is still live — NOT on the view
+    // itself. Depending on the view would tear down and re-open the stream on
+    // every update it delivers, which is a reconnect loop wearing a disguise.
+  }, [initial.id, live])
 
   const runIndex = useMemo(
     () => new Map(view.runs.map((r) => [`${r.variant}#${r.repetition}`, r.id])),

@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: gauntlet
+          POSTGRES_PASSWORD: gauntlet
+          POSTGRES_DB: gauntlet
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U gauntlet"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+
+    env:
+      DATABASE_URL: postgres://gauntlet:gauntlet@localhost:5433/gauntlet
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 11 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm db:migrate
+      - run: pnpm --filter @gauntlet/local-runtime exec playwright install --with-deps chromium
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm db:seed
+      - run: pnpm test:e2e
+      # The real-credential Solari acceptance test is never part of CI: it
+      # spends credits. Run it deliberately with SOLARI_E2E=1 pnpm test:solari.

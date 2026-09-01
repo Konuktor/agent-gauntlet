@@ -5,6 +5,7 @@ const baseURL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${PORT}`
 
 export default defineConfig({
   testDir: "./e2e",
+  globalSetup: "./e2e/global-setup.ts",
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
@@ -25,7 +26,11 @@ export default defineConfig({
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
-        command: `pnpm --filter @gauntlet/web run start -- --port ${PORT}`,
+        // PORT rather than `-- --port`: pnpm's `run <script> --` forwards the
+        // separator itself, and `next start --port` then reads "--" as the
+        // project directory.
+        command: `pnpm --filter @gauntlet/web run start`,
+        env: { PORT: String(PORT) },
         url: baseURL,
         reuseExistingServer: !process.env.CI,
         timeout: 180_000,

@@ -1,0 +1,79 @@
+# Reliability as a pull-request gate.
+#
+# Runs the same gauntlet a developer runs locally and fails the PR when the
+# agent's reliability drops below the threshold in gauntlet.yaml.
+name: AgentGauntlet
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  gauntlet:
+    name: Reliability
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with: { version: 11 }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Only needed for local mode. With SOLARI_API_KEY set, the browsers are
+      # Solari's and this step can be dropped.
+      - name: Install Chromium
+        run: pnpm --filter @gauntlet/local-runtime exec playwright install --with-deps chromium
+
+      - name: Run the gauntlet
+        id: gauntlet
+        env:
+          # Optional. Without it the suite runs locally against the bundled
+          # benchmark storefront — still a real measurement, just not on Solari.
+          SOLARI_API_KEY: ${{ secrets.SOLARI_API_KEY }}
+          # Keep well under the plan's concurrent-session cap: a 429 is not
+          # retryable and would fail the job for the wrong reason.
+          GAUNTLET_MAX_CONCURRENCY: 3
+          DATABASE_URL: postgres://unused/unused # the CLI never touches a database
+        run: |
+          pnpm gauntlet run ./gauntlet.yaml \
+            --report gauntlet-report.json \
+            --label "${{ github.head_ref || github.ref_name }} @ ${GITHUB_SHA::7}"
+
+      # Uploaded whether or not the gate passed — the report is most useful
+      # precisely when the job failed.
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gauntlet-report
+          path: |
+            gauntlet-report.json
+            .artifacts/**/replays/**
+          retention-days: 14
+
+      - name: Summarise
+        if: always()
+        run: |
+          {
+            echo '## AgentGauntlet'
+            echo
+            node -e '
+              const r = require("./gauntlet-report.json");
+              const m = r.metrics;
+              console.log(`**Reliability ${(m.reliability*100).toFixed(1)}%** (${m.passedRuns}/${m.scoredRuns} runs) · baseline ${m.baselineReliability===null?"—":(m.baselineReliability*100).toFixed(0)+"%"} · perturbed ${m.perturbedReliability===null?"—":(m.perturbedReliability*100).toFixed(0)+"%"}`);
+              console.log();
+              console.log("| Perturbation | Passed | Rate |");
+              console.log("|---|---:|---:|");
+              for (const v of m.byVariant) console.log(`| ${v.variantName} | ${v.passed}/${v.total} | ${(v.reliability*100).toFixed(0)}% |`);
+            ' 2>/dev/null || echo "_No report was produced._"
+          } >> "$GITHUB_STEP_SUMMARY"

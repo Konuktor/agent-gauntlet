@@ -10,7 +10,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "turbo run dev --parallel",
+    "dev": "concurrently -k -n web,worker -c cyan,magenta \"pnpm --filter @gauntlet/web run dev\" \"pnpm --filter @gauntlet/worker run dev\"",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
@@ -27,12 +27,14 @@
     "fixture:dev": "pnpm --filter @gauntlet/fixture run dev",
     "format": "prettier --write \"**/*.{ts,tsx,md,json,yml,yaml,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json,yml,yaml,css}\"",
-    "clean": "git clean -xdf node_modules dist .next .turbo"
+    "clean": "git clean -xdf node_modules dist .next .turbo",
+    "start": "concurrently -k -n web,worker -c cyan,magenta \"pnpm --filter @gauntlet/web run start\" \"pnpm --filter @gauntlet/worker run start\""
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
     "@playwright/test": "^1.49.1",
     "@types/node": "^22.10.5",
+    "concurrently": "^9.1.2",
     "eslint": "^9.18.0",
     "prettier": "^3.4.2",
     "tsx": "^4.19.2",
