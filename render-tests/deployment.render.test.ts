@@ -386,6 +386,30 @@ describe("render.yaml free-plan compatibility", () => {
     }
   })
 
+  it("sets no service-wide NODE_OPTIONS, which would starve the build", () => {
+    // Render applies service env vars to the build as well as the run. A
+    // 384 MB heap cap is right for a 512 MB instance and fatal for
+    // `next build`, which OOMed with "Reached heap limit".
+    const blueprint = readFileSync(resolve(import.meta.dirname, "../render.yaml"), "utf8")
+    const declared = /^\s*-\s*key:\s*NODE_OPTIONS\s*$/m.test(blueprint)
+    expect(declared, "NODE_OPTIONS belongs in the start command, not the service env").toBe(false)
+  })
+
+  it("still caps the heap at run time, where the 512 MB limit applies", () => {
+    const scripts = JSON.parse(readFileSync(resolve(import.meta.dirname, "../package.json"), "utf8"))
+      .scripts as Record<string, string>
+    expect(scripts["render:start"]).toMatch(/max-old-space-size=\d+/)
+  })
+
+  it("builds without corepack, which cannot symlink into the Node install", () => {
+    // `corepack enable` fails with EACCES on a build user that does not own
+    // the Node prefix. Render supplies pnpm from the lockfile already.
+    const scripts = JSON.parse(readFileSync(resolve(import.meta.dirname, "../package.json"), "utf8"))
+      .scripts as Record<string, string>
+    expect(scripts["render:build"]).not.toContain("corepack")
+    expect(scripts["render:build"]).toContain("--frozen-lockfile")
+  })
+
   it("keeps the shutdown budget inside the 30s window the free plan pins us to", () => {
     const server = readFileSync(resolve(import.meta.dirname, "../apps/web/server.ts"), "utf8")
     const budget = Number(/SHUTDOWN_BUDGET_MS = ([\d_]+)/.exec(server)?.[1]?.replace(/_/g, ""))

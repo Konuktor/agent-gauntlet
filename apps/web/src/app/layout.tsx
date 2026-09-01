@@ -5,6 +5,13 @@ import "@/styles/globals.css"
 import { clientCapabilities } from "@/lib/server"
 import { ModeBadge } from "@/components/primitives"
 
+// The layout reads runtime config to render the mode badge, so prerendering it
+// would require a live DATABASE_URL at build time — which broke the Render
+// build on `/_not-found`, the one route Next makes static on its own. Every
+// real page here is already force-dynamic; this is a dashboard over a
+// database, so there is nothing worth prerendering.
+export const dynamic = "force-dynamic"
+
 export const metadata: Metadata = {
   title: "AgentGauntlet — crash-test your browser agent",
   description:

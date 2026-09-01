@@ -76,6 +76,19 @@ No top-level `version:` key exists in the Blueprint spec.
 - Free web services have no shell access, no persistent disk, no scaling beyond
   one instance, and cannot run one-off jobs.
 
+## Three ways the build fails that nothing local catches
+
+Found by deploying, then reproduced in a clean clone (`git clone` + `NODE_ENV=production`,
+no `.env`) — which is the only local setup that reproduces any of them.
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `EACCES: permission denied, symlink ... -> /usr/bin/pnpm` | `corepack enable` cannot write to the Node prefix as the build user. | Drop corepack. Render supplies pnpm from `pnpm-lock.yaml` and honours `packageManager`. |
+| `FATAL ERROR: Reached heap limit` during `next build` | Render applies **service env vars to the build as well as the run**, so a `NODE_OPTIONS=--max-old-space-size=384` sized for the 512 MB instance also starves the build. | Keep `NODE_OPTIONS` out of the Blueprint; put the cap in `render:start`. |
+| `Invalid environment: DATABASE_URL: Required` prerendering `/_not-found` | The root layout reads runtime config for the mode badge, and `/_not-found` is the one route Next prerenders on its own. | `export const dynamic = "force-dynamic"` in the root layout. Every real page already declared it. |
+
+`pnpm test:render` now asserts all three, so they fail in the repo rather than on Render.
+
 ## Shutdown contract
 
 Render sends `SIGTERM` and waits `maxShutdownDelaySeconds` before `SIGKILL`.

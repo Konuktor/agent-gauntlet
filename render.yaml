@@ -33,10 +33,9 @@ services:
         value: "22"
       - key: NODE_ENV
         value: production
-      # Free instances have 512 MB. Capping the heap makes V8 collect early
-      # instead of being OOM-killed mid-suite.
-      - key: NODE_OPTIONS
-        value: --max-old-space-size=384
+      # No NODE_OPTIONS here on purpose. Render applies service env vars to the
+      # BUILD as well as the run, and `next build` OOMs under a 384 MB heap.
+      # The runtime cap lives in the start command instead — see `render:start`.
       - key: GAUNTLET_DEPLOY_MODE
         value: single
 

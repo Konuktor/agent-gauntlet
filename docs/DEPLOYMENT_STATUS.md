@@ -62,6 +62,6 @@ deployment-wide outage: one wedged run blocks every later one until a redeploy.
 - [x] `pnpm gauntlet demo` — 16/16 runs in 33s, 0 infrastructure errors, baseline 100%, perturbed 85.7%, overall 87.5% vs a 90% threshold, exit 1 (the gate firing, as designed)
 - [x] Secret audit over working tree AND all history blobs — only fake redaction fixtures
 - [ ] Public GitHub repository pushed (repo created: Konuktor/agent-gauntlet)
-- [ ] Render deployment live, health green
+- [ ] Render deployment live, health green — Blueprint validates; build reproduced and fixed in a clean clone (corepack EACCES, build-time OOM, prerender needing DATABASE_URL)
 - [ ] Real Solari acceptance test executed (needs a key)
 - [ ] Production screenshots at 1440×900 and 390×844
