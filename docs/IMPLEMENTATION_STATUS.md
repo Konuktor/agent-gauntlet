@@ -21,6 +21,19 @@ Verification commands and their real output are recorded in the final report.
 - [x] **Phase 14** — README, `SOLARI_NOTES.md`, `AGENT_CONTRACT.md`, `DEMO_SCRIPT.md`, `LAUNCH_POST.md`, cookbook pointer stub
 - [x] **Phase 15** — Final QA sweep
 
+## Final verification (all green)
+
+| Command | Result |
+|---|---|
+| `pnpm install` | ok |
+| `pnpm typecheck` | 13/13 packages |
+| `pnpm lint` | 12/12 packages |
+| `pnpm test` | **309 passed**, 21 files |
+| `pnpm build` | 4/4 apps |
+| `pnpm test:e2e` | **34 passed** (desktop + phone viewport) |
+| `pnpm test:solari` | skipped, with an explanatory message (no credential) |
+| `pnpm gauntlet demo` | **87.5%**, exits `1` against its 90% threshold |
+
 ## Verified end to end
 - [x] 16-run gauntlet executed in local mode: **87.5%**, 14/16, 0 infrastructure errors, 16 rrweb replays captured
 - [x] Failure classification correct on real runs (`session_expired` → auth, `blocked_by_overlay` → unexpected_ui)

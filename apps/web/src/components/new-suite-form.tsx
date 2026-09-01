@@ -4,7 +4,7 @@ import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2, Play } from "lucide-react"
 import { CATEGORY_LABELS, type PerturbationCategory } from "@gauntlet/core/shared"
-import type { ClientCapabilities } from "@/lib/server"
+import type { ClientCapabilities } from "@/lib/capabilities"
 import { ErrorPanel, ModeBadge, Panel } from "./primitives"
 
 interface Catalog {

@@ -2,6 +2,7 @@ import "server-only"
 import { parseEnv, type GauntletConfig } from "@gauntlet/config"
 import { createLogger, type Logger } from "@gauntlet/core"
 import { getDb, loadDotEnv, type Database } from "@gauntlet/db"
+import type { ClientCapabilities } from "./capabilities.js"
 
 loadDotEnv()
 
@@ -27,15 +28,7 @@ export function logger(): Logger {
   return createLogger({ component: "web" }, { level: config().LOG_LEVEL })
 }
 
-/** The safe subset of configuration a browser is allowed to know. */
-export interface ClientCapabilities {
-  mode: "solari" | "local"
-  hasSolari: boolean
-  hasLlm: boolean
-  maxConcurrency: number
-  maxRunsPerSuite: number
-  llmModel: string
-}
+export type { ClientCapabilities }
 
 export function clientCapabilities(): ClientCapabilities {
   const c = config()
