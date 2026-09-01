@@ -23,7 +23,6 @@ class FakeSolariError extends Error {
   constructor(
     message: string,
     readonly status?: number,
-    readonly cause?: unknown,
     readonly code?: string,
   ) {
     super(message)
@@ -200,7 +199,7 @@ describe("cleanup", () => {
   })
 
   it("leaves nothing to release when session creation itself failed", async () => {
-    sessions.create.mockRejectedValue(new FakeSolariError("cap reached", 429, undefined, "ConcurrencyLimitExceeded"))
+    sessions.create.mockRejectedValue(new FakeSolariError("cap reached", 429, "ConcurrencyLimitExceeded"))
     await expect(provider().create({ recording: false, stealth: false })).rejects.toMatchObject({
       code: "solari_concurrency",
     })
@@ -245,7 +244,7 @@ describe("retries", () => {
   // Retrying a concurrency limit burns quota against a wall.
   it("does not retry a concurrency limit", async () => {
     sessions.create.mockRejectedValue(
-      new FakeSolariError("cap", 429, undefined, "ConcurrencyLimitExceeded"),
+      new FakeSolariError("cap", 429, "ConcurrencyLimitExceeded"),
     )
     await expect(provider().create({ recording: false, stealth: false })).rejects.toMatchObject({
       code: "solari_concurrency",

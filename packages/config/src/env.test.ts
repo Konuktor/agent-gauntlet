@@ -53,7 +53,7 @@ describe("parseEnv", () => {
   })
 
   it("defaults the model per provider and honours an override", () => {
-    expect(parseEnv({ ...base }).llmModel).toBe("claude-sonnet-5")
+    expect(parseEnv({ ...base }).llmModel).toBe("claude-opus-5")
     expect(parseEnv({ ...base, LLM_PROVIDER: "openai" }).llmModel).toBe("gpt-4.1-mini")
     expect(parseEnv({ ...base, LLM_MODEL: "claude-opus-5" }).llmModel).toBe("claude-opus-5")
   })

@@ -73,7 +73,7 @@ export interface GauntletConfig extends RawEnv {
 }
 
 const DEFAULT_MODELS: Record<RawEnv["LLM_PROVIDER"], string> = {
-  anthropic: "claude-sonnet-5",
+  anthropic: "claude-opus-5",
   openai: "gpt-4.1-mini",
 }
 

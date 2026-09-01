@@ -20,3 +20,4 @@ export {
   type FindOptions,
   type MatchResult,
 } from "./targeting.js"
+export * from "./repository/index.js"

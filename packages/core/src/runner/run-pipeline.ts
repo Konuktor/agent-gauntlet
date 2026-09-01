@@ -130,6 +130,7 @@ export async function executeRun(
     recorder.lifecycle("agent_started", { agent: deps.agent.name })
 
     const startUrl = buildStartUrl(deps.fixture.baseUrl, deps.task.startUrl, run.id)
+    const cdpEndpoint = deps.browsers.rawCdpEndpoint?.(environment)
     try {
       agentResult = await withTimeout(
         (timeoutSignal) =>
@@ -139,6 +140,9 @@ export async function executeRun(
             startUrl,
             page: environment!.page,
             ...(deps.sandboxes ? { sandboxes: deps.sandboxes } : {}),
+            // Only materialised here, only for the agent that needs it, and
+            // never written to the store or the log.
+            ...(cdpEndpoint ? { cdpEndpoint } : {}),
             maxSteps: deps.task.maxSteps,
             signal: timeoutSignal,
             recorder,

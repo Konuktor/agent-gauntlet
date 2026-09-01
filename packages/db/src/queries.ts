@@ -86,6 +86,39 @@ export async function getSuiteRun(db: Database, suiteRunId: string): Promise<Sui
   return row ?? null
 }
 
+export interface SuiteRunContext {
+  suiteId: string
+  suiteName: string
+  agentName: string
+  agentType: string
+  taskName: string
+  taskDescription: string
+}
+
+/** Names surrounding a suite run, for headers and breadcrumbs. Lives here so
+ *  the web app never has to build SQL of its own. */
+export async function getSuiteRunContext(
+  db: Database,
+  suiteRunId: string,
+): Promise<SuiteRunContext | null> {
+  const [row] = await db
+    .select({
+      suiteId: suites.id,
+      suiteName: suites.name,
+      agentName: agents.name,
+      agentType: agents.type,
+      taskName: taskDefinitions.name,
+      taskDescription: taskDefinitions.description,
+    })
+    .from(suiteRuns)
+    .innerJoin(suites, eq(suites.id, suiteRuns.suiteId))
+    .innerJoin(agents, eq(agents.id, suites.agentId))
+    .innerJoin(taskDefinitions, eq(taskDefinitions.id, suites.taskDefinitionId))
+    .where(eq(suiteRuns.id, suiteRunId))
+    .limit(1)
+  return row ?? null
+}
+
 export async function listIndividualRuns(db: Database, suiteRunId: string): Promise<IndividualRun[]> {
   return db
     .select()
@@ -257,6 +290,23 @@ export async function transitionIndividualRun(
     if (!updated) throw new Error(`individual run ${runId} vanished mid-transition`)
     return updated
   })
+}
+
+/**
+ * Update a run WITHOUT changing its status.
+ *
+ * Separate from `transitionIndividualRun` so a plain field write (a session id,
+ * a replay path) does not have to read the current status back just to satisfy
+ * the state machine — which would turn every progress write into two queries.
+ */
+export async function patchIndividualRun(
+  db: Database,
+  runId: string,
+  patch: Partial<typeof individualRuns.$inferInsert>,
+): Promise<void> {
+  if (Object.keys(patch).length === 0) return
+  const { status: _ignored, ...safe } = patch
+  await db.update(individualRuns).set(safe).where(eq(individualRuns.id, runId))
 }
 
 export async function appendRunEvents(

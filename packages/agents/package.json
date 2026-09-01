@@ -14,7 +14,8 @@
     "@gauntlet/config": "workspace:*",
     "@gauntlet/core": "workspace:*",
     "@anthropic-ai/sdk": "^0.122.0",
-    "zod": "^3.24.1"
+    "zod": "^3.24.1",
+    "yaml": "^2.7.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",

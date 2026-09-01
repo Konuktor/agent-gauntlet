@@ -53,6 +53,18 @@ export interface BrowserProvider {
    * evidence infrastructure — its absence must never flip a pass to a fail.
    */
   fetchReplay(environment: BrowserEnvironment, signal?: AbortSignal): Promise<ReplayArtifact | null>
+  /**
+   * The RAW, publicly routable CDP endpoint for an environment, when the
+   * provider can expose one.
+   *
+   * Needed only by agents that connect to the browser themselves from another
+   * machine — a repository agent inside a Solari Sandbox. Local mode returns
+   * undefined on purpose: its endpoint is a loopback address that a remote VM
+   * cannot reach, and handing one over would fail confusingly.
+   *
+   * The value is a CREDENTIAL. Pass it, never persist or log it.
+   */
+  rawCdpEndpoint?(environment: BrowserEnvironment): string | undefined
   /** Release process-wide client resources. In Solari's case this is REQUIRED:
    *  the browser client holds a loopback proxy that keeps Node's event loop
    *  alive, and skipping it hangs the process forever. */

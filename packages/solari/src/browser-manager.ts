@@ -138,6 +138,11 @@ export class SolariBrowserProvider implements BrowserProvider {
     return CDP_ENDPOINTS.get(environment)
   }
 
+  /** Port implementation; see `BrowserProvider.rawCdpEndpoint`. */
+  rawCdpEndpoint(environment: BrowserEnvironment): string | undefined {
+    return SolariBrowserProvider.cdpEndpointOf(environment)
+  }
+
   async fetchReplay(
     environment: BrowserEnvironment,
     signal?: AbortSignal,

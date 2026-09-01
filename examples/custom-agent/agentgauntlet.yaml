@@ -1,0 +1,22 @@
+# The AgentGauntlet repository-agent contract.
+#
+# Put this file at the root of your agent's repository. AgentGauntlet clones the
+# repo into a fresh Solari Sandbox, runs `install`, then runs `run` once per
+# gauntlet run — never on the AgentGauntlet host.
+version: 1
+
+install:
+  command: npm
+  args: ["install", "--omit=dev"]
+
+run:
+  command: node
+  args: ["agent.mjs"]
+
+# Wall-clock ceilings. Both are clamped to AgentGauntlet's own hard limits.
+installTimeoutMs: 300000
+timeoutMs: 120000
+
+# Literal values only; never interpolated.
+env:
+  AGENT_LOG_LEVEL: info
