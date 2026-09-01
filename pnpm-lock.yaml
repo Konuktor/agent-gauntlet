@@ -126,6 +126,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@anthropic-ai/sdk':
+        specifier: ^0.122.0
+        version: 0.122.0(zod@3.25.76)
       '@gauntlet/agents':
         specifier: workspace:*
         version: link:../../packages/agents
@@ -147,27 +150,54 @@ importers:
       '@gauntlet/solari':
         specifier: workspace:*
         version: link:../../packages/solari
+      '@gauntlet/worker':
+        specifier: workspace:*
+        version: link:../worker
       '@solarisdk/browser':
+        specifier: ^0.1.2
+        version: 0.1.2
+      '@solarisdk/sdk':
         specifier: ^0.1.2
         version: 0.1.2
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      drizzle-orm:
+        specifier: ^0.38.3
+        version: 0.38.4(@types/react@19.2.18)(postgres@3.4.9)(react@19.2.8)
+      esbuild:
+        specifier: ^0.24.2
+        version: 0.24.2
       lucide-react:
         specifier: ^0.469.0
         version: 0.469.0(react@19.2.8)
       next:
         specifier: ^15.1.4
         version: 15.5.24(@playwright/test@1.62.1)(@types/node@22.20.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      patchright-core:
+        specifier: 1.62.2
+        version: 1.62.2
+      playwright:
+        specifier: ^1.49.1
+        version: 1.62.1
+      postgres:
+        specifier: ^3.4.5
+        version: 3.4.9
       react:
         specifier: ^19.0.0
         version: 19.2.8
       react-dom:
         specifier: ^19.0.0
         version: 19.2.8(react@19.2.8)
+      rrweb:
+        specifier: ^2.1.1
+        version: 2.1.1
       tailwind-merge:
         specifier: ^2.6.0
         version: 2.6.1
+      yaml:
+        specifier: ^2.7.0
+        version: 2.9.0
       zod:
         specifier: ^3.24.1
         version: 3.25.76
@@ -187,6 +217,9 @@ importers:
       tailwindcss:
         specifier: ^4.0.0
         version: 4.3.3
+      tsup:
+        specifier: ^8.3.5
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.26)(tsx@4.23.13)(typescript@5.9.3)(yaml@2.9.0)
       typescript:
         specifier: ^5.7.3
         version: 5.9.3

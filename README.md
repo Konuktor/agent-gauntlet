@@ -11,10 +11,32 @@ AgentGauntlet tells you whether it survives production.*
 
 ---
 
-A browser agent passing once proves almost nothing. AgentGauntlet runs the same
-task **many times, across changing UI, network, session and browser conditions**,
-judges completion from server-side state the agent cannot fake, and shows you
-exactly where it breaks.
+Benchmarks tell you whether your agent can complete a task. **AgentGauntlet
+measures whether it keeps completing it when the environment changes** — the
+same task run many times across changing UI, network, session and browser
+conditions, judged from server-side state the agent cannot fake.
+
+**Bring any agent.** AgentGauntlet doesn't care how it thinks — only whether it
+survives. The built-in Reference Agent is deterministic and needs no model API
+key; your own agent runs from its git repository inside an isolated sandbox,
+whatever framework or model it uses.
+
+```
+                    AgentGauntlet
+                          │
+             ┌────────────┴────────────┐
+       Reference Agent          External Agent
+       deterministic            repository / CDP
+             └────────────┬────────────┘
+                          ↓
+                    Solari Browser
+                          ↓
+                  perturbation suite
+                          ↓
+                      evaluator
+                          ↓
+                     reliability
+```
 
 ```
   ✓ baseline           2/2        Reliability   87.5%  (14/16)
@@ -139,7 +161,9 @@ so. Add `SOLARI_API_KEY` to `.env` and the same suites run on Solari.
 | `DATABASE_URL` | `…localhost:5433/gauntlet` | Postgres, matching `docker-compose.yml` |
 | `SOLARI_API_KEY` | — | Enables real mode. Absent ⇒ local mode |
 | `GAUNTLET_MODE` | `auto` | `auto` \| `solari` \| `local`. `solari` without a key is a startup error, never a silent downgrade |
-| `ANTHROPIC_API_KEY` | — | Only for the optional LLM agent |
+| `GAUNTLET_RUN_TOKEN` | — | Access code required to *start* a run. Mandatory for a public deployment |
+| `GAUNTLET_DEPLOY_MODE` | `split` | `single` runs web + worker in one process (Render free tier) |
+| `ANTHROPIC_API_KEY` | — | Optional, experimental adapter only. Never required |
 | `GAUNTLET_MAX_CONCURRENCY` | `3` | Parallel browsers. Solari's Free plan allows 3 |
 | `GAUNTLET_MAX_SANDBOXES` | `1` | Free plan allows 1 |
 | `GAUNTLET_MAX_RUNS_PER_SUITE` | `50` | Cost ceiling |
@@ -169,9 +193,10 @@ dishonest.
 
 Three ways to put an agent in the gauntlet.
 
-**Reference Agent** (built in, no credentials). A deterministic agent that parses
-the task description into intents and targets controls by accessible name. It
-ships in three capability presets, which is the point:
+**Reference Agent** — the default. Deterministic, no LLM API key required. It
+parses the task description into intents and targets controls by accessible
+name, so results are reproducible rather than sampled. Ships in three capability
+presets, which is the point:
 
 | Preset | Handles overlays | Waits for late elements | Recovers sessions | Measured |
 |---|:--:|:--:|:--:|---|
@@ -182,15 +207,17 @@ ships in three capability presets, which is the point:
 Same task, same fixture, same 16 runs. That table is the product's argument in
 miniature: each capability is worth exactly 12.5 points, and you can measure it.
 
-**LLM Agent.** A provider-neutral loop — observe, plan one schema-constrained
-action, execute, repeat — with an Anthropic implementation. Observations are
-bounded (URL, title, ≤2 KB of visible text, ≤40 interactive elements, the last
-five actions); no raw DOM is ever sent.
-
-**Repository Agent.** Your agent, from your git repository, cloned and executed
-**inside a Solari Sandbox** — never on the AgentGauntlet host. See
+**Repository Agent** — bring your own. Your agent, from your git repository,
+cloned and executed **inside a Solari Sandbox**, never on the AgentGauntlet
+host. It receives a scoped CDP endpoint and drives a real cloud browser; it
+never receives a Solari API key. Use Claude, GPT, Gemini, browser-use,
+Stagehand, or something you wrote yourself — the harness is indifferent. See
 [docs/AGENT_CONTRACT.md](docs/AGENT_CONTRACT.md) and
 [examples/custom-agent](examples/custom-agent).
+
+**LLM Agent** *(optional, experimental)*. A small provider-neutral planning loop
+with an Anthropic implementation, included to show the adapter seam. It is never
+on the default path and its credential is never required.
 
 ---
 
@@ -256,6 +283,54 @@ workflow is at [.github/workflows/agent-gauntlet.yml](.github/workflows/agent-ga
   <img src="docs/images/compare.png" alt="Regression comparison between two runs of the same suite, attributing the drop to one perturbation" width="900">
   <br><em>Two runs of the same suite. 87.5% &rarr; 75.0%, and it names the perturbation that moved.</em>
 </div>
+
+---
+
+## Deploy to Render
+
+One web service and one Postgres, from the checked-in
+[`render.yaml`](render.yaml). There is deliberately **no separate background
+worker**: Render has no free plan for one, so `GAUNTLET_DEPLOY_MODE=single`
+hosts the existing worker runtime inside the web service's process — the same
+code, not a second copy.
+
+1. **Fork this repository** (or push your own copy).
+2. In Render, choose **New → Blueprint** and point it at your fork. Render reads
+   `render.yaml` and proposes the web service plus the database.
+3. **Enter `SOLARI_API_KEY`** when prompted. Leave it blank to deploy a
+   demo-only instance — the seeded dashboard works fully, and starting a real
+   run is simply unavailable.
+4. Render **generates `GAUNTLET_RUN_TOKEN`** for you. Copy it from the service's
+   Environment tab; it is the access code for starting real runs.
+5. **Apply.** The first deploy builds, migrates on startup, and comes up healthy
+   at `/api/health`.
+6. Open the app and **explore the seeded demo** — no code needed.
+7. To spend credits, go to **Run a real gauntlet**, enter the access code, and
+   start a suite.
+
+Migrations run inside the start command rather than a pre-deploy step, because
+[the free plan has no `preDeployCommand`](docs/RENDER_NOTES.md). They are
+idempotent; a failure exits non-zero so Render marks the deploy unhealthy
+instead of serving traffic against a half-migrated schema.
+
+### What to know before you rely on it
+
+- **The free web service sleeps** after 15 minutes without traffic, and the next
+  request takes about a minute to wake it. There is no keep-alive hack here on
+  purpose — it would burn the free instance-hours for nothing.
+- **Free Render Postgres expires 30 days after creation** (plus a 14-day grace
+  period). Fine for a demo; move to a paid plan for anything you care about.
+- **Real runs spend real Solari credits.** Each run in a suite is one cloud
+  browser session. The UI states the exact run count before anything starts, and
+  concurrency defaults to 3 to stay inside Solari's Free plan.
+- **The filesystem is ephemeral.** Nothing important depends on it: results,
+  events and session replays all live in Postgres.
+
+### Running it as two services instead
+
+Nothing about the split topology was removed. On a paid plan, run
+`apps/web` and `apps/worker` as separate Render services, leave
+`GAUNTLET_DEPLOY_MODE` at `split`, and point both at the same database.
 
 ---
 

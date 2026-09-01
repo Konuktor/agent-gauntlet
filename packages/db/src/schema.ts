@@ -1,5 +1,6 @@
 import {
   boolean,
+  customType,
   doublePrecision,
   index,
   integer,
@@ -221,6 +222,31 @@ export const runEvents = pgTable(
   (t) => [uniqueIndex("run_events_unique").on(t.individualRunId, t.sequence)],
 )
 
+/**
+ * rrweb session replays, stored in the database rather than on disk.
+ *
+ * Render's filesystem is ephemeral: a replay written to local disk vanishes on
+ * the next deploy or restart, and the run detail page would then show evidence
+ * that used to exist. Postgres is the only durable store this deployment has.
+ *
+ * Kept in its own table so `individual_runs` — which is read on every dashboard
+ * poll — stays narrow and does not drag a megabyte of bytea along with it.
+ */
+export const replayArtifacts = pgTable("replay_artifacts", {
+  individualRunId: uuid("individual_run_id")
+    .primaryKey()
+    .references(() => individualRuns.id, { onDelete: "cascade" }),
+  /** Gzipped rrweb NDJSON. Capped by LIMITS.maxReplayBytes before it gets here. */
+  compressed: customType<{ data: Buffer; driverData: Buffer }>({
+    dataType: () => "bytea",
+  })("compressed").notNull(),
+  eventCount: integer("event_count").notNull(),
+  /** Uncompressed size, for display. */
+  rawBytes: integer("raw_bytes").notNull(),
+  source: text("source").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const evaluationResults = pgTable(
   "evaluation_results",
   {
@@ -274,6 +300,7 @@ export type SuiteRun = typeof suiteRuns.$inferSelect
 export type IndividualRun = typeof individualRuns.$inferSelect
 export type RunEventRow = typeof runEvents.$inferSelect
 export type EvaluationResultRow = typeof evaluationResults.$inferSelect
+export type ReplayArtifactRow = typeof replayArtifacts.$inferSelect
 
 export type NewSuiteRun = typeof suiteRuns.$inferInsert
 export type NewIndividualRun = typeof individualRuns.$inferInsert

@@ -1,8 +1,6 @@
-import { createReadStream } from "node:fs"
-import { stat } from "node:fs/promises"
-import { Readable } from "node:stream"
-import { createGunzip } from "node:zlib"
-import { getIndividualRun, getSuiteRun } from "@gauntlet/db"
+import { gunzip as gunzipCallback } from "node:zlib"
+import { promisify } from "node:util"
+import { getIndividualRun, getReplayArtifact, getSuiteRun } from "@gauntlet/db"
 import { mintReplayUrl } from "@gauntlet/solari/replay-url"
 import { apiError, notFound, ok } from "@/lib/api"
 import { config, db } from "@/lib/server"
@@ -17,6 +15,10 @@ export const dynamic = "force-dynamic"
  * We serve the stored ARTIFACT, not a stored URL. Solari's `getReplayUrl`
  * returns a presigned link that expires, so persisting one would persist
  * something that stops working; the recording itself does not expire.
+ *
+ * The artifact lives in Postgres rather than on local disk, because the
+ * deployment target's filesystem is ephemeral and a replay on it would quietly
+ * vanish between deploys.
  *
  * `?url=1` mints a fresh presigned Solari URL on demand — server-side, so the
  * API key never leaves this process and the browser only ever sees a
@@ -42,7 +44,9 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
       return ok(minted ?? { url: null, reason: "Solari has no replay for this session." })
     }
 
-    if (run.replayStatus !== "available" || !run.replayArtifactPath) {
+    const stored = run.replayStatus === "available" ? await getReplayArtifact(database, id) : null
+
+    if (!stored) {
       const suiteRun = await getSuiteRun(database, run.suiteRunId)
       return ok(
         {
@@ -52,20 +56,20 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
           reason:
             run.replayStatus === "none"
               ? "This run was not recorded."
-              : "The replay never finished uploading. That does not affect the run's result.",
+              : run.replayStatus === "available"
+                ? "The recording is no longer stored. Open the Solari replay instead."
+                : "The replay never finished uploading. That does not affect the run's result.",
         },
         { status: 200 },
       )
     }
 
-    await stat(run.replayArtifactPath)
-    const ndjson = Readable.toWeb(
-      createReadStream(run.replayArtifactPath).pipe(createGunzip()),
-    ) as ReadableStream<Uint8Array>
+    const ndjson = await gunzip(stored.compressed)
 
-    return new Response(ndjson, {
+    return new Response(new Uint8Array(ndjson), {
       headers: {
         "content-type": "application/x-ndjson; charset=utf-8",
+        "content-length": String(ndjson.length),
         "cache-control": "private, max-age=300",
       },
     })
@@ -73,3 +77,5 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
     return apiError(error)
   }
 }
+
+const gunzip = promisify(gunzipCallback)

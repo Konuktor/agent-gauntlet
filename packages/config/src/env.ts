@@ -45,10 +45,30 @@ export const envSchema = z.object({
 
   GAUNTLET_MODE: z.enum(["auto", "solari", "local"]).default("auto"),
 
-  LLM_PROVIDER: z.enum(["anthropic", "openai"]).default("anthropic"),
-  LLM_MODEL: optionalString,
+  /**
+   * How this process is deployed.
+   *
+   * `split`  — a web service and a separate worker process (the local default)
+   * `single` — one process running both, for a single Render web service
+   */
+  GAUNTLET_DEPLOY_MODE: z.enum(["split", "single"]).default("split"),
+
+  /**
+   * Gate for runs that spend real money.
+   *
+   * When set, starting a gauntlet requires this token; the seeded demo stays
+   * fully public. Unset means unrestricted, which is right for a laptop and
+   * wrong for a public URL — `assertPublicDeploymentIsSafe` enforces that.
+   */
+  GAUNTLET_RUN_TOKEN: optionalString,
+
+  /**
+   * OPTIONAL, EXPERIMENTAL. AgentGauntlet is agent-agnostic: the built-in
+   * Reference Agent is deterministic and needs no model at all, and external
+   * agents bring their own. This only powers the optional LLM agent adapter.
+   */
   ANTHROPIC_API_KEY: optionalString,
-  OPENAI_API_KEY: optionalString,
+  LLM_MODEL: optionalString,
 
   GAUNTLET_MAX_CONCURRENCY: intInRange(1, LIMITS.maxConcurrency, 3),
   GAUNTLET_MAX_SANDBOXES: intInRange(1, LIMITS.maxSandboxes, 1),
@@ -56,7 +76,11 @@ export const envSchema = z.object({
 
   GAUNTLET_FIXTURE_URL: optionalString,
   GAUNTLET_ARTIFACT_DIR: z.string().default(".artifacts"),
-  GAUNTLET_WEB_URL: z.string().url().default("http://localhost:3000"),
+  /** Public origin, when the app is not reached on localhost. */
+  GAUNTLET_PUBLIC_URL: optionalString,
+  /** Injected by Render; used to derive the public origin automatically. */
+  RENDER_EXTERNAL_URL: optionalString,
+  PORT: intInRange(1, 65535, 3000),
 
   SOLARI_E2E: boolish.default(false),
 })
@@ -67,20 +91,20 @@ export interface GauntletConfig extends RawEnv {
   /** The mode a *new* run would execute in, after resolving `auto`. */
   readonly resolvedMode: Exclude<ExecutionMode, "demo">
   readonly hasSolariCredentials: boolean
+  /** Whether the OPTIONAL LLM agent adapter is usable. Never a requirement. */
   readonly hasLlmCredentials: boolean
-  /** Model id for the configured provider, defaulted per provider. */
   readonly llmModel: string
+  /** True when starting a real run requires a token. */
+  readonly runsAreGated: boolean
+  /** The app's public origin, however it is reachable. */
+  readonly publicUrl: string
 }
 
-const DEFAULT_MODELS: Record<RawEnv["LLM_PROVIDER"], string> = {
-  anthropic: "claude-opus-5",
-  openai: "gpt-4.1-mini",
-}
+/** Only used by the optional LLM adapter. */
+const DEFAULT_LLM_MODEL = "claude-opus-5"
 
 export function buildConfig(raw: RawEnv): GauntletConfig {
   const hasSolariCredentials = Boolean(raw.SOLARI_API_KEY)
-  const hasLlmCredentials =
-    raw.LLM_PROVIDER === "anthropic" ? Boolean(raw.ANTHROPIC_API_KEY) : Boolean(raw.OPENAI_API_KEY)
 
   // `auto` never silently downgrades a configured real mode: an explicit
   // GAUNTLET_MODE=solari without a key is a startup error, not a fallback.
@@ -91,9 +115,24 @@ export function buildConfig(raw: RawEnv): GauntletConfig {
     ...raw,
     resolvedMode,
     hasSolariCredentials,
-    hasLlmCredentials,
-    llmModel: raw.LLM_MODEL ?? DEFAULT_MODELS[raw.LLM_PROVIDER],
+    hasLlmCredentials: Boolean(raw.ANTHROPIC_API_KEY),
+    llmModel: raw.LLM_MODEL ?? DEFAULT_LLM_MODEL,
+    runsAreGated: Boolean(raw.GAUNTLET_RUN_TOKEN),
+    publicUrl: resolvePublicUrl(raw),
   }
+}
+
+/**
+ * Where this app actually lives.
+ *
+ * An explicit setting wins; otherwise Render tells us; otherwise localhost.
+ * Nothing in production should ever emit a localhost URL, so this is the single
+ * place that decides.
+ */
+function resolvePublicUrl(raw: RawEnv): string {
+  const explicit = raw.GAUNTLET_PUBLIC_URL ?? raw.RENDER_EXTERNAL_URL
+  if (explicit) return explicit.replace(/\/$/, "")
+  return `http://localhost:${raw.PORT}`
 }
 
 export class ConfigError extends Error {
@@ -127,6 +166,29 @@ export function parseEnv(source: Record<string, string | undefined> = process.en
   }
 
   return config
+}
+
+/**
+ * Refuse to boot a public deployment that would let anonymous visitors spend
+ * the operator's Solari credits.
+ *
+ * Deliberately a hard failure rather than a warning: the whole point of a run
+ * token is that forgetting it is expensive, and a log line nobody reads is not
+ * a control. A laptop with no Solari key is unaffected, because there is
+ * nothing there to spend.
+ */
+export function assertPublicDeploymentIsSafe(config: GauntletConfig): void {
+  const isPublic = config.NODE_ENV === "production" && Boolean(config.RENDER_EXTERNAL_URL ?? config.GAUNTLET_PUBLIC_URL)
+  if (!isPublic) return
+  if (!config.hasSolariCredentials) return
+  if (config.runsAreGated) return
+
+  throw new ConfigError(
+    "This deployment is public and has a Solari key, but no GAUNTLET_RUN_TOKEN. " +
+      "Anyone who finds the URL could spend your Solari credits. Set GAUNTLET_RUN_TOKEN " +
+      "to a secret value, or remove SOLARI_API_KEY to run in demo-only mode.",
+    ["GAUNTLET_RUN_TOKEN: required for a public deployment that can spend credits"],
+  )
 }
 
 let cached: GauntletConfig | undefined

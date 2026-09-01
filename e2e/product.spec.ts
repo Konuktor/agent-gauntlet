@@ -38,8 +38,19 @@ test.describe("landing", () => {
   test("states the product's claim and offers both calls to action", async ({ page }) => {
     await page.goto("/")
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Crash-test your browser agent")
-    await expect(page.getByRole("link", { name: /Run the Gauntlet/i })).toBeVisible()
-    await expect(page.getByRole("link", { name: /View demo results/i })).toBeVisible()
+    // Two obvious paths: exploring costs nothing, running spends credits.
+    await expect(page.getByRole("link", { name: /Explore the demo/i })).toBeVisible()
+    await expect(page.getByRole("link", { name: /Run a real gauntlet/i })).toBeVisible()
+  })
+
+  // The product measures agents; it is not one. The pitch must not read as if
+  // it ships a particular model.
+  test("frames itself as agent-agnostic and names no model vendor", async ({ page }) => {
+    await page.goto("/")
+    await expect(page.getByText(/Bring any agent/i)).toBeVisible()
+    const body = (await page.locator("body").innerText()).toLowerCase()
+    expect(body).not.toContain("anthropic")
+    expect(body).not.toContain("openai")
   })
 
   test("shows which execution mode a new run would use", async ({ page }) => {
@@ -171,9 +182,11 @@ test.describe("api", () => {
     const response = await page.request.get("/api/health")
     expect(response.ok()).toBeTruthy()
     const body = await response.json()
-    expect(body.database).toBe(true)
+    expect(body.status).toBe("ok")
+    expect(body.database).toBe("ok")
+    expect(body.deployment).toMatch(/^(render-single|split)$/)
     // Presence, never the value.
-    expect(typeof body.hasSolari).toBe("boolean")
+    expect(typeof body.solariConfigured).toBe("boolean")
     const raw = JSON.stringify(body)
     expect(raw).not.toMatch(/slr_live_|sk-ant-|postgres:\/\//)
   })

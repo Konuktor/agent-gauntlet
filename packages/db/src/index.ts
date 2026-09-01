@@ -1,4 +1,5 @@
 export * from "./client.js"
+export { migrateFromEnv, resolveMigrationsFolder, runMigrations } from "./migrate.js"
 export * from "./dotenv.js"
 export * from "./queries.js"
 export * from "./queue.js"
@@ -8,6 +9,7 @@ export {
   evaluationResults,
   individualRuns,
   projects,
+  replayArtifacts,
   runEvents,
   suiteRuns,
   suiteVariants,
@@ -22,6 +24,7 @@ export type {
   NewRunEvent,
   NewSuiteRun,
   Project,
+  ReplayArtifactRow,
   RunEventRow,
   Suite,
   SuiteRun,

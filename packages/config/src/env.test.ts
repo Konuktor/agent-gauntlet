@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { ConfigError, parseEnv } from "./env.js"
+import { assertPublicDeploymentIsSafe, ConfigError, parseEnv } from "./env.js"
 
 const base = { DATABASE_URL: "postgres://u:p@localhost:5433/gauntlet" }
 
@@ -46,16 +46,54 @@ describe("parseEnv", () => {
     expect(c.resolvedMode).toBe("local")
   })
 
-  it("tracks LLM credentials per selected provider", () => {
-    expect(parseEnv({ ...base, LLM_PROVIDER: "anthropic", ANTHROPIC_API_KEY: "sk-ant-x" }).hasLlmCredentials).toBe(true)
-    expect(parseEnv({ ...base, LLM_PROVIDER: "openai", ANTHROPIC_API_KEY: "sk-ant-x" }).hasLlmCredentials).toBe(false)
-    expect(parseEnv({ ...base, LLM_PROVIDER: "openai", OPENAI_API_KEY: "sk-x" }).hasLlmCredentials).toBe(true)
+  // The product is agent-agnostic: a model key is never required, and its
+  // absence must never read as a misconfiguration.
+  it("treats a model key as optional", () => {
+    const withoutKey = parseEnv(base)
+    expect(withoutKey.hasLlmCredentials).toBe(false)
+    expect(withoutKey.resolvedMode).toBe("local")
+    expect(parseEnv({ ...base, ANTHROPIC_API_KEY: "sk-ant-x" }).hasLlmCredentials).toBe(true)
   })
 
-  it("defaults the model per provider and honours an override", () => {
-    expect(parseEnv({ ...base }).llmModel).toBe("claude-opus-5")
-    expect(parseEnv({ ...base, LLM_PROVIDER: "openai" }).llmModel).toBe("gpt-4.1-mini")
-    expect(parseEnv({ ...base, LLM_MODEL: "claude-opus-5" }).llmModel).toBe("claude-opus-5")
+  it("needs only SOLARI_API_KEY to reach real mode", () => {
+    const config = parseEnv({ ...base, SOLARI_API_KEY: "slr_live_x" })
+    expect(config.resolvedMode).toBe("solari")
+    expect(config.hasSolariCredentials).toBe(true)
+    // Explicitly: no model credential involved in getting there.
+    expect(config.hasLlmCredentials).toBe(false)
+  })
+
+  it("defaults the optional model and honours an override", () => {
+    expect(parseEnv(base).llmModel).toBe("claude-opus-5")
+    expect(parseEnv({ ...base, LLM_MODEL: "claude-sonnet-5" }).llmModel).toBe("claude-sonnet-5")
+  })
+
+  describe("deployment", () => {
+    it("defaults to the split web + worker topology", () => {
+      expect(parseEnv(base).GAUNTLET_DEPLOY_MODE).toBe("split")
+      expect(parseEnv({ ...base, GAUNTLET_DEPLOY_MODE: "single" }).GAUNTLET_DEPLOY_MODE).toBe("single")
+    })
+
+    it("derives the public origin from Render, then from an override, then localhost", () => {
+      expect(parseEnv(base).publicUrl).toBe("http://localhost:3000")
+      expect(parseEnv({ ...base, PORT: "10000" }).publicUrl).toBe("http://localhost:10000")
+      expect(parseEnv({ ...base, RENDER_EXTERNAL_URL: "https://x.onrender.com" }).publicUrl).toBe(
+        "https://x.onrender.com",
+      )
+      // An explicit setting wins over the platform's guess.
+      expect(
+        parseEnv({
+          ...base,
+          RENDER_EXTERNAL_URL: "https://x.onrender.com",
+          GAUNTLET_PUBLIC_URL: "https://gauntlet.example.com/",
+        }).publicUrl,
+      ).toBe("https://gauntlet.example.com")
+    })
+
+    it("reports whether real runs are gated", () => {
+      expect(parseEnv(base).runsAreGated).toBe(false)
+      expect(parseEnv({ ...base, GAUNTLET_RUN_TOKEN: "s3cret" }).runsAreGated).toBe(true)
+    })
   })
 
   it("clamps cost limits into the hard ceilings", () => {
@@ -73,5 +111,40 @@ describe("parseEnv", () => {
     expect(parseEnv({ ...base, SOLARI_E2E: "true" }).SOLARI_E2E).toBe(true)
     expect(parseEnv({ ...base, SOLARI_E2E: "0" }).SOLARI_E2E).toBe(false)
     expect(parseEnv({ ...base }).SOLARI_E2E).toBe(false)
+  })
+})
+
+describe("assertPublicDeploymentIsSafe", () => {
+  const publicProd = {
+    ...base,
+    NODE_ENV: "production",
+    RENDER_EXTERNAL_URL: "https://demo.onrender.com",
+  }
+
+  // The failure this prevents: a public URL, a real Solari key, and no gate —
+  // i.e. anyone who finds the deployment can spend the operator's money.
+  it("refuses a public deployment that can spend credits without a token", () => {
+    expect(() => assertPublicDeploymentIsSafe(parseEnv({ ...publicProd, SOLARI_API_KEY: "slr_live_x" }))).toThrow(
+      /GAUNTLET_RUN_TOKEN/,
+    )
+  })
+
+  it("allows it once a run token is set", () => {
+    expect(() =>
+      assertPublicDeploymentIsSafe(
+        parseEnv({ ...publicProd, SOLARI_API_KEY: "slr_live_x", GAUNTLET_RUN_TOKEN: "s3cret" }),
+      ),
+    ).not.toThrow()
+  })
+
+  // Demo-only deployments have nothing to spend, so they need no gate.
+  it("allows a public deployment with no Solari key at all", () => {
+    expect(() => assertPublicDeploymentIsSafe(parseEnv(publicProd))).not.toThrow()
+  })
+
+  it("never blocks local development", () => {
+    expect(() =>
+      assertPublicDeploymentIsSafe(parseEnv({ ...base, SOLARI_API_KEY: "slr_live_x" })),
+    ).not.toThrow()
   })
 })

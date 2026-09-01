@@ -5,12 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "next dev --port 3000",
-    "build": "next build",
-    "start": "next start",
+    "build": "next build && tsup server.ts --format esm --target node22 --out-dir dist --clean && node -e \"require('node:fs').cpSync('../../packages/db/drizzle','dist/drizzle',{recursive:true})\"",
+    "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "start:next": "next start"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.122.0",
     "@gauntlet/agents": "workspace:*",
     "@gauntlet/config": "workspace:*",
     "@gauntlet/core": "workspace:*",
@@ -18,14 +20,23 @@
     "@gauntlet/evaluators": "workspace:*",
     "@gauntlet/perturbations": "workspace:*",
     "@gauntlet/solari": "workspace:*",
+    "@gauntlet/worker": "workspace:*",
+    "@solarisdk/browser": "^0.1.2",
+    "@solarisdk/sdk": "^0.1.2",
     "clsx": "^2.1.1",
+    "drizzle-orm": "^0.38.3",
+    "esbuild": "^0.24.2",
     "lucide-react": "^0.469.0",
     "next": "^15.1.4",
+    "patchright-core": "1.62.2",
+    "playwright": "^1.49.1",
+    "postgres": "^3.4.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "rrweb": "^2.1.1",
     "tailwind-merge": "^2.6.0",
-    "zod": "^3.24.1",
-    "@solarisdk/browser": "^0.1.2"
+    "yaml": "^2.7.0",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",
@@ -33,6 +44,7 @@
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
     "tailwindcss": "^4.0.0",
+    "tsup": "^8.3.5",
     "typescript": "^5.7.3"
   }
 }

@@ -17,6 +17,7 @@ import {
   individualRuns,
   projects,
   runEvents,
+  replayArtifacts,
   suiteRuns,
   suiteVariants,
   suites,
@@ -428,6 +429,61 @@ export async function cancelOpenRuns(db: Database, suiteRunId: string): Promise<
     )
     .returning({ id: individualRuns.id })
   return cancelled.length
+}
+
+export interface StoredReplay {
+  compressed: Buffer
+  eventCount: number
+  rawBytes: number
+  source: string
+}
+
+/**
+ * Persist a replay in the database.
+ *
+ * Durable by design: the container's filesystem is not. Idempotent, because a
+ * reclaimed run may collect its replay a second time.
+ */
+export async function saveReplayArtifact(
+  db: Database,
+  runId: string,
+  replay: StoredReplay,
+): Promise<void> {
+  await db
+    .insert(replayArtifacts)
+    .values({ individualRunId: runId, ...replay })
+    .onConflictDoUpdate({ target: replayArtifacts.individualRunId, set: replay })
+}
+
+export async function getReplayArtifact(db: Database, runId: string): Promise<StoredReplay | null> {
+  const [row] = await db
+    .select()
+    .from(replayArtifacts)
+    .where(eq(replayArtifacts.individualRunId, runId))
+    .limit(1)
+  return row
+    ? {
+        compressed: row.compressed,
+        eventCount: row.eventCount,
+        rawBytes: row.rawBytes,
+        source: row.source,
+      }
+    : null
+}
+
+/**
+ * How many suite runs are queued or in flight.
+ *
+ * A public demo must not let one visitor stack up work faster than it drains —
+ * each run is a paid browser session — so the run endpoint refuses to enqueue
+ * while anything is still active.
+ */
+export async function countActiveSuiteRuns(db: Database): Promise<number> {
+  const [row] = await db
+    .select({ value: count() })
+    .from(suiteRuns)
+    .where(inArray(suiteRuns.status, ["queued", "preparing", "running", "evaluating"]))
+  return Number(row?.value ?? 0)
 }
 
 /** Cheap liveness probe used by the health endpoint and the CLI. */

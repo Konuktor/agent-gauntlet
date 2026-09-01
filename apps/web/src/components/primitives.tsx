@@ -60,13 +60,13 @@ export function StatusPill({ status, className }: { status: RunStatus; className
 export function ModeBadge({ mode, className }: { mode: string; className?: string }) {
   const config: Record<string, { label: string; title: string; color: string }> = {
     solari: {
-      label: "SOLARI",
-      title: "Executed on Solari cloud browsers.",
+      label: "SOLARI LIVE",
+      title: "Executed on real Solari cloud browsers. These runs spend credits.",
       color: "var(--color-good)",
     },
     local: {
-      label: "LOCAL",
-      title: "Real browsers, running on this machine. Not a Solari run.",
+      label: "LOCAL DEMO",
+      title: "Real browsers running on this machine. Everything works; it is simply not a Solari run.",
       color: "var(--color-accent)",
     },
     demo: {

@@ -22,26 +22,42 @@ export default async function LandingPage() {
           before production does.
         </h1>
         <p className="mt-5 max-w-2xl text-lg leading-relaxed text-[var(--color-ink-2)]">
-          A browser agent passing once proves almost nothing. AgentGauntlet repeats the same task
-          across changing UI, network, session and browser conditions — then shows exactly where your
-          agent breaks.
+          Benchmarks tell you whether your agent can complete a task. AgentGauntlet measures whether
+          it keeps completing it when the environment changes — across repeated runs, on real cloud
+          browsers, judged from state the agent cannot fake.
+        </p>
+        <p className="mt-3 max-w-2xl text-lg leading-relaxed text-[var(--color-ink-2)]">
+          Bring any agent. AgentGauntlet doesn&apos;t care how it thinks — only whether it survives.
         </p>
 
         <div className="mt-8 flex flex-wrap items-center gap-3">
-          <Link className="btn btn-primary text-base" href="/suites/new">
-            Run the Gauntlet
-            <ArrowRight size={16} aria-hidden />
-          </Link>
           {latest ? (
-            <Link className="btn btn-secondary text-base" href={`/runs/${latest.id}`}>
-              View demo results
+            <Link className="btn btn-primary text-base" href={`/runs/${latest.id}`}>
+              Explore the demo
+              <ArrowRight size={16} aria-hidden />
             </Link>
-          ) : (
-            <span className="text-sm text-[var(--color-ink-3)]">
-              Run <code className="text-[var(--color-ink-2)]">pnpm db:seed</code> for a demo dataset.
-            </span>
-          )}
+          ) : null}
+          <Link
+            className={latest ? "btn btn-secondary text-base" : "btn btn-primary text-base"}
+            href="/suites/new"
+          >
+            Run a real gauntlet
+            {latest ? null : <ArrowRight size={16} aria-hidden />}
+          </Link>
         </div>
+        <p className="mt-3 text-sm text-[var(--color-ink-3)]">
+          Exploring costs nothing.{" "}
+          {capabilities.mode === "solari"
+            ? "Starting a run executes on Solari and spends credits, so it asks for an access code."
+            : "Starting a run executes locally against the bundled storefront."}
+        </p>
+
+        {capabilities.deployMode === "single" ? (
+          <p className="mt-6 max-w-2xl text-xs text-[var(--color-ink-3)]">
+            This is a free demo instance. The first load after a quiet spell takes a few seconds
+            while it wakes up.
+          </p>
+        ) : null}
 
         {!capabilities.hasSolari ? (
           <p className="mt-4 max-w-2xl text-sm text-[var(--color-ink-3)]">
@@ -49,6 +65,8 @@ export default async function LandingPage() {
             <strong className="font-medium text-[var(--color-ink-2)]">local mode</strong>: real
             Chromium on this machine, against the bundled benchmark storefront. Everything works and
             nothing is simulated — it simply is not a Solari run, and the UI says so on every screen.
+            Add a Solari key and the same suites run on real cloud browsers. That is the only
+            credential the product needs.
           </p>
         ) : null}
       </section>
@@ -85,6 +103,11 @@ export default async function LandingPage() {
             Completion is judged from the benchmark site&apos;s own server-side state — never from
             the agent&apos;s report about itself. An agent can say &ldquo;done&rdquo;; only the state
             decides.
+          </p>
+          <p className="mt-3 leading-relaxed text-[var(--color-ink-2)]">
+            The built-in Reference Agent is deterministic and needs no model key, so results are
+            reproducible. Point it at your own agent instead — any framework, any model, running in
+            an isolated sandbox — and the measurement is the same.
           </p>
         </div>
 

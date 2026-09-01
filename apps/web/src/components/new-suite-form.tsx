@@ -1,8 +1,8 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, Play } from "lucide-react"
+import { KeyRound, Loader2, Play } from "lucide-react"
 import { CATEGORY_LABELS, type PerturbationCategory } from "@gauntlet/core/shared"
 import type { ClientCapabilities } from "@/lib/capabilities"
 import { ErrorPanel, ModeBadge, Panel } from "./primitives"
@@ -38,6 +38,47 @@ export function NewSuiteForm({
   const [repetitions, setRepetitions] = useState(2)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<{ title: string; message: string; hint?: string; detail?: string } | null>(null)
+
+  // Runs cost money, so a public deployment gates them behind an access code.
+  // Browsing everything else stays open.
+  const [authorized, setAuthorized] = useState(!capabilities.runsGated)
+  const [accessCode, setAccessCode] = useState("")
+  const [authError, setAuthError] = useState<string | null>(null)
+  const [authorizing, setAuthorizing] = useState(false)
+
+  useEffect(() => {
+    if (!capabilities.runsGated) return
+    let cancelled = false
+    void fetch("/api/auth/run")
+      .then((r) => r.json() as Promise<{ authorized: boolean }>)
+      .then((body) => {
+        if (!cancelled) setAuthorized(body.authorized)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [capabilities.runsGated])
+
+  const authorize = useCallback(async () => {
+    setAuthorizing(true)
+    setAuthError(null)
+    try {
+      const response = await fetch("/api/auth/run", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ token: accessCode }),
+      })
+      const body = (await response.json()) as { authorized: boolean; error?: string }
+      setAuthorized(body.authorized)
+      if (!body.authorized) setAuthError(body.error ?? "That access code is not valid.")
+      else setAccessCode("")
+    } catch {
+      setAuthError("Could not reach the server.")
+    } finally {
+      setAuthorizing(false)
+    }
+  }, [accessCode])
 
   const task = catalog.tasks.find((t) => t.id === taskId)
   const agent = catalog.agents.find((a) => a.id === agentId)
@@ -109,9 +150,12 @@ export function NewSuiteForm({
       <div className="space-y-6">
         {error ? <ErrorPanel {...error} /> : null}
 
-        <Panel title="Agent" description="What is being tested.">
+        <Panel
+          title="Agent"
+          description="What is being tested. AgentGauntlet doesn't care how it thinks — only whether it survives."
+        >
           <div className="grid gap-2 sm:grid-cols-2">
-            {catalog.agents.map((option) => (
+            {[...catalog.agents].sort((a, b) => agentRank(a) - agentRank(b)).map((option) => (
               <label
                 key={option.id}
                 className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors"
@@ -137,8 +181,10 @@ export function NewSuiteForm({
             ))}
           </div>
           {llmUnavailable ? (
-            <p className="mt-3 text-sm" style={{ color: "var(--color-warning)" }}>
-              The LLM agent needs <code>ANTHROPIC_API_KEY</code>. The Reference Agent needs no credentials.
+            <p className="mt-3 text-sm text-[var(--color-ink-3)]">
+              This optional adapter needs a model API key, which this deployment does not have.
+              Nothing else here does — the Reference Agent is deterministic, and repository agents
+              bring their own model.
             </p>
           ) : null}
           {repoUnavailable ? (
@@ -228,7 +274,8 @@ export function NewSuiteForm({
         <p className="mt-3 text-3xl font-semibold tabular-nums">{totalRuns}</p>
         <p className="text-sm text-[var(--color-ink-2)]">
           {variants.size} variant{variants.size === 1 ? "" : "s"} × {repetitions} repetition
-          {repetitions === 1 ? "" : "s"} = {totalRuns} browser run{totalRuns === 1 ? "" : "s"}
+          {repetitions === 1 ? "" : "s"} = {totalRuns} browser run{totalRuns === 1 ? "" : "s"},
+          {" "}up to {capabilities.maxConcurrency} at a time
         </p>
 
         <dl className="mt-4 space-y-1.5 text-xs text-[var(--color-ink-3)]">
@@ -258,24 +305,70 @@ export function NewSuiteForm({
           </p>
         )}
 
-        <button className="btn btn-primary mt-4 w-full" disabled={blocked || submitting} onClick={submit}>
-          {submitting ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Play size={15} aria-hidden />}
-          {submitting ? "Starting…" : "Run the Gauntlet"}
-        </button>
-        {variants.size === 0 ? (
-          <p className="mt-2 text-xs text-[var(--color-ink-3)]">Select at least one variant.</p>
-        ) : null}
+        {authorized ? (
+          <>
+            <button className="btn btn-primary mt-4 w-full" disabled={blocked || submitting} onClick={submit}>
+              {submitting ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Play size={15} aria-hidden />}
+              {submitting ? "Starting…" : "Run the Gauntlet"}
+            </button>
+            {variants.size === 0 ? (
+              <p className="mt-2 text-xs text-[var(--color-ink-3)]">Select at least one variant.</p>
+            ) : null}
+          </>
+        ) : (
+          <form
+            className="mt-4"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void authorize()
+            }}
+          >
+            <label className="label" htmlFor="access-code">
+              Demo access code
+            </label>
+            <input
+              id="access-code"
+              type="password"
+              className="field"
+              value={accessCode}
+              onChange={(event) => setAccessCode(event.target.value)}
+              autoComplete="off"
+              placeholder="Required to spend Solari credits"
+            />
+            <button className="btn btn-secondary mt-2 w-full" disabled={authorizing || accessCode.length === 0}>
+              {authorizing ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <KeyRound size={15} aria-hidden />}
+              {authorizing ? "Checking…" : "Authorize"}
+            </button>
+            {authError ? (
+              <p className="mt-2 text-xs" style={{ color: "var(--color-critical)" }} role="alert">
+                {authError}
+              </p>
+            ) : null}
+            <p className="mt-2 text-xs text-[var(--color-ink-3)]">
+              Every run here is a real Solari browser session. Exploring the seeded results needs no code.
+            </p>
+          </form>
+        )}
       </aside>
     </div>
   )
 }
 
 function describeAgent(agent: { type: string; config: Record<string, unknown> }): string {
-  if (agent.type === "llm") return "Model-driven planner, one structured action per step"
-  if (agent.type === "repository") return "Your repository, executed inside a Solari Sandbox"
+  if (agent.type === "llm") return "Optional adapter. Needs a model API key; nothing else here does."
+  if (agent.type === "repository") return "Run your own agent inside an isolated Solari Sandbox."
   const capabilities = (agent.config.capabilities as string[] | undefined) ?? []
-  if (capabilities.length === 0) return "Deterministic · no overlay handling, no waiting"
-  return `Deterministic · ${capabilities.join(", ")}`
+  if (capabilities.length === 0) {
+    return "Deterministic. No overlay handling, no waiting — the control arm."
+  }
+  return `Deterministic built-in agent. No LLM API key required. Handles: ${capabilities.join(", ")}.`
+}
+
+/** Optional adapters sort last; the built-in agent is the default answer. */
+function agentRank(agent: { type: string }): number {
+  if (agent.type === "reference") return 0
+  if (agent.type === "repository") return 1
+  return 2
 }
 
 async function toError(response: Response) {

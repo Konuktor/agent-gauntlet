@@ -1,8 +1,9 @@
 import { z } from "zod"
 import { deriveSeed, GauntletError } from "@gauntlet/core"
-import { enqueueSuiteRun, getSuite } from "@gauntlet/db"
+import { countActiveSuiteRuns, enqueueSuiteRun, getSuite } from "@gauntlet/db"
 import { requirePerturbation } from "@gauntlet/perturbations"
 import { apiError, notFound, ok, parseBody } from "@/lib/api"
+import { checkRunAuthorization } from "@/lib/auth"
 import { config, db } from "@/lib/server"
 
 export const dynamic = "force-dynamic"
@@ -26,11 +27,53 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     const { id } = await ctx.params
     const body = await parseBody(request, runSchema).catch(() => ({}) as z.infer<typeof runSchema>)
 
+    const cfg = config()
+
+    // Money is spent past this line. Everything above it — browsing the seeded
+    // demo, inspecting a failure, comparing two runs — stays public.
+    const auth = await checkRunAuthorization()
+    if (!auth.authorized) {
+      return ok(
+        {
+          error: {
+            code: "unauthorized",
+            title: "Real runs need an access code",
+            message:
+              "This deployment executes on Solari, and each run spends real credits. Enter the demo access code to start one.",
+            hint: "The seeded demo results are fully browsable without it.",
+          },
+        },
+        { status: 401 },
+      )
+    }
+
     const database = db()
     const suite = await getSuite(database, id)
     if (!suite) return notFound("Suite")
 
-    const cfg = config()
+    // One suite at a time. Without this a visitor can queue faster than the
+    // worker drains, and every queued run is a browser session somebody pays for.
+    const active = await countActiveSuiteRuns(database)
+    if (active > 0) {
+      return ok(
+        {
+          error: {
+            code: "busy",
+            title: "A gauntlet is already running",
+            message: "This deployment runs one suite at a time so it cannot outrun its Solari quota.",
+            hint: "Wait for the current run to finish, then try again.",
+          },
+        },
+        { status: 429 },
+      )
+    }
+
+    // Repository agents clone and execute code we did not write. That is safe
+    // because it happens inside a Solari Sandbox — but it still costs sandbox
+    // credits, so it is never available anonymously.
+    if (suite.agent.type === "repository" && auth.reason === "ungated" && cfg.runsAreGated) {
+      return ok({ error: { code: "unauthorized", title: "Not permitted", message: "Repository agents require authorization.", hint: "" } }, { status: 401 })
+    }
     if (cfg.resolvedMode === "solari" && !cfg.hasSolariCredentials) {
       throw new GauntletError({
         code: "config_invalid",

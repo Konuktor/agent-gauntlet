@@ -1,16 +1,18 @@
+import { gzip as gzipCallback } from "node:zlib"
+import { promisify } from "node:util"
 import {
   appendRunEvents,
   listIndividualRuns,
   patchIndividualRun,
   refreshSuiteRunMetrics,
   saveEvaluation,
+  saveReplayArtifact,
   transitionIndividualRun,
   transitionSuiteRun,
   heartbeat as heartbeatQuery,
   type Database,
 } from "@gauntlet/db"
 import type {
-  ArtifactStore,
   EvaluationResult,
   IndividualRunStatus,
   PlannedRun,
@@ -32,7 +34,7 @@ export class DrizzleRunStore implements RunStore {
     private readonly db: Database,
     private readonly suiteRunId: string,
     private readonly workerId: string,
-    private readonly artifacts: ArtifactStore,
+    private readonly replaySource: string = "solari",
   ) {}
 
   async listPlannedRuns(): Promise<PlannedRun[]> {
@@ -94,7 +96,31 @@ export class DrizzleRunStore implements RunStore {
     await heartbeatQuery(this.db, this.suiteRunId, this.workerId)
   }
 
+  /**
+   * Persist a replay in Postgres.
+   *
+   * Not on local disk: the deployment target's filesystem is ephemeral, so a
+   * replay written there is evidence that silently disappears on the next
+   * restart. Gzipped first — rrweb NDJSON compresses roughly ten to one, and
+   * the size cap has already been applied upstream.
+   */
   async saveReplay(runId: string, bytes: Uint8Array): Promise<string> {
-    return this.artifacts.writeReplay(this.suiteRunId, runId, bytes)
+    const compressed = await gzip(Buffer.from(bytes))
+    await saveReplayArtifact(this.db, runId, {
+      compressed,
+      eventCount: countLines(bytes),
+      rawBytes: bytes.length,
+      source: this.replaySource,
+    })
+    return `db:replay_artifacts/${runId}`
   }
+}
+
+const gzip = promisify(gzipCallback)
+
+function countLines(bytes: Uint8Array): number {
+  if (bytes.length === 0) return 0
+  let count = 1
+  for (const byte of bytes) if (byte === 0x0a) count++
+  return count
 }
