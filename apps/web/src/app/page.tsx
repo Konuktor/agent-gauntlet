@@ -123,18 +123,21 @@ export default async function LandingPage() {
           </div>
           <ul className="mt-3 grid gap-2 sm:grid-cols-2">
             {runs.map((run) => (
-              <li key={run.id}>
+              // min-w-0: a grid item defaults to `min-width: auto`, so without
+              // it the track grows to fit the untruncated label and the card
+              // pushes past a phone viewport.
+              <li key={run.id} className="min-w-0">
                 <Link
                   href={`/runs/${run.id}`}
-                  className="card flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-[var(--color-raised)]"
+                  className="card flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-[var(--color-raised)]"
                 >
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium">{run.label ?? run.suiteName}</div>
                     <div className="truncate text-xs text-[var(--color-ink-3)]">
                       {run.agentName} · {run.taskName}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex shrink-0 items-center gap-3">
                     <ModeBadge mode={run.mode} />
                     <span className="text-lg font-semibold tabular-nums">
                       {run.reliability === null ? "—" : percent(run.reliability)}

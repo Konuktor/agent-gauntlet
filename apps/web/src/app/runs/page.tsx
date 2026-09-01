@@ -29,8 +29,8 @@ export default async function RunsPage() {
           Run <code>pnpm db:seed</code> for a demo dataset, or start a gauntlet.
         </EmptyState>
       ) : (
-        <div className="card overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="card overflow-x-auto">
+          <table className="w-full min-w-[46rem] text-sm">
             <caption className="sr-only">Suite runs, newest first</caption>
             <thead>
               <tr className="border-b border-[var(--color-line)] text-left text-xs text-[var(--color-ink-3)]">

@@ -21,7 +21,18 @@ export default defineConfig({
   },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
-    { name: "mobile", use: { ...devices["iPhone 13"] } },
+    {
+      // A phone-shaped Chromium, not WebKit. This project exists to check that
+      // the layout survives a 390px viewport — it is not a Safari
+      // compatibility suite, and pulling a second browser engine into CI to
+      // measure column widths would be a poor trade.
+      name: "mobile",
+      use: {
+        ...devices["iPhone 13"],
+        browserName: "chromium",
+        defaultBrowserType: "chromium",
+      },
+    },
   ],
   webServer: process.env.E2E_BASE_URL
     ? undefined

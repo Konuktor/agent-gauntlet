@@ -30,6 +30,10 @@ exactly where it breaks.
 Those numbers are real. They are the bundled Reference Agent, measured against
 the bundled benchmark storefront — reproduce them with `pnpm gauntlet demo`.
 
+<div align="center">
+  <img src="docs/images/dashboard.png" alt="The result dashboard: reliability with a confidence interval, reliability by perturbation, the run matrix, failure clusters" width="900">
+</div>
+
 ---
 
 ## Why
@@ -248,6 +252,11 @@ Exit code is `0` when every configured threshold is met, `1` otherwise — so it
 gates a pull request. `gauntlet compare` exits `1` on a regression. A ready
 workflow is at [.github/workflows/agent-gauntlet.yml](.github/workflows/agent-gauntlet.yml).
 
+<div align="center">
+  <img src="docs/images/compare.png" alt="Regression comparison between two runs of the same suite, attributing the drop to one perturbation" width="900">
+  <br><em>Two runs of the same suite. 87.5% &rarr; 75.0%, and it names the perturbation that moved.</em>
+</div>
+
 ---
 
 ## Evaluation
@@ -265,6 +274,11 @@ purchaseSubmitted == false                      ✓
 There is no field an agent can set except by genuinely performing the action.
 Generic page assertions (URL, visible text, selector, JS expression) exist for
 authorised external targets and are documented as strictly weaker evidence.
+
+<div align="center">
+  <img src="docs/images/run-detail.png" alt="A failed run: expected versus actual for every assertion, the agent's own claim beside it, the action trace, and the session replay" width="900">
+  <br><em>A failed run. Expected vs actual, the agent&rsquo;s own claim beside it, and the trace that got there.</em>
+</div>
 
 Failures are then classified deterministically into one of 13 categories by an
 ordered rule chain over the collected evidence — the matched rule is recorded, so
@@ -336,7 +350,8 @@ rather than a chaos-engineering exercise.
 
 ## Testing
 
-**290 tests.** The ones worth knowing about:
+**306 unit and integration tests, plus 34 product E2E tests** across desktop and
+a phone viewport. The ones worth knowing about:
 
 - **Wilson intervals** verified against independently computed reference values
   (the first draft's hand-written expectations were wrong — the implementation
@@ -353,6 +368,10 @@ rather than a chaos-engineering exercise.
 - **The real thing** — the Reference Agent driving real Chromium against the real
   fixture, asserting on the *fixture's* state, including one test that asserts the
   agent's self-report is not evidence.
+- **Product E2E** — the seeded dataset is re-created before the suite so the
+  assertions are about the product rather than about whatever runs happen to be
+  in the database, and one test checks the page does not scroll horizontally on
+  a phone (it did, once).
 
 ---
 
