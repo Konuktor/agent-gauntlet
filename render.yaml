@@ -22,10 +22,11 @@ services:
     startCommand: pnpm render:start
     healthCheckPath: /api/health
     autoDeployTrigger: commit
-    # Render sends SIGTERM then SIGKILLs after this. The server drains the
-    # worker inside a 45s budget so in-flight Solari sessions are released
-    # rather than orphaned; anything left is requeued by the reclaim logic.
-    maxShutdownDelaySeconds: 60
+    # No maxShutdownDelaySeconds: Render rejects it on the free plan
+    # ("max shutdown delay is not supported for free tier services"), which
+    # pins the window at the 30s default. The server drains the worker inside a
+    # 20s budget so in-flight Solari sessions are released rather than
+    # orphaned; anything still running is requeued by the reclaim logic.
 
     envVars:
       - key: NODE_VERSION

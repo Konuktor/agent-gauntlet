@@ -321,7 +321,7 @@ describe.skipIf(!built)("Render deployment contract", () => {
   describe("graceful shutdown", () => {
     // Render SIGTERMs and then SIGKILLs after maxShutdownDelaySeconds. Exiting
     // cleanly inside that window is what releases in-flight Solari sessions.
-    it("exits cleanly on SIGTERM well inside the 60s window", async () => {
+    it("exits cleanly on SIGTERM well inside the free plan's 30s window", async () => {
       logLines.length = 0
       const child = server!
       const started = Date.now()
@@ -330,16 +330,69 @@ describe.skipIf(!built)("Render deployment contract", () => {
       child.kill("SIGTERM")
       const code = await Promise.race([
         exited,
-        new Promise<"timeout">((r) => setTimeout(() => r("timeout"), 50_000)),
+        new Promise<"timeout">((r) => setTimeout(() => r("timeout"), 30_000)),
       ])
 
       expect(code, `did not exit in time:\n${logLines.slice(-10).join("\n")}`).not.toBe("timeout")
-      expect(Date.now() - started).toBeLessThan(50_000)
+      expect(Date.now() - started).toBeLessThan(30_000)
       expect(logLines.some((l) => l.includes("shutdown complete"))).toBe(true)
 
       server = startServer()
       await waitForHealth()
     })
+  })
+})
+
+/**
+ * Render is the only thing that validates a Blueprint, and it does so after you
+ * have already pushed. `maxShutdownDelaySeconds: 60` passed every local check
+ * and was then rejected on apply with "max shutdown delay is not supported for
+ * free tier services". These assertions move that feedback back into the repo.
+ */
+describe("render.yaml free-plan compatibility", () => {
+  /** Fields Render refuses on `plan: free`, with the message it answers with. */
+  const PAID_ONLY = [
+    ["maxShutdownDelaySeconds", "max shutdown delay is not supported for free tier services"],
+    ["preDeployCommand", "pre-deploy commands are not supported on the free plan"],
+    ["disk", "disks are not available on the free plan"],
+    ["numInstances", "scaling is not available on the free plan"],
+  ] as const
+
+  /** Every top-level `- type:` block, with the lines belonging to it. */
+  function services(): { plan: string; body: string }[] {
+    const lines = readFileSync(resolve(import.meta.dirname, "../render.yaml"), "utf8").split("\n")
+    const blocks: string[][] = []
+    for (const line of lines) {
+      if (/^\s{2}-\s/.test(line)) blocks.push([line])
+      else if (blocks.length > 0 && /^\s{4}\S/.test(line)) blocks.at(-1)!.push(line)
+      else if (/^\S/.test(line)) blocks.push([])
+    }
+    return blocks
+      .filter((b) => b.length > 0)
+      .map((b) => ({ plan: /plan:\s*(\S+)/.exec(b.join("\n"))?.[1] ?? "", body: b.join("\n") }))
+  }
+
+  it("declares at least one free service, so this guard is not vacuous", () => {
+    expect(services().filter((s) => s.plan === "free").length).toBeGreaterThan(0)
+  })
+
+  it("asks for nothing the free plan rejects", () => {
+    for (const service of services().filter((s) => s.plan === "free")) {
+      for (const [field, message] of PAID_ONLY) {
+        // A commented-out mention is documentation, not a declaration.
+        const declared = new RegExp(`^\\s*${field}\\s*:`, "m").test(service.body)
+        expect(declared, `${field} is paid-only — Render answers "${message}"`).toBe(false)
+      }
+    }
+  })
+
+  it("keeps the shutdown budget inside the 30s window the free plan pins us to", () => {
+    const server = readFileSync(resolve(import.meta.dirname, "../apps/web/server.ts"), "utf8")
+    const budget = Number(/SHUTDOWN_BUDGET_MS = ([\d_]+)/.exec(server)?.[1]?.replace(/_/g, ""))
+    const grace = Number(/WORKER_GRACE_MS = ([\d_]+)/.exec(server)?.[1]?.replace(/_/g, ""))
+    expect(budget).toBeGreaterThan(0)
+    expect(budget).toBeLessThan(30_000)
+    expect(grace).toBeLessThan(budget)
   })
 })
 

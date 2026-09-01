@@ -25,7 +25,7 @@ Productionization + public deployment pass. `[x]` done and verified · `[ ]` pen
 ## 3 · Single-service deploy mode
 - [x] `GAUNTLET_DEPLOY_MODE=single` runs Next + the worker in ONE process
 - [x] Worker loop extracted to `createWorkerRuntime`; the standalone binary is now a thin wrapper
-- [x] Graceful SIGTERM verified: exits in ~1s, well inside the 60s window
+- [x] Graceful SIGTERM verified: exits in ~1s, well inside the free plan's 30s window
 - [x] Migrations run before listening, are idempotent across restarts, and are fatal on failure
 
 ## 4 · Ephemeral filesystem

@@ -88,7 +88,7 @@ async function main(): Promise<void> {
 /**
  * Graceful shutdown inside Render's window.
  *
- * Render sends SIGTERM and then SIGKILLs after `maxShutdownDelaySeconds` (60 in
+ * Render sends SIGTERM and then SIGKILLs after `maxShutdownDelaySeconds` (30 on
  * our Blueprint). The order matters: stop taking new HTTP work, let the worker
  * drain so its own `finally` blocks release Solari sessions, then close the
  * pool. Anything still unfinished stays recoverable — the heartbeat/reclaim
@@ -147,9 +147,9 @@ function resolveAppDir(): string {
   )
 }
 
-/** Comfortably inside the Blueprint's maxShutdownDelaySeconds: 60. */
-const SHUTDOWN_BUDGET_MS = 45_000
-const WORKER_GRACE_MS = 25_000
+/** Comfortably inside the 30s default window the free plan pins us to. */
+const SHUTDOWN_BUDGET_MS = 20_000
+const WORKER_GRACE_MS = 12_000
 
 function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error)

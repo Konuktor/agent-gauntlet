@@ -33,7 +33,7 @@ on the container's filesystem.
 | `autoDeployTrigger:` | `commit` \| `checksPass` \| `off`. Replaces the deprecated `autoDeploy:`. |
 | `plan: free` | Web service: 0.1 CPU / 512 MB. Postgres: 1 GB, no backups, no pooling. |
 | `healthCheckPath:` | Web services only; must start with `/`. |
-| `maxShutdownDelaySeconds:` | Integer 1–300, **default 30**. Render sends `SIGTERM`, then `SIGKILL` when it elapses. |
+| `maxShutdownDelaySeconds:` | Integer 1–300, **default 30**. Render sends `SIGTERM`, then `SIGKILL` when it elapses. **Rejected on the free plan** — a Blueprint carrying it fails validation with *"max shutdown delay is not supported for free tier services"*, so a free service is fixed at the 30s default. Found by submitting the Blueprint, not in the docs. |
 | `fromDatabase: { name, property: connectionString }` | Resolves to the **internal** URL. There is no `externalConnectionString` property. Requires the same region and workspace. |
 | `sync: false` | Render prompts the deployer on first apply and never overwrites. Used for `SOLARI_API_KEY`. |
 | `generateValue: true` | Random value generated once. Used for `GAUNTLET_RUN_TOKEN`. |
@@ -78,8 +78,9 @@ No top-level `version:` key exists in the Blueprint spec.
 
 ## Shutdown contract
 
-Render sends `SIGTERM` and waits `maxShutdownDelaySeconds` (set to 60 here)
-before `SIGKILL`. On that signal the single-service runtime stops claiming new
+Render sends `SIGTERM` and waits `maxShutdownDelaySeconds` before `SIGKILL`.
+The free plan does not accept that field, so the window is the 30s default and
+the budgets are sized for it: 20s overall, 12s of that for the worker. On that signal the single-service runtime stops claiming new
 jobs, gives the in-flight suite a bounded window to land on its own — its own
 `finally` blocks release Solari sessions far more cleanly than we could from
 outside — then cancels it, closes the Solari clients, closes the pool and exits.
