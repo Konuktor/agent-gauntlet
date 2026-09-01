@@ -120,10 +120,14 @@ export function layout({ state, labels, title, body, bare }: LayoutOptions): str
   const delayScript = cfg.delayedElement
     ? `<script>
         setTimeout(function () {
-          var target = document.querySelector('[data-delayed-target="${cfg.delayedElement.target}"]');
-          var skeleton = document.querySelector('[data-delayed-skeleton="${cfg.delayedElement.target}"]');
-          if (skeleton) skeleton.remove();
-          if (target) target.hidden = false;
+          // querySelectorAll, not querySelector: the store lists several
+          // products and each one wraps its own delayed control. Revealing only
+          // the first would leave every other product permanently unbuyable,
+          // which is an impossible task rather than a hard one.
+          document.querySelectorAll('[data-delayed-skeleton="${cfg.delayedElement.target}"]')
+            .forEach(function (s) { s.remove(); });
+          document.querySelectorAll('[data-delayed-target="${cfg.delayedElement.target}"]')
+            .forEach(function (t) { t.hidden = false; });
         }, ${cfg.delayedElement.delayMs});
       </script>`
     : ""

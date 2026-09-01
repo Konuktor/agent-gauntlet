@@ -197,6 +197,18 @@ describe("perturbations change the environment", () => {
     expect(page.html).toContain("}, 900)")
   })
 
+  // Regression: the reveal must hit every product, not just the first one.
+  // The task targets the SECOND product in the catalogue, so a querySelector
+  // here makes the variant unwinnable instead of merely slow.
+  it("reveals the delayed control on every product, not only the first", async () => {
+    await register("p-delay-all", { delayedElement: { target: "add-to-cart", delayMs: 50 } })
+    const page = await get("p-delay-all", "/")
+    expect(page.html).toContain("querySelectorAll")
+    expect(page.html).not.toMatch(/querySelector\('\[data-delayed/)
+    const wrapped = page.html.match(/data-delayed-target="add-to-cart"/g) ?? []
+    expect(wrapped.length).toBeGreaterThan(1)
+  })
+
   it("reordered_layout moves the checkout control above the item table", async () => {
     await register("p-order", { reorderedLayout: true })
     await post("p-order", "/cart/add", { sku: "aurora-headphones" })

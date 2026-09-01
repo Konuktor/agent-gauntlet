@@ -3,11 +3,24 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "eslint src"
   },
-  "dependencies": { "@gauntlet/config": "workspace:*", "@gauntlet/core": "workspace:*", "@anthropic-ai/sdk": "^0.68.0", "zod": "^3.24.1" },
-  "devDependencies": { "@types/node": "^22.10.5", "typescript": "^5.7.3" }
+  "dependencies": {
+    "@gauntlet/config": "workspace:*",
+    "@gauntlet/core": "workspace:*",
+    "@anthropic-ai/sdk": "^0.122.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.3",
+    "@gauntlet/local-runtime": "workspace:*",
+    "@gauntlet/fixture": "workspace:*",
+    "@gauntlet/perturbations": "workspace:*"
+  }
 }

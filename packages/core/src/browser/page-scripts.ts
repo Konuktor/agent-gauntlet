@@ -14,6 +14,28 @@
 
 export const REF_ATTRIBUTE = "data-gauntlet-ref"
 
+/**
+ * Bundlers rewrite function declarations before we ever call `toString()` on
+ * them. esbuild's `keepNames` (which tsx and Vitest both enable) wraps every
+ * named function as `__name(function f(){}, "f")`, and that helper does not
+ * exist in the page — so a stringified script that looks perfect in the editor
+ * dies with `ReferenceError: __name is not defined` the moment it is evaluated.
+ *
+ * Declaring the helpers in the wrapper's scope makes the transformed source
+ * self-sufficient, whatever the toolchain decided to inject. Without this,
+ * whether the agent can see the page depends on which bundler ran.
+ */
+const HELPER_PRELUDE = [
+  "const __name = (fn) => fn;",
+  "const __defProp = Object.defineProperty;",
+  "const __publicField = (obj, key, value) => { obj[key] = value; return value; };",
+].join(" ")
+
+/** Wrap an expression so it evaluates safely in the page. */
+export function wrapPageScript(expression: string): string {
+  return `(() => { ${HELPER_PRELUDE} return (${expression}); })()`
+}
+
 export interface RawElement {
   ref: string
   role: string
@@ -87,7 +109,11 @@ export function snapshotScript(limits: { maxElements: number; maxTextChars: numb
 
       if (el instanceof HTMLImageElement && el.alt) return el.alt.trim()
 
-      const text = (el.textContent ?? "").replace(/\s+/g, " ").trim()
+      // innerText, not textContent: textContent runs nested block elements
+      // together ("Gauntlet ShopA controlled benchmark storefront"), which is
+      // a name no user would ever recognise.
+      const raw = el instanceof HTMLElement ? el.innerText : (el.textContent ?? "")
+      const text = raw.replace(/\s+/g, " ").trim()
       if (text) return text.slice(0, 120)
 
       return el.getAttribute("title")?.trim() ?? el.getAttribute("name")?.trim() ?? ""
@@ -191,11 +217,11 @@ export function snapshotScript(limits: { maxElements: number; maxTextChars: numb
     }
   }
 
-  return `(${fn.toString()})(${JSON.stringify(limits)})`
+  return wrapPageScript(`(${fn.toString()})(${JSON.stringify(limits)})`)
 }
 
 /** Read the fixture's own stage marker, when present. Cheap page-side evidence. */
-export const STAGE_SCRIPT = `(() => document.body?.getAttribute("data-stage") ?? null)()`
+export const STAGE_SCRIPT = `(() => document.body ? document.body.getAttribute("data-stage") : null)()`
 
 /** Is a blocking overlay present right now? Used at the end of a run. */
 export function overlayProbeScript(): string {
@@ -211,7 +237,7 @@ export function overlayProbeScript(): string {
     })
     return Boolean(overlay)
   }
-  return `(${fn.toString()})()`
+  return wrapPageScript(`(${fn.toString()})()`)
 }
 
 export function refSelector(ref: string): string {
