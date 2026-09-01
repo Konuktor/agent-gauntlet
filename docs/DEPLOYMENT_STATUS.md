@@ -59,7 +59,7 @@ deployment-wide outage: one wedged run blocks every later one until a redeploy.
 
 ## 7 · Verification
 - [x] `pnpm typecheck` 14/14 · `lint` 12/12 · `test` 325 passed (23 files) · `build` 4/4 · `test:e2e` 36 passed · `test:render` 13 passed, 1 skipped
-- [ ] `pnpm gauntlet demo` (running)
+- [x] `pnpm gauntlet demo` — 16/16 runs in 33s, 0 infrastructure errors, baseline 100%, perturbed 85.7%, overall 87.5% vs a 90% threshold, exit 1 (the gate firing, as designed)
 - [x] Secret audit over working tree AND all history blobs — only fake redaction fixtures
 - [ ] Public GitHub repository pushed (repo created: Konuktor/agent-gauntlet)
 - [ ] Render deployment live, health green

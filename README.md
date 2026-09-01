@@ -278,7 +278,10 @@ thresholds:
 ```
 
 Exit code is `0` when every configured threshold is met, `1` otherwise — so it
-gates a pull request. `gauntlet compare` exits `1` on a regression. A ready
+gates a pull request. **The bundled demo exits `1` on purpose**: the Reference
+Agent is perfect on baseline and loses the `expired_session` variant, so
+reliability lands at 87.5% against a 90% threshold. That is the gate working,
+not a broken demo. `gauntlet compare` exits `1` on a regression. A ready
 workflow is at [.github/workflows/agent-gauntlet.yml](.github/workflows/agent-gauntlet.yml).
 
 <div align="center">
