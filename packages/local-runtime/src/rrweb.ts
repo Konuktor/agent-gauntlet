@@ -1,5 +1,6 @@
 import { createRequire } from "node:module"
 import { readFileSync } from "node:fs"
+import { dirname, join } from "node:path"
 
 /**
  * Local-mode session recording.
@@ -15,36 +16,68 @@ import { readFileSync } from "node:fs"
 
 let cachedBundle: string | undefined
 
-/** The rrweb browser bundle, read from the installed package. */
+/**
+ * The rrweb browser bundle, read from the installed package.
+ *
+ * Resolved via the package's own entry point rather than by reaching straight
+ * for `rrweb/dist/rrweb.umd.cjs`: rrweb 2.1's `exports` map publishes only "."
+ * and "./dist/style.css", so a deep subpath import throws
+ * ERR_PACKAGE_PATH_NOT_EXPORTED even though the file is sitting right there.
+ * Resolving "." and walking to its sibling works whatever the exports map says.
+ */
 export function rrwebBundle(): string {
   if (cachedBundle) return cachedBundle
   const require = createRequire(import.meta.url)
-  const entry = require.resolve("rrweb/dist/rrweb.umd.cjs")
-  cachedBundle = readFileSync(entry, "utf8")
+  const entry = require.resolve("rrweb")
+  // The minified UMD build: this string is injected into every page of every
+  // run, so the ~200 KB saved over the unminified build is worth having.
+  const umd = join(dirname(entry), "rrweb.umd.min.cjs")
+  cachedBundle = readFileSync(umd, "utf8")
   return cachedBundle
 }
 
 export const RRWEB_BINDING = "__gauntletRrwebEmit"
 
-/** Init script: loads rrweb into every document and streams events out. */
+/**
+ * Init script: loads rrweb into every document and streams events out.
+ *
+ * The deferral matters. An init script is evaluated on `about:blank` before the
+ * real document exists, and calling `rrweb.record()` at that point CRASHES the
+ * renderer outright ("Target crashed") — not an exception you can catch, the
+ * whole tab. So recording starts on DOMContentLoaded, and only for documents
+ * that are actually pages.
+ */
 export function rrwebInitScript(): string {
   return `
 ${rrwebBundle()}
 ;(function () {
-  if (window.__gauntletRecording) return;
-  window.__gauntletRecording = true;
-  var record = (window.rrweb && window.rrweb.record) || window.rrwebRecord;
-  if (!record) return;
-  record({
-    emit: function (event) {
-      try { window.${RRWEB_BINDING}(JSON.stringify(event)); } catch (_) {}
-    },
-    // Inputs are masked: a replay is evidence, and evidence should not be a
-    // second copy of whatever was typed into a form.
-    maskAllInputs: true,
-    recordCanvas: false,
-    collectFonts: false,
-  });
+  // about: and blob: documents have nothing worth recording and are exactly
+  // where starting the recorder takes the renderer down with it.
+  if (location.protocol === "about:" || location.protocol === "blob:") return;
+
+  function start() {
+    if (window.__gauntletRecording) return;
+    if (!document.body) return;
+    window.__gauntletRecording = true;
+    var record = window.rrweb && window.rrweb.record;
+    if (!record) return;
+    record({
+      emit: function (event) {
+        try { window.${RRWEB_BINDING}(JSON.stringify(event)); } catch (_) {}
+      },
+      // Inputs are masked: a replay is evidence, and evidence should not be a
+      // second copy of whatever was typed into a form.
+      maskAllInputs: true,
+      recordCanvas: false,
+      collectFonts: false,
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start, { once: true });
+  } else {
+    start();
+  }
 })();
 `
 }

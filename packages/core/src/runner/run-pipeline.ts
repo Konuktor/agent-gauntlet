@@ -196,14 +196,23 @@ export async function executeRun(
       const mapped = GauntletError.from(error, "evaluator_failed")
       errorCode = mapped.code
       errorDetail = mapped.detail
-      logger.error("evaluation failed", { code: mapped.code, message: mapped.message })
+      logger.error("evaluation failed", {
+        code: mapped.code,
+        message: mapped.message,
+        detail: mapped.detail?.slice(0, 1_000),
+      })
     }
     recorder.lifecycle("evaluation_finished", { success: evaluation?.success ?? null })
   } catch (error) {
     const mapped = GauntletError.from(error, "internal")
     errorCode = mapped.code
     errorDetail = mapped.detail
-    logger.error("run failed before it could be judged", { code: mapped.code, message: mapped.message })
+    logger.error("run failed before it could be judged", {
+      code: mapped.code,
+      message: mapped.message,
+      // The detail is the difference between a diagnosable failure and a shrug.
+      detail: mapped.detail?.slice(0, 1_000),
+    })
   } finally {
     // Release the browser BEFORE fetching the replay: the recording upload only
     // begins once the session is released.
@@ -295,6 +304,10 @@ function wireSignals(
   },
 ): void {
   environment.signals.onNavigation((url) => {
+    // about:blank fires whenever a context spins up a page; it is browser
+    // plumbing, not somewhere the agent went, and it drowns the real
+    // navigations in the run timeline.
+    if (url === "about:blank" || url.startsWith("chrome-error://")) return
     if (sinks.urlHistory.at(-1) !== url) {
       sinks.urlHistory.push(url)
       recorder.navigation(url)

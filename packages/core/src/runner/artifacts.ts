@@ -3,7 +3,8 @@ import { createGzip } from "node:zlib"
 import { pipeline } from "node:stream/promises"
 import { Readable } from "node:stream"
 import { createWriteStream } from "node:fs"
-import { join, resolve } from "node:path"
+import { dirname, isAbsolute, join, resolve } from "node:path"
+import { existsSync } from "node:fs"
 
 /**
  * Where run artifacts live on disk.
@@ -17,7 +18,12 @@ export class ArtifactStore {
   private readonly root: string
 
   constructor(directory: string) {
-    this.root = resolve(directory)
+    // A relative artifact directory is anchored to the workspace root, not to
+    // whatever `cwd` the process happened to start in. Without this the worker
+    // writes replays under apps/worker/.artifacts and the CLI writes them
+    // somewhere else again, and "where did my replays go" becomes a support
+    // question with three answers.
+    this.root = isAbsolute(directory) ? directory : join(workspaceRoot(), directory)
   }
 
   async writeReplay(suiteRunId: string, runId: string, bytes: Uint8Array): Promise<string> {
@@ -40,4 +46,16 @@ export class ArtifactStore {
   get directory(): string {
     return this.root
   }
+}
+
+/** Nearest ancestor holding a pnpm workspace manifest; cwd if there is none. */
+function workspaceRoot(): string {
+  let current = resolve(process.cwd())
+  for (let depth = 0; depth < 8; depth++) {
+    if (existsSync(join(current, "pnpm-workspace.yaml"))) return current
+    const parent = dirname(current)
+    if (parent === current) break
+    current = parent
+  }
+  return resolve(process.cwd())
 }

@@ -63,12 +63,22 @@ export class LocalBrowserProvider implements BrowserProvider {
       })
 
       const collector = new RrwebCollector(LIMITS.maxReplayBytes)
-      const recording = options.recording && this.options.recording !== false
+      let recording = options.recording && this.options.recording !== false
       if (recording) {
-        await context.exposeBinding(RRWEB_BINDING, (_source, serialized: string) => {
-          collector.push(serialized)
-        })
-        await context.addInitScript({ content: rrwebInitScript() })
+        try {
+          await context.exposeBinding(RRWEB_BINDING, (_source, serialized: string) => {
+            collector.push(serialized)
+          })
+          await context.addInitScript({ content: rrwebInitScript() })
+        } catch (error) {
+          // Recording is evidence infrastructure. Losing it must not cost the
+          // user their run — the agent can still be executed and judged, and
+          // the run is simply marked as having no replay.
+          recording = false
+          this.logger.warn("local session recording is unavailable; continuing without a replay", {
+            error: error instanceof Error ? error.message : String(error),
+          })
+        }
       }
 
       // network_delay is applied here rather than in the fixture: it is a
