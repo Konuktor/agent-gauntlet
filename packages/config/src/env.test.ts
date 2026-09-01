@@ -69,24 +69,11 @@ describe("parseEnv", () => {
   })
 
   describe("deployment", () => {
-    it("defaults to the split web + worker topology", () => {
-      expect(parseEnv(base).GAUNTLET_DEPLOY_MODE).toBe("split")
-      expect(parseEnv({ ...base, GAUNTLET_DEPLOY_MODE: "single" }).GAUNTLET_DEPLOY_MODE).toBe("single")
-    })
-
-    it("derives the public origin from Render, then from an override, then localhost", () => {
+    it("derives the public origin from an explicit setting, else localhost", () => {
       expect(parseEnv(base).publicUrl).toBe("http://localhost:3000")
       expect(parseEnv({ ...base, PORT: "10000" }).publicUrl).toBe("http://localhost:10000")
-      expect(parseEnv({ ...base, RENDER_EXTERNAL_URL: "https://x.onrender.com" }).publicUrl).toBe(
-        "https://x.onrender.com",
-      )
-      // An explicit setting wins over the platform's guess.
       expect(
-        parseEnv({
-          ...base,
-          RENDER_EXTERNAL_URL: "https://x.onrender.com",
-          GAUNTLET_PUBLIC_URL: "https://gauntlet.example.com/",
-        }).publicUrl,
+        parseEnv({ ...base, GAUNTLET_PUBLIC_URL: "https://gauntlet.example.com/" }).publicUrl,
       ).toBe("https://gauntlet.example.com")
     })
 
@@ -118,7 +105,7 @@ describe("assertPublicDeploymentIsSafe", () => {
   const publicProd = {
     ...base,
     NODE_ENV: "production",
-    RENDER_EXTERNAL_URL: "https://demo.onrender.com",
+    GAUNTLET_PUBLIC_URL: "https://agent-gauntlet.northflank.app",
   }
 
   // The failure this prevents: a public URL, a real Solari key, and no gate —

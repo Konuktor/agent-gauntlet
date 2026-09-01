@@ -27,7 +27,6 @@ export async function GET() {
     {
       status: database ? "ok" : "degraded",
       database: database ? "ok" : "unavailable",
-      deployment: cfg.GAUNTLET_DEPLOY_MODE === "single" ? "render-single" : "split",
       // Presence only. Never the key, and never a call that uses it.
       solariConfigured: cfg.hasSolariCredentials,
       mode: cfg.resolvedMode,

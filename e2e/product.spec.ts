@@ -184,7 +184,6 @@ test.describe("api", () => {
     const body = await response.json()
     expect(body.status).toBe("ok")
     expect(body.database).toBe("ok")
-    expect(body.deployment).toMatch(/^(render-single|split)$/)
     // Presence, never the value.
     expect(typeof body.solariConfigured).toBe("boolean")
     const raw = JSON.stringify(body)

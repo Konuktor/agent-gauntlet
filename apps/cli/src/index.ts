@@ -103,7 +103,6 @@ function doctor(): number {
         env.hasLlmCredentials ? "set" : "not set — not required",
         true,
       ],
-      ["deploy mode", env.GAUNTLET_DEPLOY_MODE, true],
       ["real runs gated", env.runsAreGated ? "yes (GAUNTLET_RUN_TOKEN set)" : "no", true],
       ["concurrency", String(env.GAUNTLET_MAX_CONCURRENCY), true],
       ["runs per suite cap", String(env.GAUNTLET_MAX_RUNS_PER_SUITE), true],

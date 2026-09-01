@@ -20,7 +20,6 @@
     "@gauntlet/evaluators": "workspace:*",
     "@gauntlet/perturbations": "workspace:*",
     "@gauntlet/solari": "workspace:*",
-    "@gauntlet/worker": "workspace:*",
     "@solarisdk/browser": "^0.1.2",
     "@solarisdk/sdk": "^0.1.2",
     "clsx": "^2.1.1",

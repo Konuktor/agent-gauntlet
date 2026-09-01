@@ -40,6 +40,5 @@ export function clientCapabilities(): ClientCapabilities {
     maxRunsPerSuite: c.GAUNTLET_MAX_RUNS_PER_SUITE,
     llmModel: c.llmModel,
     runsGated: c.runsAreGated,
-    deployMode: c.GAUNTLET_DEPLOY_MODE,
   }
 }

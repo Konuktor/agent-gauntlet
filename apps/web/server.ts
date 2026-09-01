@@ -5,24 +5,20 @@ import next from "next"
 import { assertPublicDeploymentIsSafe, parseEnv, type GauntletConfig } from "@gauntlet/config"
 import { createLogger, type Logger } from "@gauntlet/core"
 import { createDb, loadDotEnv, runMigrations, type DbHandle } from "@gauntlet/db"
-import { createWorkerRuntime, type WorkerRuntime } from "@gauntlet/worker"
-
 /**
- * The single-service entrypoint.
+ * The web entrypoint.
  *
- * Render's free tier has no Background Workers, so a free public deployment
- * cannot run the worker as its own service. This hosts the web app and the
- * EXISTING worker runtime in one Node process — the same `createWorkerRuntime`
- * the standalone worker binary uses, not a second implementation.
+ * A custom server rather than `next start`, for three reasons that all still
+ * hold on Northflank: it binds 0.0.0.0 on the platform's $PORT, it keeps
+ * server-sent events alive past Node's default header timeout, and it applies
+ * the schema before serving a single request.
  *
- * With `GAUNTLET_DEPLOY_MODE=split` (the local default) this serves HTTP only,
- * and the worker stays a separate process.
+ * The worker is a SEPARATE service and is not started here.
  *
  * Responsibilities, in order:
- *   1. migrate (there is no pre-deploy hook on free) and fail loudly if it breaks
+ *   1. migrate, and fail loudly if it breaks
  *   2. serve on 0.0.0.0:$PORT
- *   3. run the worker in-process when deploy mode is `single`
- *   4. shut all of it down cleanly inside Render's SIGTERM window
+ *   3. shut down cleanly on SIGTERM
  */
 loadDotEnv()
 
@@ -30,7 +26,7 @@ const config: GauntletConfig = parseEnv()
 assertPublicDeploymentIsSafe(config)
 
 const logger: Logger = createLogger(
-  { component: "server", deploy: config.GAUNTLET_DEPLOY_MODE, mode: config.resolvedMode },
+  { component: "server", mode: config.resolvedMode },
   { level: config.LOG_LEVEL },
 )
 
@@ -38,13 +34,12 @@ const port = config.PORT
 const hostname = "0.0.0.0"
 
 let db: DbHandle | undefined
-let worker: WorkerRuntime | undefined
 
 async function main(): Promise<void> {
   // Migrations first, and fatal on failure: a service that serves traffic
   // against a half-migrated schema fails in far more confusing ways than one
   // that refuses to start.
-  db = createDb({ max: config.GAUNTLET_DEPLOY_MODE === "single" ? 8 : 5 })
+  db = createDb({ max: 5 })
   logger.info("applying migrations")
   await runMigrations(db.db)
   logger.info("migrations applied")
@@ -71,16 +66,6 @@ async function main(): Promise<void> {
     })
   })
   logger.info("listening", { url: config.publicUrl, port, hostname })
-
-  if (config.GAUNTLET_DEPLOY_MODE === "single") {
-    // Shares the web app's pool rather than opening a second set of
-    // connections: free Postgres has a small connection cap.
-    worker = createWorkerRuntime({ config, db, logger: logger.child({ component: "worker" }) })
-    void worker.start().catch((error: unknown) => {
-      logger.error("worker loop crashed", { error: describe(error) })
-    })
-    logger.info("worker running in-process", { workerId: worker.workerId })
-  }
 
   installShutdown(server)
 }
@@ -116,9 +101,6 @@ function installShutdown(server: ReturnType<typeof createServer>): void {
 
     // Bounded: a leaked browser session bills until the plan deadline, so it is
     // worth waiting for the runner's cleanup — but not past our own budget.
-    await worker?.shutdown(WORKER_GRACE_MS).catch((error: unknown) =>
-      logger.error("worker shutdown failed", { error: describe(error) }),
-    )
     await db?.close().catch(() => {})
 
     clearTimeout(deadline)
@@ -147,9 +129,8 @@ function resolveAppDir(): string {
   )
 }
 
-/** Comfortably inside the 30s default window the free plan pins us to. */
+/** Draining budget for in-flight HTTP, including long-lived SSE streams. */
 const SHUTDOWN_BUDGET_MS = 20_000
-const WORKER_GRACE_MS = 12_000
 
 function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error)

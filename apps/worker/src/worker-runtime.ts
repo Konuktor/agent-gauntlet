@@ -82,7 +82,6 @@ export function createWorkerRuntime(options: WorkerRuntimeOptions): WorkerRuntim
     logger.info("worker started", {
       mode: config.resolvedMode,
       concurrency: config.GAUNTLET_MAX_CONCURRENCY,
-      deploy: config.GAUNTLET_DEPLOY_MODE,
     })
 
     // A worker killed mid-suite leaves rows nobody will pick up. Reclaiming on

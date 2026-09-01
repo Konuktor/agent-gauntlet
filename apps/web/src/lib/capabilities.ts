@@ -16,6 +16,4 @@ export interface ClientCapabilities {
   llmModel: string
   /** True when starting a run requires an access code. */
   runsGated: boolean
-  /** How this process is deployed, for the footer/diagnostics. */
-  deployMode: "split" | "single"
 }

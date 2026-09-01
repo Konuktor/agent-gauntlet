@@ -23,16 +23,14 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json,yml,yaml,css}\"",
     "gauntlet": "pnpm --filter @gauntlet/cli run start --",
     "lint": "turbo run lint",
-    "render:build": "pnpm install --frozen-lockfile && pnpm --filter @gauntlet/fixture run build && pnpm --filter @gauntlet/web run build",
-    "render:start": "NODE_OPTIONS=--max-old-space-size=384 pnpm --filter @gauntlet/web run start",
     "screenshots": "tsx scripts/screenshots.ts",
     "start": "concurrently -k -n web,worker -c cyan,magenta \"pnpm --filter @gauntlet/web run start\" \"pnpm --filter @gauntlet/worker run start\"",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:render": "vitest run --config vitest.render.config.ts",
     "test:solari": "vitest run --config vitest.solari.config.ts",
     "test:watch": "vitest",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "test:deploy": "vitest run --config vitest.deploy.config.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",

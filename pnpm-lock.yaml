@@ -150,9 +150,6 @@ importers:
       '@gauntlet/solari':
         specifier: workspace:*
         version: link:../../packages/solari
-      '@gauntlet/worker':
-        specifier: workspace:*
-        version: link:../worker
       '@solarisdk/browser':
         specifier: ^0.1.2
         version: 0.1.2

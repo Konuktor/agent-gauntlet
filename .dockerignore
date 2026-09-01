@@ -1,0 +1,23 @@
+# Everything the build does not need. Keeping this tight matters twice over:
+# it is the build context uploaded to Northflank, and anything listed here
+# cannot leak into a published image.
+.git
+.gitignore
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+.artifacts
+coverage
+test-results
+playwright-report
+blob-report
+**/*.log
+.env
+.env.*
+!.env.example
+docs/images
+e2e
+**/*.test.ts
+**/*.spec.ts
+deploy-tests

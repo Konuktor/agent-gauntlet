@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
-    "build": "tsup",
+    "build": "tsup && node -e \"require('node:fs').cpSync('../../packages/db/drizzle','dist/drizzle',{recursive:true})\"",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src"
   },

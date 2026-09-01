@@ -52,13 +52,6 @@ export default async function LandingPage() {
             : "Starting a run executes locally against the bundled storefront."}
         </p>
 
-        {capabilities.deployMode === "single" ? (
-          <p className="mt-6 max-w-2xl text-xs text-[var(--color-ink-3)]">
-            This is a free demo instance. The first load after a quiet spell takes a few seconds
-            while it wakes up.
-          </p>
-        ) : null}
-
         {!capabilities.hasSolari ? (
           <p className="mt-4 max-w-2xl text-sm text-[var(--color-ink-3)]">
             No <code>SOLARI_API_KEY</code> is configured, so runs execute in{" "}

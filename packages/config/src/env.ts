@@ -46,14 +46,6 @@ export const envSchema = z.object({
   GAUNTLET_MODE: z.enum(["auto", "solari", "local"]).default("auto"),
 
   /**
-   * How this process is deployed.
-   *
-   * `split`  — a web service and a separate worker process (the local default)
-   * `single` — one process running both, for a single Render web service
-   */
-  GAUNTLET_DEPLOY_MODE: z.enum(["split", "single"]).default("split"),
-
-  /**
    * Gate for runs that spend real money.
    *
    * When set, starting a gauntlet requires this token; the seeded demo stays
@@ -78,8 +70,6 @@ export const envSchema = z.object({
   GAUNTLET_ARTIFACT_DIR: z.string().default(".artifacts"),
   /** Public origin, when the app is not reached on localhost. */
   GAUNTLET_PUBLIC_URL: optionalString,
-  /** Injected by Render; used to derive the public origin automatically. */
-  RENDER_EXTERNAL_URL: optionalString,
   PORT: intInRange(1, 65535, 3000),
 
   SOLARI_E2E: boolish.default(false),
@@ -125,12 +115,11 @@ export function buildConfig(raw: RawEnv): GauntletConfig {
 /**
  * Where this app actually lives.
  *
- * An explicit setting wins; otherwise Render tells us; otherwise localhost.
- * Nothing in production should ever emit a localhost URL, so this is the single
- * place that decides.
+ * An explicit setting wins; otherwise localhost. Nothing in production should
+ * ever emit a localhost URL, so this is the single place that decides.
  */
 function resolvePublicUrl(raw: RawEnv): string {
-  const explicit = raw.GAUNTLET_PUBLIC_URL ?? raw.RENDER_EXTERNAL_URL
+  const explicit = raw.GAUNTLET_PUBLIC_URL
   if (explicit) return explicit.replace(/\/$/, "")
   return `http://localhost:${raw.PORT}`
 }
@@ -178,7 +167,7 @@ export function parseEnv(source: Record<string, string | undefined> = process.en
  * nothing there to spend.
  */
 export function assertPublicDeploymentIsSafe(config: GauntletConfig): void {
-  const isPublic = config.NODE_ENV === "production" && Boolean(config.RENDER_EXTERNAL_URL ?? config.GAUNTLET_PUBLIC_URL)
+  const isPublic = config.NODE_ENV === "production" && Boolean(config.GAUNTLET_PUBLIC_URL)
   if (!isPublic) return
   if (!config.hasSolariCredentials) return
   if (config.runsAreGated) return

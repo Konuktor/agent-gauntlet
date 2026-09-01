@@ -6,10 +6,15 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest"
 /**
  * The deployment contract.
  *
- * Everything here is a promise this repository makes to Render. Each assertion
- * corresponds to a way a deploy can fail silently: binding the wrong interface,
- * ignoring `PORT`, migrating twice, dying on SIGTERM without releasing paid
- * resources, or leaving a claimed job that no future instance will pick up.
+ * Everything here is a promise this repository makes to the platform it runs
+ * on. Each assertion corresponds to a way a deploy can fail silently: binding
+ * the wrong interface, ignoring `PORT`, migrating twice, dying on SIGTERM
+ * without releasing paid resources, or leaving a claimed job that no future
+ * instance will pick up.
+ *
+ * The web service and the worker are separate processes here, exactly as they
+ * are on Northflank — this suite spawns both and talks to the web one over
+ * HTTP, never linking against the code it tests.
  */
 
 const repoRoot = resolve(import.meta.dirname, "..")
@@ -18,8 +23,8 @@ const repoRoot = resolve(import.meta.dirname, "..")
  * Load `.env` without importing a workspace package.
  *
  * This suite deliberately treats the app as a black box — it spawns the built
- * artifact and talks to it over HTTP, exactly as Render does — so it must not
- * link against the code it is testing.
+ * artifact and talks to it over HTTP, exactly as the platform does — so it
+ * must not link against the code it is testing.
  */
 function loadEnvFile(): void {
   const path = resolve(repoRoot, ".env")
@@ -41,7 +46,35 @@ const PORT = 13977
 const baseUrl = `http://127.0.0.1:${PORT}`
 
 let server: ChildProcessWithoutNullStreams | undefined
+let workerProc: ChildProcessWithoutNullStreams | undefined
 const logLines: string[] = []
+const workerLines: string[] = []
+
+const workerEntry = resolve(repoRoot, "apps/worker/dist/index.js")
+
+/** The worker is a separate service; nothing about it is hosted by the web app. */
+function startWorker(env: Record<string, string> = {}): ChildProcessWithoutNullStreams {
+  const child = spawn(process.execPath, [workerEntry], {
+    cwd: resolve(repoRoot, "apps/worker"),
+    env: { ...process.env, NODE_ENV: "production", LOG_LEVEL: "info", ...env },
+    stdio: ["ignore", "pipe", "pipe"],
+  })
+  const record = (chunk: Buffer) => {
+    for (const line of chunk.toString().split("\n")) if (line.trim()) workerLines.push(line)
+  }
+  child.stdout.on("data", record)
+  child.stderr.on("data", record)
+  return child
+}
+
+async function waitForWorker(timeoutMs = 30_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    if (workerLines.some((l) => l.includes('"msg":"worker started"'))) return
+    await new Promise((r) => setTimeout(r, 200))
+  }
+  throw new Error(`worker never started:\n${workerLines.slice(-10).join("\n")}`)
+}
 
 function startServer(env: Record<string, string> = {}): ChildProcessWithoutNullStreams {
   const child = spawn(process.execPath, [serverEntry], {
@@ -50,7 +83,6 @@ function startServer(env: Record<string, string> = {}): ChildProcessWithoutNullS
       ...process.env,
       NODE_ENV: "production",
       PORT: String(PORT),
-      GAUNTLET_DEPLOY_MODE: "single",
       LOG_LEVEL: "info",
       ...env,
     },
@@ -110,19 +142,22 @@ async function stop(child: ChildProcessWithoutNullStreams | undefined, signal: N
 
 const built = existsSync(serverEntry)
 
-describe.skipIf(!built)("Render deployment contract", () => {
+describe.skipIf(!built)("Deployment contract", () => {
   beforeAll(async () => {
     server = startServer()
     await waitForHealth()
+    workerProc = startWorker()
+    await waitForWorker()
   })
 
   afterAll(async () => {
+    await stop(workerProc)
     await stop(server)
   })
 
   describe("networking", () => {
-    // Render injects PORT (default 10000) and 502s a service that binds
-    // anything but 0.0.0.0.
+    // The platform injects PORT and routes to the container's interface; a
+    // service that binds loopback only is unreachable and reads as a crash.
     it("listens on the injected PORT", async () => {
       const response = await fetch(`${baseUrl}/api/health`)
       expect(response.ok).toBe(true)
@@ -142,13 +177,9 @@ describe.skipIf(!built)("Render deployment contract", () => {
   })
 
   describe("health check", () => {
-    it("returns the shape Render polls, and reports the deployment mode", async () => {
+    it("returns the shape the platform polls", async () => {
       const body = (await (await fetch(`${baseUrl}/api/health`)).json()) as Record<string, unknown>
-      expect(body).toMatchObject({
-        status: "ok",
-        database: "ok",
-        deployment: "render-single",
-      })
+      expect(body).toMatchObject({ status: "ok", database: "ok" })
       expect(typeof body.solariConfigured).toBe("boolean")
     })
 
@@ -157,8 +188,8 @@ describe.skipIf(!built)("Render deployment contract", () => {
       expect(raw).not.toMatch(/slr_live_|sk-ant-|postgres:\/\//)
     })
 
-    // Render polls this constantly; a Solari call here would spend credits on
-    // every probe.
+    // The readiness probe polls this constantly; a Solari call here would spend
+    // credits on every probe.
     it("is cheap enough to poll", async () => {
       const started = Date.now()
       for (let i = 0; i < 5; i++) await fetch(`${baseUrl}/api/health`)
@@ -174,8 +205,10 @@ describe.skipIf(!built)("Render deployment contract", () => {
       expect(listening).toBeGreaterThan(applied)
     })
 
-    it("runs the worker in-process in single deploy mode", () => {
-      expect(logLines.some((l) => l.includes("worker running in-process"))).toBe(true)
+    // The web service hosts HTTP and nothing else. If it ever started a
+    // worker again, two services would race for the same queue.
+    it("starts no worker of its own", () => {
+      expect(logLines.some((l) => l.includes("worker"))).toBe(false)
     })
 
     // Every deploy re-runs them; a non-idempotent migration would break the
@@ -239,11 +272,12 @@ describe.skipIf(!built)("Render deployment contract", () => {
     })
   })
 
-  describe("the in-process worker", () => {
+  describe("the separate worker service", () => {
     /**
-     * The single-service claim: a job enqueued through the HTTP API is picked
-     * up by the worker running inside the SAME process. If this passes, the
-     * free-tier deployment genuinely works without a background worker.
+     * The two-service claim: a job enqueued over HTTP by the web service is
+     * picked up by a DIFFERENT process, with only Postgres between them. If
+     * this passes, the split topology genuinely works — no shared memory, no
+     * message bus, nothing the platform has to broker.
      */
     it("claims a job enqueued through the API", async () => {
       const catalog = (await (await fetch(`${baseUrl}/api/catalog`)).json()) as {
@@ -261,7 +295,7 @@ describe.skipIf(!built)("Render deployment contract", () => {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          name: "render contract",
+          name: "deployment contract",
           agentId: catalog.agents[0]!.id,
           taskDefinitionId: catalog.tasks[0]!.id,
           variants: ["baseline"],
@@ -274,7 +308,7 @@ describe.skipIf(!built)("Render deployment contract", () => {
       const enqueued = await fetch(`${baseUrl}/api/suites/${suite.id}/run`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ label: "render contract" }),
+        body: JSON.stringify({ label: "deployment contract" }),
       })
       expect(enqueued.status).toBe(202)
       const run = (await enqueued.json()) as { id: string }
@@ -290,10 +324,10 @@ describe.skipIf(!built)("Render deployment contract", () => {
         }
         status = view.status
       }
-      expect(status, "the in-process worker never claimed the job").not.toBe("queued")
+      expect(status, "the worker service never claimed the job").not.toBe("queued")
 
-      // And the API can read back what the worker wrote — same process, same
-      // database, no message bus.
+      // And the web service can read back what the worker wrote — different
+      // process, one database, no message bus.
       const view = (await (await fetch(`${baseUrl}/api/suite-runs/${run.id}`)).json()) as {
         metrics: { totalRuns: number }
         mode: string
@@ -303,25 +337,31 @@ describe.skipIf(!built)("Render deployment contract", () => {
     })
 
     /**
-     * A job interrupted by a restart must be recoverable, or a Render deploy
+     * A job interrupted by a restart must be recoverable, or a deploy
      * mid-suite would strand it in `running` forever.
      */
     it("reclaims work abandoned by a previous instance", async () => {
-      logLines.length = 0
-      await stop(server)
-      server = startServer()
-      await waitForHealth()
-      // The reclaim runs unconditionally on boot; it logs only when it found
-      // something, so the assertion is that the boot completed and the worker
-      // came back up ready to claim.
-      expect(logLines.some((l) => l.includes("worker running in-process"))).toBe(true)
+      workerLines.length = 0
+      await stop(workerProc)
+      workerProc = startWorker()
+      await waitForWorker()
+      // Reclaim runs unconditionally on boot and logs only when it found
+      // something, so the assertion is that a replacement worker came back up
+      // ready to claim — which is what makes a mid-suite deploy recoverable.
+      expect(workerLines.some((l) => l.includes('"msg":"worker started"'))).toBe(true)
+    })
+
+    it("keeps the worker off HTTP entirely", () => {
+      // Nothing in the worker should be listening; the platform gives it no
+      // port and the product needs none.
+      expect(workerLines.some((l) => l.includes('"msg":"listening"'))).toBe(false)
     })
   })
 
   describe("graceful shutdown", () => {
-    // Render SIGTERMs and then SIGKILLs after maxShutdownDelaySeconds. Exiting
-    // cleanly inside that window is what releases in-flight Solari sessions.
-    it("exits cleanly on SIGTERM well inside the free plan's 30s window", async () => {
+    // The platform SIGTERMs and then SIGKILLs after a grace period. Exiting
+    // cleanly inside it is what releases in-flight Solari sessions.
+    it("exits cleanly on SIGTERM well inside a 30s grace period", async () => {
       logLines.length = 0
       const child = server!
       const started = Date.now()
@@ -344,93 +384,124 @@ describe.skipIf(!built)("Render deployment contract", () => {
 })
 
 /**
- * Render is the only thing that validates a Blueprint, and it does so after you
- * have already pushed. `maxShutdownDelaySeconds: 60` passed every local check
- * and was then rejected on apply with "max shutdown delay is not supported for
- * free tier services". These assertions move that feedback back into the repo.
+ * Northflank validates a template only when you run it, and that answer
+ * arrives after the push. These assertions move the parts we can check
+ * ourselves back into the repository: schema shape, the free Sandbox
+ * allowance, and the promise that no browser ships in a production image.
  */
-describe("render.yaml free-plan compatibility", () => {
-  /** Fields Render refuses on `plan: free`, with the message it answers with. */
-  const PAID_ONLY = [
-    ["maxShutdownDelaySeconds", "max shutdown delay is not supported for free tier services"],
-    ["preDeployCommand", "pre-deploy commands are not supported on the free plan"],
-    ["disk", "disks are not available on the free plan"],
-    ["numInstances", "scaling is not available on the free plan"],
-  ] as const
-
-  /** Every top-level `- type:` block, with the lines belonging to it. */
-  function services(): { plan: string; body: string }[] {
-    const lines = readFileSync(resolve(import.meta.dirname, "../render.yaml"), "utf8").split("\n")
-    const blocks: string[][] = []
-    for (const line of lines) {
-      if (/^\s{2}-\s/.test(line)) blocks.push([line])
-      else if (blocks.length > 0 && /^\s{4}\S/.test(line)) blocks.at(-1)!.push(line)
-      else if (/^\S/.test(line)) blocks.push([])
-    }
-    return blocks
-      .filter((b) => b.length > 0)
-      .map((b) => ({ plan: /plan:\s*(\S+)/.exec(b.join("\n"))?.[1] ?? "", body: b.join("\n") }))
+describe("northflank template", () => {
+  const template = JSON.parse(
+    readFileSync(resolve(import.meta.dirname, "../northflank/template.json"), "utf8"),
+  ) as {
+    apiVersion: string
+    arguments: Record<string, string>
+    argumentOverrides: Record<string, string>
+    spec: { spec: { type: string; steps: Array<{ kind: string; spec: Record<string, unknown> }> } }
   }
 
-  it("declares at least one free service, so this guard is not vacuous", () => {
-    expect(services().filter((s) => s.plan === "free").length).toBeGreaterThan(0)
+  const steps = () => template.spec.spec.steps
+  const byKind = (kind: string) => steps().filter((s) => s.kind === kind)
+
+  it("declares the only apiVersion Northflank supports", () => {
+    expect(template.apiVersion).toBe("v1.2")
   })
 
-  it("asks for nothing the free plan rejects", () => {
-    for (const service of services().filter((s) => s.plan === "free")) {
-      for (const [field, message] of PAID_ONLY) {
-        // A commented-out mention is documentation, not a declaration.
-        const declared = new RegExp(`^\\s*${field}\\s*:`, "m").test(service.body)
-        expect(declared, `${field} is paid-only — Render answers "${message}"`).toBe(false)
-      }
-    }
+  it("runs its nodes in order, so the database exists before the services", () => {
+    expect(template.spec.spec.type).toBe("sequential")
+    const kinds = steps().map((s) => s.kind)
+    expect(kinds.indexOf("Addon")).toBeLessThan(kinds.indexOf("SecretGroup"))
+    expect(kinds.indexOf("SecretGroup")).toBeLessThan(kinds.indexOf("CombinedService"))
   })
 
-  it("sets no service-wide NODE_OPTIONS, which would starve the build", () => {
-    // Render applies service env vars to the build as well as the run. A
-    // 384 MB heap cap is right for a 512 MB instance and fatal for
-    // `next build`, which OOMed with "Reached heap limit".
-    const blueprint = readFileSync(resolve(import.meta.dirname, "../render.yaml"), "utf8")
-    const declared = /^\s*-\s*key:\s*NODE_OPTIONS\s*$/m.test(blueprint)
-    expect(declared, "NODE_OPTIONS belongs in the start command, not the service env").toBe(false)
+  // Developer Sandbox: 2 services, 2 jobs, 1 addon. Exceeding any of them turns
+  // a free deployment into a billing prompt, which is a hard stop for us.
+  it("fits the free Developer Sandbox allowance", () => {
+    expect(byKind("CombinedService").length + byKind("DeploymentService").length).toBeLessThanOrEqual(2)
+    expect(byKind("ManualJob").length + byKind("CronJob").length).toBeLessThanOrEqual(2)
+    expect(byKind("Addon").length).toBeLessThanOrEqual(1)
   })
 
-  it("still caps the heap at run time, where the 512 MB limit applies", () => {
-    const scripts = JSON.parse(readFileSync(resolve(import.meta.dirname, "../package.json"), "utf8"))
-      .scripts as Record<string, string>
-    expect(scripts["render:start"]).toMatch(/max-old-space-size=\d+/)
+  it("exposes the web service and nothing else", () => {
+    const services = byKind("CombinedService")
+    const web = services.find((s) => String(s.spec.name).endsWith("-web"))
+    const worker = services.find((s) => String(s.spec.name).endsWith("-worker"))
+    expect(web, "no web service in the template").toBeDefined()
+    expect(worker, "no worker service in the template").toBeDefined()
+
+    const webPorts = web!.spec.ports as Array<{ public: boolean; internalPort: number }>
+    expect(webPorts.some((p) => p.public)).toBe(true)
+
+    // The worker takes work from Postgres, not from HTTP. No port at all —
+    // not a private one, and certainly not a fake server to satisfy a probe.
+    expect(worker!.spec.ports as unknown[]).toEqual([])
   })
 
-  it("builds without corepack, which cannot symlink into the Node install", () => {
-    // `corepack enable` fails with EACCES on a build user that does not own
-    // the Node prefix. Render supplies pnpm from the lockfile already.
-    const scripts = JSON.parse(readFileSync(resolve(import.meta.dirname, "../package.json"), "utf8"))
-      .scripts as Record<string, string>
-    expect(scripts["render:build"]).not.toContain("corepack")
-    expect(scripts["render:build"]).toContain("--frozen-lockfile")
+  it("gives each service its own Dockerfile target from the one build", () => {
+    const targets = steps()
+      .filter((s) => s.buildConfiguration !== undefined || s.spec.buildConfiguration !== undefined)
+      .map((s) => (s.spec.buildConfiguration as { dockerfileTarget?: string } | undefined)?.dockerfileTarget)
+      .filter(Boolean)
+    expect(new Set(targets)).toEqual(new Set(["web", "worker", "migrate"]))
   })
 
-  it("pins the same pnpm in the Blueprint as in packageManager", () => {
-    const blueprint = readFileSync(resolve(import.meta.dirname, "../render.yaml"), "utf8")
-    const pkg = JSON.parse(readFileSync(resolve(import.meta.dirname, "../package.json"), "utf8"))
-    const pinned = /key:\s*PNPM_VERSION\s*\n\s*value:\s*"?([\d.]+)"?/.exec(blueprint)?.[1]
-    const declared = /^pnpm@([\d.]+)$/.exec(pkg.packageManager as string)?.[1]
-    expect(pinned, "PNPM_VERSION must be set: without corepack we take Render's pnpm").toBe(declared)
+  it("keeps the database private to the project", () => {
+    const addon = byKind("Addon")[0]!
+    expect(addon.spec.externalAccessEnabled).toBe(false)
+    expect(addon.spec.tlsEnabled).toBe(true)
   })
 
-  it("keeps the shutdown budget inside the 30s window the free plan pins us to", () => {
-    const server = readFileSync(resolve(import.meta.dirname, "../apps/web/server.ts"), "utf8")
-    const budget = Number(/SHUTDOWN_BUDGET_MS = ([\d_]+)/.exec(server)?.[1]?.replace(/_/g, ""))
-    const grace = Number(/WORKER_GRACE_MS = ([\d_]+)/.exec(server)?.[1]?.replace(/_/g, ""))
-    expect(budget).toBeGreaterThan(0)
-    expect(budget).toBeLessThan(30_000)
-    expect(grace).toBeLessThan(budget)
+  it("aliases the addon URI to the DATABASE_URL the app asks for", () => {
+    const group = byKind("SecretGroup")[0]!
+    const deps = group.spec.addonDependencies as Array<{
+      keys: Array<{ keyName: string; aliases: string[] }>
+    }>
+    expect(deps[0]!.keys[0]!.aliases).toContain("DATABASE_URL")
+  })
+
+  // The whole file is committed, so a real value here would be a public leak.
+  it("commits no secret values", () => {
+    const raw = readFileSync(resolve(import.meta.dirname, "../northflank/template.json"), "utf8")
+    expect(raw).not.toMatch(/slr_live_|sk-ant-|postgres:\/\/[^$]/)
+    expect(template.argumentOverrides.SOLARI_API_KEY).toBe("")
+    // A generated token beats a placeholder somebody forgets to change.
+    expect(template.argumentOverrides.GAUNTLET_RUN_TOKEN).toMatch(/^\$\{fn\.randomSecret\(\d+\)\}$/)
   })
 })
 
-describe.skipIf(built)("Render deployment contract (skipped)", () => {
+describe("production images", () => {
+  const dockerfile = readFileSync(resolve(import.meta.dirname, "../Dockerfile"), "utf8")
+
+  // The product's central safety claim: browsers run on Solari, never here.
+  // A Playwright browser in the image would make that claim untestable.
+  it("never downloads a browser into a production image", () => {
+    expect(dockerfile).toMatch(/PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1/)
+    expect(dockerfile).not.toMatch(/playwright\s+install/)
+  })
+
+  it("runs as an unprivileged user", () => {
+    expect(dockerfile).toMatch(/^USER node$/m)
+  })
+
+  it("builds web, worker and migrate from one compile", () => {
+    for (const target of ["AS web", "AS worker", "AS migrate"]) {
+      expect(dockerfile).toContain(target)
+    }
+    // One dependency install, one build stage: the worker cannot drift from
+    // the web app's idea of the domain.
+    expect(dockerfile.match(/^FROM deps AS build$/gm)).toHaveLength(1)
+  })
+
+  it("excludes the things that must never enter the build context", () => {
+    const ignored = readFileSync(resolve(import.meta.dirname, "../.dockerignore"), "utf8")
+    for (const entry of ["**/node_modules", "**/.next", ".git", ".env"]) {
+      expect(ignored).toContain(entry)
+    }
+  })
+})
+
+describe.skipIf(built)("Deployment contract (skipped)", () => {
   it("needs a production build", () => {
     expect(built).toBe(false)
-    console.log("Skipped: run `pnpm build` first, then `pnpm test:render`.")
+    console.log("Skipped: run `pnpm build` first, then `pnpm test:deploy`.")
   })
 })

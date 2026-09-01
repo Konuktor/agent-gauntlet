@@ -7,8 +7,6 @@
 *Benchmarks tell you whether your agent is smart.
 AgentGauntlet tells you whether it survives production.*
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Konuktor/agent-gauntlet)
-
 </div>
 
 ---
@@ -164,7 +162,7 @@ so. Add `SOLARI_API_KEY` to `.env` and the same suites run on Solari.
 | `SOLARI_API_KEY` | — | Enables real mode. Absent ⇒ local mode |
 | `GAUNTLET_MODE` | `auto` | `auto` \| `solari` \| `local`. `solari` without a key is a startup error, never a silent downgrade |
 | `GAUNTLET_RUN_TOKEN` | — | Access code required to *start* a run. Mandatory for a public deployment |
-| `GAUNTLET_DEPLOY_MODE` | `split` | `single` runs web + worker in one process (Render free tier) |
+| `GAUNTLET_PUBLIC_URL` | — | Public origin. Set it in production so nothing emits a localhost link |
 | `ANTHROPIC_API_KEY` | — | Optional, experimental adapter only. Never required |
 | `GAUNTLET_MAX_CONCURRENCY` | `3` | Parallel browsers. Solari's Free plan allows 3 |
 | `GAUNTLET_MAX_SANDBOXES` | `1` | Free plan allows 1 |
@@ -291,56 +289,64 @@ workflow is at [.github/workflows/agent-gauntlet.yml](.github/workflows/agent-ga
 
 ---
 
-## Deploy to Render
+## Deploy on Northflank
 
-One web service and one Postgres, from the checked-in
-[`render.yaml`](render.yaml). There is deliberately **no separate background
-worker**: Render has no free plan for one, so `GAUNTLET_DEPLOY_MODE=single`
-hosts the existing worker runtime inside the web service's process — the same
-code, not a second copy.
+Three resources, which is exactly what the free **Developer Sandbox** grants
+(2 services, 2 jobs, 1 addon) — and it is always-on, so there is no cold start
+to apologise for.
 
-Use the button above, or:
+```mermaid
+flowchart TB
+    U([Internet]) -->|HTTPS| W["agent-gauntlet-web<br/><i>Next.js UI + API</i><br/>public"]
+    W <-->|"suite runs, events, results"| DB[("agent-gauntlet-db<br/><i>PostgreSQL addon</i><br/>private")]
+    K["agent-gauntlet-worker<br/><i>queue consumer</i><br/>no port"] <-->|"claim · heartbeat · write"| DB
+    K -->|"cloud browsers, recorded"| SB["Solari Browser"]
+    K -->|"benchmark site · untrusted agent repos"| SS["Solari Sandbox"]
+    J["agent-gauntlet-migrate<br/><i>manual job</i>"] -.->|schema| DB
+```
 
-1. **Fork this repository** (or push your own copy).
-2. In Render, choose **New → Blueprint** and point it at your fork. Render reads
-   [`render.yaml`](https://github.com/Konuktor/agent-gauntlet/blob/master/render.yaml) and proposes the web service
-   plus the database.
-3. **Enter `SOLARI_API_KEY`** when prompted. Leave it blank to deploy a
-   demo-only instance — the seeded dashboard works fully, and starting a real
-   run is simply unavailable.
-4. Render **generates `GAUNTLET_RUN_TOKEN`** for you. Copy it from the service's
-   Environment tab; it is the access code for starting real runs.
-5. **Apply.** The first deploy builds, migrates on startup, and comes up healthy
-   at `/api/health`.
-6. Open the app and **explore the seeded demo** — no code needed.
-7. To spend credits, go to **Run a real gauntlet**, enter the access code, and
-   start a suite.
+**Why two services rather than one?** The web app answers requests in
+milliseconds; a gauntlet runs for minutes and holds cloud browser sessions.
+Putting them in one process means a deploy mid-suite kills in-flight runs, and
+a long suite starves the UI. They share nothing but Postgres — the queue is
+`FOR UPDATE SKIP LOCKED` with heartbeats, so a restarted worker reclaims what
+its predecessor abandoned.
 
-Migrations run inside the start command rather than a pre-deploy step, because
-[the free plan has no `preDeployCommand`](docs/RENDER_NOTES.md). They are
-idempotent; a failure exits non-zero so Render marks the deploy unhealthy
-instead of serving traffic against a half-migrated schema.
+**Why Solari?** Because the product needs many disposable, *recorded* cloud
+browsers in parallel, an isolated VM to host the benchmark site on a public
+URL, and another isolated VM to execute untrusted third-party agent
+repositories. Northflank is the orchestrator; it never runs a browser and never
+runs someone else's repository. `Dockerfile` enforces the first half of that
+with `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1`, and `pnpm test:deploy` asserts it.
 
-### What to know before you rely on it
+### One-click-ish
 
-- **The free web service sleeps** after 15 minutes without traffic, and the next
-  request takes about a minute to wake it. There is no keep-alive hack here on
-  purpose — it would burn the free instance-hours for nothing.
-- **Free Render Postgres expires 30 days after creation** (plus a 14-day grace
-  period). Fine for a demo; move to a paid plan for anything you care about.
-- **Real runs spend real Solari credits.** Each run in a suite is one cloud
-  browser session. The UI states the exact run count before anything starts, and
-  concurrency defaults to 3 to stay inside Solari's Free plan.
-- **The filesystem is ephemeral.** Nothing important depends on it: results,
-  events and session replays all live in Postgres.
+1. **Fork this repository.**
+2. In Northflank, create a template from
+   [`northflank/template.json`](northflank/template.json) — it provisions the
+   project, the Postgres addon, the secret group, both services and the
+   migration job, in that order.
+3. Supply two values as **argument overrides** (never committed):
+   `SOLARI_API_KEY`, and `GAUNTLET_RUN_TOKEN` — the latter defaults to
+   `${fn.randomSecret(48)}`, so you can leave it alone.
+4. Run the template, then run the `agent-gauntlet-migrate` job once.
 
-### Running it as two services instead
+Leave `SOLARI_API_KEY` empty to deploy a demo-only instance: the seeded
+dashboard works fully and starting a real run is simply unavailable.
 
-Nothing about the split topology was removed. On a paid plan, run
-`apps/web` and `apps/worker` as separate Render services, leave
-`GAUNTLET_DEPLOY_MODE` at `split`, and point both at the same database.
+### What to know
 
----
+- **The public demo cannot spend your credits.** Anyone may explore the seeded
+  results, the failure detail and the comparison view. Starting a real gauntlet
+  requires the access code, which is exchanged server-side for an HttpOnly,
+  `Secure`, `SameSite` cookie. The token itself never reaches client JavaScript.
+- **The database is private** (`externalAccessEnabled: false`) and reaches the
+  services only through a secret group that aliases `POSTGRES_URI` to the
+  `DATABASE_URL` the app asks for. No credential is in git.
+- **Concurrency defaults to 3 browsers and 1 sandbox**, matching Solari's free
+  plan. The UI states the exact run count before anything starts.
+- **Migrations are idempotent** and exit non-zero on failure. They never seed
+  and never drop.
 
 ## Evaluation
 
