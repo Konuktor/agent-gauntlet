@@ -1,0 +1,26 @@
+{
+  "name": "@gauntlet/solari",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@gauntlet/config": "workspace:*",
+    "@gauntlet/core": "workspace:*",
+    "@solarisdk/browser": "^0.1.2",
+    "@solarisdk/sdk": "^0.1.2",
+    "zod": "^3.24.1",
+    "patchright-core": "1.62.2",
+    "@gauntlet/fixture": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.3"
+  }
+}

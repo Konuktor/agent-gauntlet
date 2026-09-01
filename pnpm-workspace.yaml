@@ -1,0 +1,22 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "examples/*"
+
+# pnpm >=11 reads build-script approval from `allowBuilds` here (NOT from
+# `pnpm.onlyBuiltDependencies` in package.json, and not `onlyBuiltDependencies`
+# here either — both are silently ignored). These packages ship native binaries
+# and are broken without their install script.
+allowBuilds:
+  esbuild: true
+  sharp: true
+  "@tailwindcss/oxide": true
+  unrs-resolver: true
+  "@swc/core": true
+  playwright: true
+  playwright-core: true
+  patchright-core: true
+  "@playwright/test": true
+
+minimumReleaseAgeExclude:
+  - '@solarisdk/browser@0.1.2'

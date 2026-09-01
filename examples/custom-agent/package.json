@@ -1,0 +1,13 @@
+{
+  "name": "gauntlet-example-custom-agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal AgentGauntlet repository-agent, implementing the agentgauntlet.yaml contract.",
+  "scripts": {
+    "gauntlet": "node agent.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "^1.49.1"
+  }
+}

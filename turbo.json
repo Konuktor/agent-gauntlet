@@ -1,0 +1,29 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "stream",
+  "globalEnv": [
+    "NODE_ENV",
+    "DATABASE_URL",
+    "SOLARI_API_KEY",
+    "SOLARI_BASE_URL",
+    "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
+    "LLM_PROVIDER",
+    "LLM_MODEL",
+    "GAUNTLET_MODE",
+    "GAUNTLET_MAX_CONCURRENCY",
+    "GAUNTLET_MAX_SANDBOXES",
+    "GAUNTLET_MAX_RUNS_PER_SUITE",
+    "GAUNTLET_FIXTURE_URL",
+    "GAUNTLET_ARTIFACT_DIR",
+    "GAUNTLET_WEB_URL",
+    "LOG_LEVEL",
+    "SOLARI_E2E"
+  ],
+  "tasks": {
+    "build": { "dependsOn": ["^build"], "outputs": ["dist/**", ".next/**", "!.next/cache/**"] },
+    "typecheck": { "dependsOn": ["^build"], "outputs": [] },
+    "lint": { "outputs": [] },
+    "dev": { "cache": false, "persistent": true }
+  }
+}

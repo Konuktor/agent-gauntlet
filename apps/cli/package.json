@@ -1,0 +1,33 @@
+{
+  "name": "@gauntlet/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": { "gauntlet": "./dist/index.js" },
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "build": "tsup src/index.ts --format esm --target node22 --clean --out-dir dist --banner.js='#!/usr/bin/env node'",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@gauntlet/agents": "workspace:*",
+    "@gauntlet/config": "workspace:*",
+    "@gauntlet/core": "workspace:*",
+    "@gauntlet/db": "workspace:*",
+    "@gauntlet/evaluators": "workspace:*",
+    "@gauntlet/fixture": "workspace:*",
+    "@gauntlet/local-runtime": "workspace:*",
+    "@gauntlet/perturbations": "workspace:*",
+    "@gauntlet/solari": "workspace:*",
+    "picocolors": "^1.1.1",
+    "yaml": "^2.7.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

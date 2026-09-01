@@ -1,0 +1,44 @@
+{
+  "name": "agent-gauntlet",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Crash-test your browser agent before production does.",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:solari": "vitest run --config vitest.solari.config.ts",
+    "db:generate": "pnpm --filter @gauntlet/db exec drizzle-kit generate",
+    "db:migrate": "pnpm --filter @gauntlet/db run migrate",
+    "db:seed": "pnpm --filter @gauntlet/db run seed",
+    "db:reset": "pnpm --filter @gauntlet/db run reset",
+    "demo": "pnpm --filter @gauntlet/cli run start -- demo",
+    "gauntlet": "pnpm --filter @gauntlet/cli run start --",
+    "fixture:dev": "pnpm --filter @gauntlet/fixture run dev",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json,yml,yaml,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,json,yml,yaml,css}\"",
+    "clean": "git clean -xdf node_modules dist .next .turbo"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "@playwright/test": "^1.49.1",
+    "@types/node": "^22.10.5",
+    "eslint": "^9.18.0",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0",
+    "vitest": "^3.0.2"
+  }
+}
