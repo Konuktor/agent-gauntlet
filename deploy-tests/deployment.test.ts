@@ -395,7 +395,6 @@ describe("northflank template", () => {
   ) as {
     apiVersion: string
     arguments: Record<string, string>
-    argumentOverrides: Record<string, string>
     spec: { spec: { type: string; steps: Array<{ kind: string; spec: Record<string, unknown> }> } }
   }
 
@@ -459,12 +458,21 @@ describe("northflank template", () => {
   })
 
   // The whole file is committed, so a real value here would be a public leak.
+  // The schema helps: it rejects `argumentOverrides` at the top level, so the
+  // only place a secret could sit is an argument default, and both are empty.
   it("commits no secret values", () => {
     const raw = readFileSync(resolve(import.meta.dirname, "../northflank/template.json"), "utf8")
     expect(raw).not.toMatch(/slr_live_|sk-ant-|postgres:\/\/[^$]/)
-    expect(template.argumentOverrides.SOLARI_API_KEY).toBe("")
-    // A generated token beats a placeholder somebody forgets to change.
-    expect(template.argumentOverrides.GAUNTLET_RUN_TOKEN).toMatch(/^\$\{fn\.randomSecret\(\d+\)\}$/)
+    expect(template.arguments.SOLARI_API_KEY).toBe("")
+    expect(template.arguments.GAUNTLET_RUN_TOKEN).toBe("")
+  })
+
+  it("declares only the two secrets a human must supply", () => {
+    const blank = Object.entries(template.arguments)
+      .filter(([, v]) => v === "")
+      .map(([k]) => k)
+      .sort()
+    expect(blank).toEqual(["GAUNTLET_RUN_TOKEN", "SOLARI_API_KEY", "publicUrl"].sort())
   })
 })
 

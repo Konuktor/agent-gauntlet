@@ -52,6 +52,34 @@ hard-coding a guess.
   `CronJob`. Every node takes `kind`, `ref`, `spec`, and optional
   `updateMode` / `skipNodeExecution`.
 
+### What the published schema actually says
+
+`northflank/template.json` was validated field-by-field against the live schema
+at `https://api.northflank.com/v1/schemas/template`, not against the prose docs.
+Three things differ from what the guides show, and each cost a revision:
+
+1. **The top level allows only `apiVersion`, `arguments` and `spec`**
+   (`additionalProperties: false`). `name`, `description`, `options` and
+   `argumentOverrides` — all of which the written guide shows in a template
+   file — are rejected there. They belong to the API request that *runs* the
+   template. That is convenient rather than annoying: it means secrets have no
+   place in the committed artefact at all.
+2. **Most nodes require `updateMode`.** The create variants accept
+   `put` or `create`; `patch` selects a different, stricter variant.
+3. **`healthChecks[].path` and `.port` reject literal values.** Their schema is
+   `{"oneOf": [{"not": {}}, {"type": "string", "pattern": ".*\${.*}.*"}]}` —
+   and `{"not": {}}` matches nothing, so only a `${...}` template string is
+   accepted. `ports[].internalPort` next to it accepts a plain integer, so this
+   looks like a generation artefact rather than an intent. The probe therefore
+   reads `"${args.healthPath}"` and `"${args.healthPort}"`, which satisfies the
+   schema and happens to make it configurable.
+
+One caveat, stated plainly: a `${args.x}` string satisfies *both* branches of
+the schema's `oneOf` for templated values (the template-pattern branch and the
+literal branch), which strict JSON Schema counts as a failure. Every node here
+validates once that ambiguity is discounted; nothing validates under an
+unmodified strict `oneOf`, and no parameterised template could.
+
 ## Addon (PostgreSQL)
 
 Create schema ([create-addon]): `name`, `type`, `version`, `billing`
