@@ -112,8 +112,8 @@ a Wilson confidence interval, and tells you how often identical repetitions
 disagreed with each other — because an agent that passes 3 and fails 3 of the
 same run is not "50% good", it is unpredictable, and that is worse.
 
-**Perturbation.** Eleven environment changes across UI, network, state, viewport
-and locale, each deterministic from `sha256(suiteRun | variant | repetition)`.
+**Perturbation.** Ten environment changes across UI, network, state, viewport
+and locale — plus a baseline control that changes nothing — each deterministic from `sha256(suiteRun | variant | repetition)`.
 Re-running a suite reproduces the same environments, so a difference between two
 runs is attributable to the agent.
 
