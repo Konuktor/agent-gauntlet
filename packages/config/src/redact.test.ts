@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest"
 import { redactSecrets, redactValue } from "./redact.js"
 
 describe("redactSecrets", () => {
+  // The fixtures below are deliberately low-entropy and self-describing. A
+  // redactor cannot be tested without key-shaped input, but a fixture that
+  // *looks* like a real key trips secret scanners and teaches everyone to wave
+  // their alerts through — which is the opposite of what this module is for.
   it("redacts Solari and model API keys", () => {
     expect(redactSecrets("SOLARI_API_KEY=slr_live_EXAMPLENOTAREALKEY")).toBe(
       "SOLARI_API_KEY=slr_live_[redacted]",

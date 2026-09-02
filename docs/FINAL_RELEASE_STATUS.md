@@ -77,13 +77,13 @@ ignored — and `format:check` now runs in CI so it cannot drift again.
 
 ## Secret audit
 
-| Scope                       | Result                                                                                                                                                                                                                    |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Working tree                | Clean. `.env` ignored; `.env.example` holds only local defaults and public URLs.                                                                                                                                          |
+| Scope                       | Result                                                                                                                                                                                                 |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Working tree                | Clean. `.env` ignored; `.env.example` holds only local defaults and public URLs.                                                                                                                       |
 | Git history, all 45 commits | Clean. Every value ever assigned to `SOLARI_API_KEY` in any commit is one of a docs ellipsis, a redaction-test fixture, or that fixture's expected redacted output. No real key appears in any commit. |
-| Endpoint shapes in history  | 10 matches, all test fixtures (`deploy-test.invalid`, `theirs.signature`, `abc.signature`).                                                                                                                               |
-| Database URLs in history    | 4 distinct, all localhost or fixtures (`user:hunter2@db`).                                                                                                                                                                |
-| Production API responses    | Two findings before the fix, described above; clean after.                                                                                                                                                                |
+| Endpoint shapes in history  | 10 matches, all test fixtures (`deploy-test.invalid`, `theirs.signature`, `abc.signature`).                                                                                                            |
+| Database URLs in history    | 4 distinct, all localhost or fixtures (`user:hunter2@db`).                                                                                                                                             |
+| Production API responses    | Two findings before the fix, described above; clean after.                                                                                                                                             |
 
 No history rewriting was performed. Nothing in it warranted the risk.
 
