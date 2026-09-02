@@ -40,7 +40,7 @@ local Chromium without knowing which it has.
 ## Adding a perturbation
 
 1. Add it to `packages/perturbations/src/`, declaring `{ id, name, category,
-   fixtureConfig?, browserOptions?, prepare, cleanup }`.
+fixtureConfig?, browserOptions?, prepare, cleanup }`.
 2. If it changes the page, teach `packages/fixture` to render it from the run's
    config.
 3. Add a test asserting it **actually changes the rendered environment** and is

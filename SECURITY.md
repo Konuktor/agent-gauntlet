@@ -31,7 +31,7 @@ Only the latest tag receives fixes.
 **A session endpoint is a credential.** Solari's WebSocket endpoints carry an
 HMAC-signed composite session id in the path and are authorised by that path
 alone — there is no `Authorization` header. Solari's own documentation is
-explicit: *anyone holding the URL can drive the browser*. So AgentGauntlet
+explicit: _anyone holding the URL can drive the browser_. So AgentGauntlet
 treats `wss://…/cdp/…`, `/ws/…` and `/control/…` URLs exactly like API keys:
 
 - no column stores one;

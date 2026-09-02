@@ -64,15 +64,16 @@ First public release, built for the Pinetree Research / Solari SWE challenge.
   left running.
 - **A small real gauntlet** — 4 real Solari sessions, 0 infrastructure errors:
 
-  | Variant | Result | Steps |
-  | --- | --- | ---: |
-  | `baseline` | PASS | 7 |
-  | `cookie_popup` | PASS | 7 |
-  | `unexpected_modal` | PASS | 19 |
-  | `expired_session` | **FAIL** | 7 |
+  | Variant            | Result   | Steps |
+  | ------------------ | -------- | ----: |
+  | `baseline`         | PASS     |     7 |
+  | `cookie_popup`     | PASS     |     7 |
+  | `unexpected_modal` | PASS     |    19 |
+  | `expired_session`  | **FAIL** |     7 |
 
   Reliability 75%, baseline 100%, perturbed 66.7%. Four runs is a demonstration,
   not a benchmark; the Wilson interval is correspondingly wide (30.1–95.4%).
+
 - **The repository-agent contract**, proved with a genuinely separate public
   repo cloned into a Solari Sandbox: 7 steps, 8/8 evaluator assertions, then
   `expired_session` FAIL at 6 steps, classified `auth`.

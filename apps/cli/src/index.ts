@@ -5,6 +5,7 @@ import { compareSuites, GauntletError, ERROR_COPY } from "@gauntlet/core"
 import { loadDotEnv } from "@gauntlet/db"
 import { parseEnv } from "@gauntlet/config"
 import { DEMO_CONFIG, loadConfigFile } from "./config.js"
+import { fromInvocationDir } from "./cwd.js"
 import { runGauntlet } from "./run-command.js"
 import { renderComparison, type GauntletReport } from "./report.js"
 
@@ -39,7 +40,7 @@ async function main(argv: string[]): Promise<number> {
       return (
         await runGauntlet({
           config: DEMO_CONFIG,
-          ...(flags.report ? { reportPath: flags.report } : {}),
+          ...(flags.report ? { reportPath: fromInvocationDir(flags.report) } : {}),
           ...(flags.label ? { label: flags.label } : {}),
           quiet: flags.quiet,
         })
@@ -56,8 +57,8 @@ async function main(argv: string[]): Promise<number> {
       }
       return (
         await runGauntlet({
-          config: await loadConfigFile(path),
-          ...(flags.report ? { reportPath: flags.report } : {}),
+          config: await loadConfigFile(fromInvocationDir(path)),
+          ...(flags.report ? { reportPath: fromInvocationDir(flags.report) } : {}),
           ...(flags.label ? { label: flags.label } : {}),
           quiet: flags.quiet,
         })
@@ -132,7 +133,8 @@ function doctor(): number {
   }
 }
 
-async function readReport(path: string): Promise<GauntletReport> {
+async function readReport(rawPath: string): Promise<GauntletReport> {
+  const path = fromInvocationDir(rawPath)
   try {
     return JSON.parse(await readFile(path, "utf8")) as GauntletReport
   } catch (error) {
