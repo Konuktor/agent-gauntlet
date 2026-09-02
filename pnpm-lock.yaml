@@ -144,6 +144,9 @@ importers:
       '@gauntlet/evaluators':
         specifier: workspace:*
         version: link:../../packages/evaluators
+      '@gauntlet/fixture':
+        specifier: workspace:*
+        version: link:../../packages/fixture
       '@gauntlet/perturbations':
         specifier: workspace:*
         version: link:../../packages/perturbations

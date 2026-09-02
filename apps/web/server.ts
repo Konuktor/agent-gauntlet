@@ -5,6 +5,7 @@ import next from "next"
 import { assertPublicDeploymentIsSafe, parseEnv, type GauntletConfig } from "@gauntlet/config"
 import { createLogger, type Logger } from "@gauntlet/core"
 import { createDb, loadDotEnv, runMigrations, type DbHandle } from "@gauntlet/db"
+import { createFixtureApp } from "@gauntlet/fixture"
 /**
  * The web entrypoint.
  *
@@ -48,7 +49,19 @@ async function main(): Promise<void> {
   await app.prepare()
   const handle = app.getRequestHandler()
 
+  // The benchmark storefront, optionally served from here. See
+  // GAUNTLET_HOST_FIXTURE: it exists so a repository agent can have the free
+  // plan's single sandbox to itself.
+  const fixture = config.GAUNTLET_HOST_FIXTURE ? createFixtureApp() : undefined
+  if (fixture) logger.info("hosting the benchmark site", { path: FIXTURE_PREFIX })
+
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
+    if (fixture && req.url?.startsWith(FIXTURE_PREFIX)) {
+      // Strip the mount point so the fixture sees the paths it expects.
+      req.url = req.url.slice(FIXTURE_PREFIX.length) || "/"
+      fixture(req, res)
+      return
+    }
     void handle(req, res)
   })
 
@@ -128,6 +141,9 @@ function resolveAppDir(): string {
     `No Next.js build found. Looked in:\n  ${candidates.join("\n  ")}\nRun \`pnpm build\` first.`,
   )
 }
+
+/** Where the benchmark site is mounted when this service hosts it. */
+const FIXTURE_PREFIX = "/__fixture"
 
 /** Draining budget for in-flight HTTP, including long-lived SSE streams. */
 const SHUTDOWN_BUDGET_MS = 20_000

@@ -83,6 +83,17 @@ export const envSchema = z.object({
    */
   GAUNTLET_LOCAL_BROWSER: boolish.default(true),
 
+  /**
+   * Serve the Gauntlet Shop from the web service itself, under `/__fixture`.
+   *
+   * The product's normal path hosts the benchmark site in its own Solari
+   * Sandbox. A repository agent needs a sandbox too, and Solari's free plan
+   * allows exactly one — so on that plan the two cannot coexist. This turns on
+   * the documented `GAUNTLET_FIXTURE_URL` escape hatch by hosting the site
+   * here, leaving the single sandbox slot for the agent under test.
+   */
+  GAUNTLET_HOST_FIXTURE: boolish.default(false),
+
   SOLARI_E2E: boolish.default(false),
 })
 

@@ -18,6 +18,7 @@
     "@gauntlet/core": "workspace:*",
     "@gauntlet/db": "workspace:*",
     "@gauntlet/evaluators": "workspace:*",
+    "@gauntlet/fixture": "workspace:*",
     "@gauntlet/perturbations": "workspace:*",
     "@gauntlet/solari": "workspace:*",
     "@solarisdk/browser": "^0.1.2",
