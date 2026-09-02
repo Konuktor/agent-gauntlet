@@ -16,4 +16,6 @@ export interface ClientCapabilities {
   llmModel: string
   /** True when starting a run requires an access code. */
   runsGated: boolean
+  /** False when the deployment has no way to execute a run (no Solari, no browser). */
+  canExecuteRuns: boolean
 }

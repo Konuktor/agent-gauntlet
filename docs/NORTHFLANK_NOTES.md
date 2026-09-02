@@ -117,6 +117,41 @@ Both passed local schema validation and were rejected by the server:
   entirely lets Northflank choose the account's default, which is what a free
   Sandbox should use — so the template does not name one.
 
+### Node references nest under `data`
+
+The guide says references read `${refs.<ref>.<property>}`. What a node actually
+returns is `{"status": ..., "data": {...the resource...}}`, so the addon id is
+`${refs.database.data.id}` — **not** `${refs.database.id}`.
+
+This one is nastier than a rejection, because it does not fail. An unresolved
+reference inside `addonDependencies` makes the whole dependency vanish: the
+secret group is created, the template reports success, and the services start
+with no `DATABASE_URL`. The web service then crash-loops on config validation
+and the only symptom is a readiness probe that never passes.
+
+### The database grant nobody mentions
+
+A Northflank Postgres addon issues two users. `POSTGRES_URI` is a non-admin
+user; `POSTGRES_URI_ADMIN` owns the database. Both point at the same database.
+The application connects as the non-admin user — which is right, and what the
+brief requires — but a drizzle migration creates its own schema, and that needs
+`CREATE` on the database. Without it the server dies with:
+
+```
+permission denied for database _a098b3bf3aad
+```
+
+One admin statement fixes it permanently, and it keeps normal traffic on the
+non-admin user:
+
+```sql
+GRANT CREATE ON DATABASE "<db>" TO "<app user>";
+GRANT ALL ON SCHEMA public TO "<app user>";
+```
+
+Reach the database with `northflank forward addon --projectId <p> --addonId <a>
+--skipHostnames`; it is not publicly accessible, and should not be.
+
 ## Addon (PostgreSQL)
 
 Create schema ([create-addon]): `name`, `type`, `version`, `billing`

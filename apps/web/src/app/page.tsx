@@ -49,17 +49,33 @@ export default async function LandingPage() {
           Exploring costs nothing.{" "}
           {capabilities.mode === "solari"
             ? "Starting a run executes on Solari and spends credits, so it asks for an access code."
-            : "Starting a run executes locally against the bundled storefront."}
+            : capabilities.canExecuteRuns
+              ? "Starting a run executes locally against the bundled storefront."
+              : "Real runs are not configured on this deployment, so the demo below is read-only."}
         </p>
 
         {!capabilities.hasSolari ? (
           <p className="mt-4 max-w-2xl text-sm text-[var(--color-ink-3)]">
-            No <code>SOLARI_API_KEY</code> is configured, so runs execute in{" "}
-            <strong className="font-medium text-[var(--color-ink-2)]">local mode</strong>: real
-            Chromium on this machine, against the bundled benchmark storefront. Everything works and
-            nothing is simulated — it simply is not a Solari run, and the UI says so on every screen.
-            Add a Solari key and the same suites run on real cloud browsers. That is the only
-            credential the product needs.
+            {capabilities.canExecuteRuns ? (
+              <>
+                No <code>SOLARI_API_KEY</code> is configured, so runs execute in{" "}
+                <strong className="font-medium text-[var(--color-ink-2)]">local mode</strong>: real
+                Chromium on this machine, against the bundled benchmark storefront. Everything works
+                and nothing is simulated — it simply is not a Solari run, and the UI says so on every
+                screen. Add a Solari key and the same suites run on real cloud browsers. That is the
+                only credential the product needs.
+              </>
+            ) : (
+              <>
+                No <code>SOLARI_API_KEY</code> is configured, so this deployment cannot execute a
+                run. That is deliberate rather than a gap: browsers belong on{" "}
+                <strong className="font-medium text-[var(--color-ink-2)]">Solari</strong>, so the
+                production image carries none. Everything below is the seeded dataset, measured
+                against the real fixture and labelled as demo data on every screen. Add a Solari key
+                and the same suites run on real cloud browsers — that is the only credential the
+                product needs.
+              </>
+            )}
           </p>
         ) : null}
       </section>

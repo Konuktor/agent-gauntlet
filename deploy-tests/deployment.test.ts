@@ -398,7 +398,13 @@ describe("northflank template", () => {
     spec: { spec: { type: string; steps: Array<{ kind: string; spec: Record<string, unknown> }> } }
   }
 
-  const steps = () => template.spec.spec.steps
+  /** Project-scoped nodes live in a child workflow, so flatten before asking. */
+  type Node = { kind: string; spec: Record<string, unknown> }
+  const flatten = (nodes: Node[]): Node[] =>
+    nodes.flatMap((n) =>
+      n.kind === "Workflow" ? flatten((n.spec as { steps: Node[] }).steps) : [n],
+    )
+  const steps = () => flatten(template.spec.spec.steps)
   const byKind = (kind: string) => steps().filter((s) => s.kind === kind)
 
   it("declares the only apiVersion Northflank supports", () => {
@@ -407,6 +413,9 @@ describe("northflank template", () => {
 
   it("runs its nodes in order, so the database exists before the services", () => {
     expect(template.spec.spec.type).toBe("sequential")
+    // The project must come first: a workflow context naming a project that
+    // does not exist yet fails the whole run with a 404.
+    expect(template.spec.spec.steps[0]!.kind).toBe("Project")
     const kinds = steps().map((s) => s.kind)
     expect(kinds.indexOf("Addon")).toBeLessThan(kinds.indexOf("SecretGroup"))
     expect(kinds.indexOf("SecretGroup")).toBeLessThan(kinds.indexOf("CombinedService"))
@@ -437,10 +446,18 @@ describe("northflank template", () => {
 
   it("gives each service its own Dockerfile target from the one build", () => {
     const targets = steps()
-      .filter((s) => s.buildConfiguration !== undefined || s.spec.buildConfiguration !== undefined)
       .map((s) => (s.spec.buildConfiguration as { dockerfileTarget?: string } | undefined)?.dockerfileTarget)
       .filter(Boolean)
     expect(new Set(targets)).toEqual(new Set(["web", "worker", "migrate"]))
+  })
+
+  // An unresolved reference does not fail the run — it silently drops the
+  // dependency, and the services come up with no DATABASE_URL. The node
+  // response nests the resource under `data`.
+  it("reads the addon id from the node response, which nests under data", () => {
+    const group = byKind("SecretGroup")[0]!
+    const deps = group.spec.addonDependencies as Array<{ addonId: string }>
+    expect(deps[0]!.addonId).toBe("${refs.database.data.id}")
   })
 
   it("keeps the database private to the project", () => {

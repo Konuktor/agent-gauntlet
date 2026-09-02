@@ -68,7 +68,7 @@
                   "priority": 10,
                   "addonDependencies": [
                     {
-                      "addonId": "${refs.database.id}",
+                      "addonId": "${refs.database.data.id}",
                       "keys": [
                         {
                           "keyName": "POSTGRES_URI",

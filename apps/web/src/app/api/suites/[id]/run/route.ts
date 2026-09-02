@@ -80,6 +80,17 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
         message: "Real runs need a Solari API key. Add SOLARI_API_KEY to .env and restart.",
       })
     }
+    // Local mode drives a real browser, and a production image ships none on
+    // purpose: this service orchestrates runs, it never hosts one. Refusing
+    // here beats enqueuing work the worker cannot possibly do.
+    if (!cfg.canExecuteRuns) {
+      throw new GauntletError({
+        code: "config_invalid",
+        message:
+          "This deployment has no way to execute a run: there is no Solari key, and the " +
+          "production image carries no browser by design. Add SOLARI_API_KEY to enable real runs.",
+      })
+    }
 
     const variants = suite.variants.map((v) => {
       const perturbation = requirePerturbation(v.perturbationType)

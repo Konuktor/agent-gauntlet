@@ -7,6 +7,8 @@
 *Benchmarks tell you whether your agent is smart.
 AgentGauntlet tells you whether it survives production.*
 
+**[Live demo →](https://http--agent-gauntlet-web--hjwypxsqnrjv.code.run)**
+
 </div>
 
 ---
@@ -288,6 +290,15 @@ workflow is at [.github/workflows/agent-gauntlet.yml](.github/workflows/agent-ga
 </div>
 
 ---
+
+## Live Demo
+
+**https://http--agent-gauntlet-web--hjwypxsqnrjv.code.run**
+
+Always-on — Northflank's free Developer Sandbox does not sleep, so the first
+click is as fast as the tenth. It runs the seeded dataset, which is labelled
+**DEMO DATA** on every screen. Starting a real gauntlet asks for an access
+code, so a passer-by cannot spend Solari credits.
 
 ## Deploy on Northflank
 

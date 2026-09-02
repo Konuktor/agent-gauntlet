@@ -86,6 +86,15 @@ export interface GauntletConfig extends RawEnv {
   readonly llmModel: string
   /** True when starting a real run requires a token. */
   readonly runsAreGated: boolean
+  /**
+   * Whether this deployment can actually execute a run.
+   *
+   * Local mode drives real Chromium, and a production image deliberately ships
+   * no browser — AgentGauntlet orchestrates runs, it does not host them. So a
+   * production deployment can only run for real once Solari is configured, and
+   * saying otherwise would promise something the container cannot do.
+   */
+  readonly canExecuteRuns: boolean
   /** The app's public origin, however it is reachable. */
   readonly publicUrl: string
 }
@@ -108,6 +117,7 @@ export function buildConfig(raw: RawEnv): GauntletConfig {
     hasLlmCredentials: Boolean(raw.ANTHROPIC_API_KEY),
     llmModel: raw.LLM_MODEL ?? DEFAULT_LLM_MODEL,
     runsAreGated: Boolean(raw.GAUNTLET_RUN_TOKEN),
+    canExecuteRuns: hasSolariCredentials || raw.NODE_ENV !== "production",
     publicUrl: resolvePublicUrl(raw),
   }
 }
