@@ -72,9 +72,37 @@ const session = {
   expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
 }
 
+/**
+ * Session creation goes to the REST API directly, not through the SDK: the SDK
+ * wraps both endpoints through a loopback proxy and throws away the public
+ * ones, which a repository agent in another VM cannot reach.
+ */
+const fetchMock = vi.fn()
+vi.stubGlobal("fetch", fetchMock)
+
+function respondWithSession(): void {
+  fetchMock.mockResolvedValue({
+    ok: true,
+    status: 201,
+    text: async () =>
+      JSON.stringify({
+        sessionId: session.id,
+        wsEndpoint: session.wsEndpoint,
+        cdpEndpoint: session.cdpEndpoint,
+        expiresAt: session.expiresAt,
+      }),
+  })
+}
+
+/** What the adapter actually POSTed to /sessions. */
+function sentSessionOptions(call = 0): Record<string, unknown> {
+  const body = fetchMock.mock.calls[call]?.[1]?.body as string
+  return JSON.parse(body) as Record<string, unknown>
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
-  sessions.create.mockResolvedValue(session)
+  respondWithSession()
   sessions.releaseAndWait.mockResolvedValue(undefined)
   connect.mockResolvedValue({ contexts: () => [contextStub], newContext, close: browserClose })
   contextStub.newPage.mockResolvedValue(pageStub)
@@ -92,21 +120,21 @@ const provider = (options: Partial<ConstructorParameters<typeof SolariBrowserPro
 describe("session creation", () => {
   it("enables recording per session, because it cannot be turned on later", async () => {
     await provider().create({ recording: true, stealth: false })
-    expect(sessions.create).toHaveBeenCalledWith(expect.objectContaining({ recording: true }))
+    expect(sentSessionOptions()).toMatchObject({ recording: true })
   })
 
   // The gateway rejects both unless stealth is on, so we never send a request
   // we know will 400.
   it("withholds proxy and captcha unless stealth is enabled", async () => {
     await provider().create({ recording: false, stealth: false, proxy: "us", captcha: true })
-    const sent = sessions.create.mock.calls[0]![0]
+    const sent = sentSessionOptions()
     expect(sent.proxy).toBeUndefined()
     expect(sent.captcha).toBeUndefined()
   })
 
   it("forwards proxy and captcha when stealth is on", async () => {
     await provider().create({ recording: false, stealth: true, proxy: "us", captcha: true })
-    expect(sessions.create).toHaveBeenCalledWith(
+    expect(sentSessionOptions()).toMatchObject(
       expect.objectContaining({ stealth: true, proxy: "us", captcha: true }),
     )
   })
@@ -126,6 +154,26 @@ describe("session creation", () => {
     expect(newContext).toHaveBeenCalledWith(
       expect.objectContaining({ viewport: { width: 390, height: 844 }, isMobile: true }),
     )
+  })
+
+  // The SDK wraps both endpoints through a loopback proxy and discards the
+  // public ones. A repository agent lives in another VM and got
+  // ECONNREFUSED 127.0.0.1 from a wrapped endpoint, so the session is created
+  // against the REST API directly and the public URLs are kept.
+  it("creates the session against the REST API, not the SDK", async () => {
+    await provider().create({ recording: false, stealth: false })
+    expect(sessions.create).not.toHaveBeenCalled()
+    const [url, init] = fetchMock.mock.calls[0]!
+    expect(String(url)).toMatch(/\/sessions$/)
+    expect((init as { method: string }).method).toBe("POST")
+  })
+
+  it("hands a repository agent a publicly routable CDP endpoint", async () => {
+    const p = provider()
+    const env = await p.create({ recording: false, stealth: false })
+    const raw = p.rawCdpEndpoint(env)
+    expect(raw).toBe(session.cdpEndpoint)
+    expect(raw).not.toMatch(/127\.0\.0\.1|localhost/)
   })
 
   it("connects to the RAW wsEndpoint, not a loopback-wrapped one", async () => {
@@ -206,7 +254,11 @@ describe("cleanup", () => {
   })
 
   it("leaves nothing to release when session creation itself failed", async () => {
-    sessions.create.mockRejectedValue(new FakeSolariError("cap reached", 429, "ConcurrencyLimitExceeded"))
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 429,
+      text: async () => JSON.stringify({ code: "ConcurrencyLimitExceeded" }),
+    })
     await expect(provider().create({ recording: false, stealth: false })).rejects.toMatchObject({
       code: "solari_concurrency",
     })
@@ -241,34 +293,44 @@ describe("cleanup", () => {
 
 describe("retries", () => {
   it("retries a transient create once", async () => {
-    sessions.create
-      .mockRejectedValueOnce(new FakeSolariError("no host", 503))
-      .mockResolvedValueOnce(session)
+    fetchMock
+      .mockResolvedValueOnce({ ok: false, status: 503, text: async () => "no host" })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        text: async () => JSON.stringify({ sessionId: session.id, wsEndpoint: session.wsEndpoint, cdpEndpoint: session.cdpEndpoint }),
+      })
     await provider().create({ recording: false, stealth: false })
-    expect(sessions.create).toHaveBeenCalledTimes(2)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
   // A 429 is a queue, not a verdict on the run: waiting for one of our own
   // sessions to finish is the common case. Observed for real — a four-variant
   // suite died outright because two of three plan slots were briefly held.
   it("waits for a slot rather than failing the run outright", async () => {
-    sessions.create
-      .mockRejectedValueOnce(new FakeSolariError("cap", 429, "ConcurrencyLimitExceeded"))
-      .mockResolvedValueOnce(session)
+    fetchMock
+      .mockResolvedValueOnce({ ok: false, status: 429, text: async () => JSON.stringify({ code: "ConcurrencyLimitExceeded" }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        text: async () => JSON.stringify({ sessionId: session.id, wsEndpoint: session.wsEndpoint, cdpEndpoint: session.cdpEndpoint }),
+      })
     await provider().create({ recording: false, stealth: false })
-    expect(sessions.create).toHaveBeenCalledTimes(2)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
   // But it must never become a tight loop against a wall: bounded, then give
   // up with the real error so the run is classified honestly.
   it("gives up after a bounded wait, with the concurrency error intact", async () => {
-    sessions.create.mockRejectedValue(
-      new FakeSolariError("cap", 429, "ConcurrencyLimitExceeded"),
-    )
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 429,
+      text: async () => JSON.stringify({ code: "ConcurrencyLimitExceeded" }),
+    })
     await expect(provider().create({ recording: false, stealth: false })).rejects.toMatchObject({
       code: "solari_concurrency",
     })
-    expect(sessions.create).toHaveBeenCalledTimes(3)
+    expect(fetchMock).toHaveBeenCalledTimes(3)
   })
 })
 

@@ -1,4 +1,4 @@
-import { Solari, type CreateSessionOptions, type Session } from "@solarisdk/browser"
+import { Solari, SolariError, type CreateSessionOptions } from "@solarisdk/browser"
 import { chromium, type Browser, type BrowserContext } from "patchright-core"
 import {
   createPlaywrightPageDriver,
@@ -54,6 +54,17 @@ export interface SolariBrowserProviderOptions {
  * the frontend. Only the session id is.
  */
 /** How long to wait for a Solari slot before giving up, and how many times. */
+/** Where Solari lives when no baseUrl is configured. */
+const DEFAULT_SOLARI_BASE_URL = "https://api.getsolari.com"
+
+/** A session with its real, publicly routable endpoints. */
+interface RawSession {
+  id: string
+  wsEndpoint: string
+  cdpEndpoint: string
+  expiresAt: string
+}
+
 const CAPACITY_WAIT_ATTEMPTS = 6
 const CAPACITY_WAIT_MS = 10_000
 export class SolariBrowserProvider implements BrowserProvider {
@@ -88,12 +99,12 @@ export class SolariBrowserProvider implements BrowserProvider {
       ...(options.stealth && options.captcha ? { captcha: true } : {}),
     }
 
-    let session: Session | undefined
+    let session: RawSession | undefined
     let browser: Browser | undefined
     let context: BrowserContext | undefined
 
     try {
-      session = await this.createSession(sessionOptions, options.signal)
+      session = await this.createSessionWithCapacityWait(sessionOptions, options.signal)
       this.liveSessions.add(session.id)
 
       browser = await this.connect(session, options.signal)
@@ -234,12 +245,79 @@ export class SolariBrowserProvider implements BrowserProvider {
     })
   }
 
-  private async createSession(
+  /**
+   * Create a session and keep the PUBLICLY routable endpoints.
+   *
+   * `sessions.create()` in the SDK wraps both `wsEndpoint` and `cdpEndpoint`
+   * through a loopback proxy, and discards the upstream URLs it computed. That
+   * is fine for this process — and useless for a repository agent, which runs
+   * in a different VM and got `ECONNREFUSED 127.0.0.1` when handed one.
+   *
+   * So the session is created against the REST API directly, which returns the
+   * real endpoints. Everything else still goes through the SDK.
+   */
+  private async createSessionRaw(
     options: CreateSessionOptions,
     signal?: AbortSignal,
-  ): Promise<Session> {
+  ): Promise<RawSession> {
+    const base = (this.options.baseUrl ?? DEFAULT_SOLARI_BASE_URL).replace(/\/$/, "")
+    const res = await fetch(`${base}/sessions`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${this.options.apiKey}`,
+      },
+      body: JSON.stringify(options),
+      ...(signal ? { signal } : {}),
+    })
+    const text = await res.text()
+    if (!res.ok) {
+      // Throw the SDK's own error type so every existing mapping and retry
+      // rule applies unchanged — a 429 still becomes solari_concurrency, a 5xx
+      // is still a retryable transient.
+      let code: string | undefined
+      try {
+        const parsed = JSON.parse(text) as { code?: unknown }
+        if (typeof parsed.code === "string") code = parsed.code
+      } catch {
+        // A non-JSON body is fine; the status still classifies it.
+      }
+      throw new SolariError(
+        `Solari POST /sessions failed: ${res.status} ${text}`,
+        res.status,
+        undefined,
+        code,
+      )
+    }
+    const data = JSON.parse(text) as {
+      sessionId?: string
+      wsEndpoint?: string
+      cdpEndpoint?: string
+      expiresAt?: string
+    }
+    if (!data.sessionId || !data.wsEndpoint) {
+      throw new GauntletError({
+        code: "internal",
+        message: "Solari returned a session with no endpoints.",
+        detail: text.slice(0, 300),
+      })
+    }
+    return {
+      id: data.sessionId,
+      wsEndpoint: data.wsEndpoint,
+      // The same derivation the SDK does internally, kept because the API does
+      // not always send cdpEndpoint explicitly.
+      cdpEndpoint: data.cdpEndpoint ?? data.wsEndpoint.replace("/ws/", "/cdp/"),
+      expiresAt: data.expiresAt ?? new Date(Date.now() + 60 * 60_000).toISOString(),
+    }
+  }
+
+  private async createSessionWithCapacityWait(
+    options: CreateSessionOptions,
+    signal?: AbortSignal,
+  ): Promise<RawSession> {
     const create = () =>
-      retry(() => this.client.sessions.create(options), {
+      retry(() => this.createSessionRaw(options, signal), {
         attempts: 2,
         baseDelayMs: 750,
         ...(signal ? { signal } : {}),
@@ -279,7 +357,7 @@ export class SolariBrowserProvider implements BrowserProvider {
     }
   }
 
-  private async connect(session: Session, signal?: AbortSignal): Promise<Browser> {
+  private async connect(session: RawSession, signal?: AbortSignal): Promise<Browser> {
     return retry(() => chromium.connect(session.wsEndpoint, { timeout: 30_000 }), {
       attempts: this.options.connectAttempts ?? 2,
       baseDelayMs: 500,
