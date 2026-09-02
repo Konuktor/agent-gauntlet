@@ -146,3 +146,46 @@ and the symptom presents as a browser concurrency error (6).
   id and expiry are now logged the moment a session opens.
 - `429` on concurrency is not retryable and is treated as a hard failure, which
   is correct: retrying burns quota against a wall.
+
+
+---
+
+## Small real gauntlet — 2026-09-02
+
+Four variants, one repetition each, four real Solari browser sessions, zero
+infrastructure errors. The first time the product measured anything other than
+itself.
+
+| Variant | Result | Steps | Duration | Replay |
+|---|---|---|---|---|
+| `baseline` | **passed** | 7 | 83.2s | not retrieved |
+| `cookie_popup` | **passed** | 7 | 14.3s | 56 events |
+| `unexpected_modal` | **passed** | 19 | 112.9s | not retrieved |
+| `expired_session` | **failed** | 7 | 101.2s | not retrieved |
+
+```
+reliability 0.75    baseline 1.00    perturbed 0.667
+95% CI 30.1% – 95.4%
+```
+
+Failure category `auth`, clustered: *"The shopping session expired mid-task and
+the agent did not re-establish it."*
+
+Three things worth reading off this:
+
+- **The thesis holds on real infrastructure.** The agent is perfect on baseline
+  and breaks when the environment changes — judged from server-side fixture
+  state, not from anything the agent said about itself.
+- **`unexpected_modal` passed at 19 steps instead of 7.** It survived and paid
+  nearly triple. A pass/fail benchmark cannot see that; this is the degradation
+  the product exists to surface.
+- **The interval is 30–95%.** On four runs, 75% establishes very little, and the
+  number is reported with the width that admits it.
+
+### Still imperfect
+
+Replay arrived for one run of four, despite the budget now being ~75s. Observed
+publication latency varies widely — one session published in ~7s, others had not
+after 75s. It never changes a verdict, since a replay is evidence rather than a
+judgement, but "a replay of the exact failing run" is not yet reliably true, and
+the run it was missing from was the failing one.

@@ -56,8 +56,11 @@
 - [x] **Real Solari smoke test PASSED** — sandbox, benchmark site, preview URL, recorded
       cloud browser, 7 agent steps, verdict from server state, replay (60 events / 70 KB),
       0 infrastructure errors, 0 sandboxes left running. Details in `REAL_SOLARI_TEST.md`.
-- [ ] Small 4-variant gauntlet — blocked twice by concurrency held by sessions stranded
-      before the signal fix; capacity confirmed free, rerunning
+- [x] **Small 4-variant gauntlet PASSED** — 4 real Solari sessions, 0 infrastructure errors.
+      reliability 0.75, baseline 1.00, perturbed 0.667, 95% CI 30–95%.
+      `expired_session` failed and was clustered as `auth`; `unexpected_modal` passed at
+      19 steps instead of 7. Details in `REAL_SOLARI_TEST.md`.
+- [ ] Full 8 x 2 gauntlet — not run; the small one is the meaningful proof and the rest is cost
 
 ### Things that only deploying could find
 1. `${refs.database.id}` is undefined — node responses nest under `data`. It does
