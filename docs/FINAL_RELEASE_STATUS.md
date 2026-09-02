@@ -12,7 +12,7 @@ Run locally against a real Postgres, before and after the release changes.
 | `pnpm typecheck`                    | 13/13 packages                                    |
 | `pnpm lint`                         | 12/12 packages                                    |
 | `pnpm format:check`                 | clean _(was failing on 103 files — see below)_    |
-| `pnpm test`                         | 363 passed, 27 files                              |
+| `pnpm test`                         | 366 passed, 28 files                              |
 | `pnpm build`                        | 4/4                                               |
 | `pnpm test:e2e`                     | 36 passed                                         |
 | `pnpm test:deploy`                  | 46 passed, 1 skipped                              |
