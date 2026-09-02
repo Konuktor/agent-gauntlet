@@ -85,6 +85,17 @@ and the dashboard shows your claim next to what actually happened.
 That gap is one of the more useful things the tool surfaces, so report honestly;
 you are not being graded on it.
 
+## What the sandbox gives you
+
+The Solari `base` template currently runs **Node 18**. That is worth checking
+against your dependencies before you spend a run: a caret range on
+`playwright-core` resolved to a version demanding Node 20, and the agent exited
+immediately having done nothing. The failure looked like a bug in the agent
+until its own stderr was read.
+
+If you need a newer runtime, install it yourself in `install` — you have a full
+VM and a `command`/`args` of your choosing.
+
 ## Limits
 
 | Limit | Value |
