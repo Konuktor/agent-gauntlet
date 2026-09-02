@@ -22,8 +22,7 @@ export interface SolariFixtureProviderOptions {
 }
 
 const INSTALL_DIR = "/opt/gauntlet"
-const NODE_TARBALL =
-  "https://nodejs.org/dist/v22.11.0/node-v22.11.0-linux-x64.tar.xz"
+const NODE_TARBALL = "https://nodejs.org/dist/v22.11.0/node-v22.11.0-linux-x64.tar.xz"
 
 /**
  * USE CASE A — the controlled benchmark site, hosted by Solari Sandbox.
@@ -80,9 +79,15 @@ export class SolariFixtureProvider implements FixtureProvider {
       const previewUrl = await sandbox.previewUrl(port)
       log.info("benchmark site exposed", { previewUrl })
 
-      const host = new HttpFixtureHost("sandbox", previewUrl, previewUrl, async () => {
-        await sandbox?.dispose()
-      }, sandbox.sandboxId)
+      const host = new HttpFixtureHost(
+        "sandbox",
+        previewUrl,
+        previewUrl,
+        async () => {
+          await sandbox?.dispose()
+        },
+        sandbox.sandboxId,
+      )
 
       await this.waitUntilServing(host, sandbox, log, signal)
       return host

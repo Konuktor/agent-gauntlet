@@ -34,12 +34,24 @@ export default async function RunsPage() {
             <caption className="sr-only">Suite runs, newest first</caption>
             <thead>
               <tr className="border-b border-[var(--color-line)] text-left text-xs text-[var(--color-ink-3)]">
-                <th scope="col" className="px-4 py-2.5 font-medium">Run</th>
-                <th scope="col" className="px-4 py-2.5 font-medium">Agent</th>
-                <th scope="col" className="px-4 py-2.5 font-medium">Mode</th>
-                <th scope="col" className="px-4 py-2.5 text-right font-medium">Passed</th>
-                <th scope="col" className="px-4 py-2.5 text-right font-medium">Reliability</th>
-                <th scope="col" className="px-4 py-2.5 text-right font-medium">When</th>
+                <th scope="col" className="px-4 py-2.5 font-medium">
+                  Run
+                </th>
+                <th scope="col" className="px-4 py-2.5 font-medium">
+                  Agent
+                </th>
+                <th scope="col" className="px-4 py-2.5 font-medium">
+                  Mode
+                </th>
+                <th scope="col" className="px-4 py-2.5 text-right font-medium">
+                  Passed
+                </th>
+                <th scope="col" className="px-4 py-2.5 text-right font-medium">
+                  Reliability
+                </th>
+                <th scope="col" className="px-4 py-2.5 text-right font-medium">
+                  When
+                </th>
                 <th scope="col" className="px-4 py-2.5" />
               </tr>
             </thead>
@@ -47,7 +59,10 @@ export default async function RunsPage() {
               {runs.map((run, index) => {
                 const previous = runs.slice(index + 1).find((r) => r.suiteId === run.suiteId)
                 return (
-                  <tr key={run.id} className="border-b border-[var(--color-line)] last:border-0 hover:bg-[var(--color-raised)]">
+                  <tr
+                    key={run.id}
+                    className="border-b border-[var(--color-line)] last:border-0 hover:bg-[var(--color-raised)]"
+                  >
                     <td className="px-4 py-2.5">
                       <Link href={`/runs/${run.id}`} className="font-medium hover:underline">
                         {run.label ?? run.suiteName}
@@ -55,7 +70,9 @@ export default async function RunsPage() {
                       <div className="text-xs text-[var(--color-ink-3)]">{run.taskName}</div>
                     </td>
                     <td className="px-4 py-2.5 text-[var(--color-ink-2)]">{run.agentName}</td>
-                    <td className="px-4 py-2.5"><ModeBadge mode={run.mode} /></td>
+                    <td className="px-4 py-2.5">
+                      <ModeBadge mode={run.mode} />
+                    </td>
                     <td className="px-4 py-2.5 text-right tnum text-[var(--color-ink-2)]">
                       {run.passedRuns} / {run.totalRuns}
                     </td>

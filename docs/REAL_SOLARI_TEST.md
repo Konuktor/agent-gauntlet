@@ -62,16 +62,15 @@ sandbox or session was left running. Do not paste the API key, and only include 
 replay URL if the recording contains nothing sensitive (it is a synthetic
 storefront, so it should not).
 
-| Field | Value |
-|---|---|
-| Timestamp | _(fill in)_ |
-| SDK versions | `@solarisdk/browser@0.1.2`, `@solarisdk/sdk@0.1.2` |
-| Sandbox created / killed | _(fill in)_ |
-| Preview URL reachable from outside the VM | _(fill in)_ |
-| Recorded session released | _(fill in)_ |
-| Replay available after N polls | _(fill in)_ |
-| Orphans after cleanup | _(fill in — expect none)_ |
-
+| Field                                     | Value                                              |
+| ----------------------------------------- | -------------------------------------------------- |
+| Timestamp                                 | _(fill in)_                                        |
+| SDK versions                              | `@solarisdk/browser@0.1.2`, `@solarisdk/sdk@0.1.2` |
+| Sandbox created / killed                  | _(fill in)_                                        |
+| Preview URL reachable from outside the VM | _(fill in)_                                        |
+| Recorded session released                 | _(fill in)_                                        |
+| Replay available after N polls            | _(fill in)_                                        |
+| Orphans after cleanup                     | _(fill in — expect none)_                          |
 
 ---
 
@@ -80,18 +79,18 @@ storefront, so it should not).
 Run from the deployed Northflank worker, not a laptop, so the path under test is
 the one users get: web service → Postgres queue → worker → Solari.
 
-| Acceptance step | Result |
-|---|---|
-| Solari Sandbox created | PASS |
-| Gauntlet Shop uploaded and started | PASS (~0.5s) |
-| Preview URL exposed and serving | PASS (~1s) |
-| Recorded browser session created | PASS |
-| Reference Agent acted | PASS — 7 steps |
-| Evaluator read server-side state | PASS — verdict from `/__gauntlet/state`, not the agent |
-| Browser released | PASS |
-| Replay retrieved | PASS — 60 events, 70 KB rrweb NDJSON, served by `/api/individual-runs/:id/replay` |
-| Sandbox killed, nothing left running | PASS — `sandboxes.list()` returned 0 |
-| Infrastructure errors | 0 |
+| Acceptance step                      | Result                                                                            |
+| ------------------------------------ | --------------------------------------------------------------------------------- |
+| Solari Sandbox created               | PASS                                                                              |
+| Gauntlet Shop uploaded and started   | PASS (~0.5s)                                                                      |
+| Preview URL exposed and serving      | PASS (~1s)                                                                        |
+| Recorded browser session created     | PASS                                                                              |
+| Reference Agent acted                | PASS — 7 steps                                                                    |
+| Evaluator read server-side state     | PASS — verdict from `/__gauntlet/state`, not the agent                            |
+| Browser released                     | PASS                                                                              |
+| Replay retrieved                     | PASS — 60 events, 70 KB rrweb NDJSON, served by `/api/individual-runs/:id/replay` |
+| Sandbox killed, nothing left running | PASS — `sandboxes.list()` returned 0                                              |
+| Infrastructure errors                | 0                                                                                 |
 
 Suite verdict: `completed`, reliability 1.0, 1/1 passed, mode `solari`.
 
@@ -147,7 +146,6 @@ and the symptom presents as a browser concurrency error (6).
 - `429` on concurrency is not retryable and is treated as a hard failure, which
   is correct: retrying burns quota against a wall.
 
-
 ---
 
 ## Small real gauntlet — 2026-09-02
@@ -156,20 +154,20 @@ Four variants, one repetition each, four real Solari browser sessions, zero
 infrastructure errors. The first time the product measured anything other than
 itself.
 
-| Variant | Result | Steps | Duration | Replay |
-|---|---|---|---|---|
-| `baseline` | **passed** | 7 | 83.2s | not retrieved |
-| `cookie_popup` | **passed** | 7 | 14.3s | 56 events |
-| `unexpected_modal` | **passed** | 19 | 112.9s | not retrieved |
-| `expired_session` | **failed** | 7 | 101.2s | not retrieved |
+| Variant            | Result     | Steps | Duration | Replay        |
+| ------------------ | ---------- | ----- | -------- | ------------- |
+| `baseline`         | **passed** | 7     | 83.2s    | not retrieved |
+| `cookie_popup`     | **passed** | 7     | 14.3s    | 56 events     |
+| `unexpected_modal` | **passed** | 19    | 112.9s   | not retrieved |
+| `expired_session`  | **failed** | 7     | 101.2s   | not retrieved |
 
 ```
 reliability 0.75    baseline 1.00    perturbed 0.667
 95% CI 30.1% – 95.4%
 ```
 
-Failure category `auth`, clustered: *"The shopping session expired mid-task and
-the agent did not re-establish it."*
+Failure category `auth`, clustered: _"The shopping session expired mid-task and
+the agent did not re-establish it."_
 
 Three things worth reading off this:
 
@@ -190,7 +188,6 @@ after 75s. It never changes a verdict, since a replay is evidence rather than a
 judgement, but "a replay of the exact failing run" is not yet reliably true, and
 the run it was missing from was the failing one.
 
-
 ---
 
 ## The repository-agent contract, proved live — 2026-09-02
@@ -200,18 +197,18 @@ there. Not our code, not our machines.
 
 `GitHub → Solari Sandbox → scoped CDP → Solari Browser → Gauntlet Shop → evaluator`
 
-| Acceptance | Evidence |
-|---|---|
+| Acceptance                            | Evidence                                                      |
+| ------------------------------------- | ------------------------------------------------------------- |
 | Repository cloned in a Solari Sandbox | `repository cloned` · `Konuktor/agent-gauntlet-example-agent` |
-| Repository installed | `install finished, exitCode 0` |
-| No host execution | everything after `sandbox created` |
-| `SOLARI_API_KEY` not exposed | never in the agent's environment |
-| Scoped CDP connection | `session_created`, publicly routable endpoint |
-| Agent completed the browser task | **7 steps, exit 0** |
-| Independent evaluator passed | **8/8 assertions**, score 1.0 |
-| Run terminal | `completed`, reliability 1.0 |
-| Browser released | `browser_released` |
-| Sandbox killed | `cleanup_complete` |
+| Repository installed                  | `install finished, exitCode 0`                                |
+| No host execution                     | everything after `sandbox created`                            |
+| `SOLARI_API_KEY` not exposed          | never in the agent's environment                              |
+| Scoped CDP connection                 | `session_created`, publicly routable endpoint                 |
+| Agent completed the browser task      | **7 steps, exit 0**                                           |
+| Independent evaluator passed          | **8/8 assertions**, score 1.0                                 |
+| Run terminal                          | `completed`, reliability 1.0                                  |
+| Browser released                      | `browser_released`                                            |
+| Sandbox killed                        | `cleanup_complete`                                            |
 
 The evaluator judged server-side state, not the agent's word: product in cart,
 `SAVE20` applied, discount in the total, name "Ada Lovelace", city "London",
@@ -224,7 +221,7 @@ baseline          PASS   7 steps    8.3s
 expired_session   FAIL   6 steps   37.9s   category: auth
 ```
 
-> *"The shopping session expired mid-task and the agent did not re-establish it."*
+> _"The shopping session expired mid-task and the agent did not re-establish it."_
 
 Somebody else's agent, perfect on baseline, broken by one environment change —
 which is the entire product thesis, now demonstrated on code we did not write.
@@ -261,18 +258,18 @@ A visitor lends the deployment a browser instead of an API key, and the run
 spends their credits. Verified against the live Northflank URL, on commit
 `27b83e6`, using a deliberately dead endpoint so no real session was consumed.
 
-| Check | Result |
-|---|---|
-| Web service accepted the endpoint and sealed it | 202, `mode: "solari"` |
-| The **separate** worker opened it | `"run uses a credential the visitor brought"` |
-| Which proves the sealing key round-trips across two services | AES-256-GCM, both containers |
-| Took the borrowed code path | `browserType.connectOverCDP`, not `chromium.connect` |
-| Never released somebody else's session | `sessionId: "borrowed"`, no release call |
-| Promised no replay | `replay: not_requested` |
-| Failed as infrastructure, not as the agent | `infrastructure_error` / `browser_error` |
-| Access code bypassed for a visitor paying their own way | 202 with no token |
-| Loopback endpoint refused | 400, "points inside a private network" |
-| Non-Solari key refused | 400, "does not look like a Solari API key" |
+| Check                                                        | Result                                               |
+| ------------------------------------------------------------ | ---------------------------------------------------- |
+| Web service accepted the endpoint and sealed it              | 202, `mode: "solari"`                                |
+| The **separate** worker opened it                            | `"run uses a credential the visitor brought"`        |
+| Which proves the sealing key round-trips across two services | AES-256-GCM, both containers                         |
+| Took the borrowed code path                                  | `browserType.connectOverCDP`, not `chromium.connect` |
+| Never released somebody else's session                       | `sessionId: "borrowed"`, no release call             |
+| Promised no replay                                           | `replay: not_requested`                              |
+| Failed as infrastructure, not as the agent                   | `infrastructure_error` / `browser_error`             |
+| Access code bypassed for a visitor paying their own way      | 202 with no token                                    |
+| Loopback endpoint refused                                    | 400, "points inside a private network"               |
+| Non-Solari key refused                                       | 400, "does not look like a Solari API key"           |
 
 ### And the bug it found
 

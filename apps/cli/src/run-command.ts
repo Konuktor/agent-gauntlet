@@ -21,8 +21,16 @@ import {
   RepositoryAgent,
 } from "@gauntlet/agents"
 import { createEvaluator } from "@gauntlet/evaluators"
-import { ExternalFixtureProvider, LocalBrowserProvider, LocalFixtureProvider } from "@gauntlet/local-runtime"
-import { SolariBrowserProvider, SolariFixtureProvider, SolariSandboxProvider } from "@gauntlet/solari"
+import {
+  ExternalFixtureProvider,
+  LocalBrowserProvider,
+  LocalFixtureProvider,
+} from "@gauntlet/local-runtime"
+import {
+  SolariBrowserProvider,
+  SolariFixtureProvider,
+  SolariSandboxProvider,
+} from "@gauntlet/solari"
 import { requirePerturbation, resolvePerturbation } from "@gauntlet/perturbations"
 import type { GauntletFileConfig } from "./config.js"
 import { InMemoryRunStore } from "./memory-store.js"
@@ -43,7 +51,10 @@ export interface RunCommandResult {
 
 export async function runGauntlet(options: RunCommandOptions): Promise<RunCommandResult> {
   const env: GauntletConfig = parseEnv()
-  const logger = createLogger({ component: "cli" }, { level: options.quiet ? "warn" : env.LOG_LEVEL })
+  const logger = createLogger(
+    { component: "cli" },
+    { level: options.quiet ? "warn" : env.LOG_LEVEL },
+  )
   const suiteRunId = newId()
 
   const task: TaskDefinition = taskDefinitionSchema.parse({

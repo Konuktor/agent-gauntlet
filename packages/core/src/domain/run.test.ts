@@ -22,7 +22,9 @@ describe("suite run state machine", () => {
   it("rejects skipping and reversing", () => {
     expect(canTransitionSuite("queued", "completed")).toBe(false)
     expect(canTransitionSuite("running", "queued")).toBe(false)
-    expect(() => assertSuiteTransition("completed", "running")).toThrow(/Invalid suite run transition/)
+    expect(() => assertSuiteTransition("completed", "running")).toThrow(
+      /Invalid suite run transition/,
+    )
   })
 
   it("treats terminal states as absorbing", () => {
@@ -71,7 +73,9 @@ describe("individual run state machine", () => {
   })
 
   it("throws on an impossible transition", () => {
-    expect(() => assertRunTransition("passed", "failed")).toThrow(/Invalid individual run transition/)
+    expect(() => assertRunTransition("passed", "failed")).toThrow(
+      /Invalid individual run transition/,
+    )
   })
 })
 

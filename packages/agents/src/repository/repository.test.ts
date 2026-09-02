@@ -90,7 +90,9 @@ timeoutMs: 90000
   })
 
   it("allows a manifest with no install step", () => {
-    expect(parseManifest("version: 1\nrun:\n  command: python3\n  args: [agent.py]").install).toBeUndefined()
+    expect(
+      parseManifest("version: 1\nrun:\n  command: python3\n  args: [agent.py]").install,
+    ).toBeUndefined()
   })
 
   it("requires a run command", () => {
@@ -116,7 +118,9 @@ describe("parseAgentClaim", () => {
   // Everything here is recorded as a claim. Nothing here decides a verdict.
   it("extracts the structured result line", () => {
     expect(
-      parseAgentClaim('starting\nAGENT_GAUNTLET_RESULT={"status":"completed","message":"done","steps":9}\n'),
+      parseAgentClaim(
+        'starting\nAGENT_GAUNTLET_RESULT={"status":"completed","message":"done","steps":9}\n',
+      ),
     ).toEqual({ status: "completed", message: "done", steps: 9 })
   })
 
@@ -140,6 +144,10 @@ describe("parseAgentClaim", () => {
   it("returns null rather than throwing on malformed or hostile payloads", () => {
     expect(parseAgentClaim("AGENT_GAUNTLET_RESULT={not json}")).toBeNull()
     expect(parseAgentClaim('AGENT_GAUNTLET_RESULT={"status":"transcended"}')).toBeNull()
-    expect(parseAgentClaim(`AGENT_GAUNTLET_RESULT={"status":"completed","message":"${"x".repeat(5000)}"}`)).toBeNull()
+    expect(
+      parseAgentClaim(
+        `AGENT_GAUNTLET_RESULT={"status":"completed","message":"${"x".repeat(5000)}"}`,
+      ),
+    ).toBeNull()
   })
 })

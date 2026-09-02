@@ -9,16 +9,14 @@ import { z } from "zod"
  * happens on our side where it can be validated.
  */
 export const llmDecisionSchema = z.object({
-  observation: z
-    .string()
-    .describe("One sentence describing what is on the page right now."),
+  observation: z.string().describe("One sentence describing what is on the page right now."),
   action: z
     .enum(["click", "type", "navigate", "press", "wait", "finish"])
     .describe("The single next action to take."),
   target: z
     .string()
     .describe(
-      "For click/type: the element ref from the list (e.g. \"e7\"), or its visible label. Empty string for other actions.",
+      'For click/type: the element ref from the list (e.g. "e7"), or its visible label. Empty string for other actions.',
     ),
   value: z
     .string()

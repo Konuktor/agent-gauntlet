@@ -29,7 +29,10 @@ function loadEnvFile(): void {
     if (eq === -1) continue
     const key = line.slice(0, eq).trim()
     if (key in process.env) continue
-    process.env[key] = line.slice(eq + 1).trim().replace(/^["']|["']$/g, "")
+    process.env[key] = line
+      .slice(eq + 1)
+      .trim()
+      .replace(/^["']|["']$/g, "")
   }
 }
 loadEnvFile()
@@ -53,7 +56,12 @@ describe.skipIf(!built)("hosted benchmark site", () => {
   beforeAll(async () => {
     server = spawn(process.execPath, [serverEntry], {
       cwd: resolve(repoRoot, "apps/web"),
-      env: { ...process.env, NODE_ENV: "production", PORT: String(PORT), GAUNTLET_HOST_FIXTURE: "true" },
+      env: {
+        ...process.env,
+        NODE_ENV: "production",
+        PORT: String(PORT),
+        GAUNTLET_HOST_FIXTURE: "true",
+      },
       stdio: ["ignore", "pipe", "pipe"],
     })
     await waitForHealth()
@@ -129,7 +137,12 @@ describe.skipIf(!built)("the mount is opt-in", () => {
     const port = PORT + 1
     const child = spawn(process.execPath, [serverEntry], {
       cwd: resolve(repoRoot, "apps/web"),
-      env: { ...process.env, NODE_ENV: "production", PORT: String(port), GAUNTLET_HOST_FIXTURE: "false" },
+      env: {
+        ...process.env,
+        NODE_ENV: "production",
+        PORT: String(port),
+        GAUNTLET_HOST_FIXTURE: "false",
+      },
       stdio: ["ignore", "pipe", "pipe"],
     })
     try {

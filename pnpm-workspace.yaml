@@ -19,4 +19,4 @@ allowBuilds:
   "@playwright/test": true
 
 minimumReleaseAgeExclude:
-  - '@solarisdk/browser@0.1.2'
+  - "@solarisdk/browser@0.1.2"

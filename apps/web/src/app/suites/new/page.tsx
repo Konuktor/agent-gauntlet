@@ -18,7 +18,10 @@ export default async function NewSuitePage() {
     )
   }
 
-  const [agents, tasks] = await Promise.all([listAgents(database, project.id), listTasks(database, project.id)])
+  const [agents, tasks] = await Promise.all([
+    listAgents(database, project.id),
+    listTasks(database, project.id),
+  ])
 
   return (
     <div className="space-y-6">

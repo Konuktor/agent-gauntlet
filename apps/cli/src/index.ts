@@ -105,11 +105,7 @@ function doctor(): number {
     const rows: Array<[string, string, boolean]> = [
       ["mode", env.resolvedMode, true],
       ["SOLARI_API_KEY", env.hasSolariCredentials ? "set" : "not set", env.hasSolariCredentials],
-      [
-        "optional LLM key",
-        env.hasLlmCredentials ? "set" : "not set — not required",
-        true,
-      ],
+      ["optional LLM key", env.hasLlmCredentials ? "set" : "not set — not required", true],
       ["real runs gated", env.runsAreGated ? "yes (GAUNTLET_RUN_TOKEN set)" : "no", true],
       ["concurrency", String(env.GAUNTLET_MAX_CONCURRENCY), true],
       ["runs per suite cap", String(env.GAUNTLET_MAX_RUNS_PER_SUITE), true],
@@ -118,7 +114,9 @@ function doctor(): number {
     ]
     process.stdout.write(`\n${pc.bold("gauntlet doctor")}\n\n`)
     for (const [label, value, ok] of rows) {
-      process.stdout.write(`  ${ok ? pc.green("✓") : pc.yellow("!")} ${label.padEnd(20)} ${pc.dim(value)}\n`)
+      process.stdout.write(
+        `  ${ok ? pc.green("✓") : pc.yellow("!")} ${label.padEnd(20)} ${pc.dim(value)}\n`,
+      )
     }
     if (!env.hasSolariCredentials) {
       process.stdout.write(
@@ -172,7 +170,9 @@ function parseFlags(argv: string[]): Flags {
 function reportError(error: unknown): void {
   if (error instanceof GauntletError) {
     const copy = ERROR_COPY[error.code]
-    process.stderr.write(`\n${pc.red(pc.bold(copy.title))}\n  ${error.message}\n  ${pc.dim(copy.hint)}\n`)
+    process.stderr.write(
+      `\n${pc.red(pc.bold(copy.title))}\n  ${error.message}\n  ${pc.dim(copy.hint)}\n`,
+    )
     if (error.detail) process.stderr.write(`\n${pc.dim(error.detail)}\n`)
     process.stderr.write("\n")
     return

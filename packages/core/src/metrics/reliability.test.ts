@@ -177,7 +177,9 @@ describe("compareSuites", () => {
   })
 
   it("ignores noise below the regression threshold", () => {
-    const a = computeSuiteMetrics(Array.from({ length: 100 }, (_, i) => run("baseline", i, "passed")))
+    const a = computeSuiteMetrics(
+      Array.from({ length: 100 }, (_, i) => run("baseline", i, "passed")),
+    )
     const b = computeSuiteMetrics(
       Array.from({ length: 100 }, (_, i) => run("baseline", i, i < 97 ? "passed" : "failed")),
     )

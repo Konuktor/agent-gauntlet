@@ -107,7 +107,8 @@ const DE: Labels = {
   backToStore: "Zurück zum Shop",
   orderPlaced: "Bestellung aufgegeben",
   sessionExpiredTitle: "Ihre Sitzung ist abgelaufen",
-  sessionExpiredBody: "Wir haben Sie aus Sicherheitsgründen abgemeldet. Ihr Warenkorb wurde gespeichert.",
+  sessionExpiredBody:
+    "Wir haben Sie aus Sicherheitsgründen abgemeldet. Ihr Warenkorb wurde gespeichert.",
   resumeSession: "Sitzung fortsetzen",
   cookieTitle: "Wir schätzen Ihre Privatsphäre",
   cookieBody: "Wir verwenden Cookies, um den Verkehr zu messen.",

@@ -26,7 +26,15 @@ const STOPWORDS = new Set(["the", "a", "an", "to", "in", "on", "of", "for", "you
  */
 const SYNONYMS: Array<string[]> = [
   ["add to cart", "add to basket", "add to bag", "add", "buy", "in den warenkorb", "hinzufügen"],
-  ["checkout", "check out", "proceed to checkout", "continue to checkout", "continue", "weiter", "zur kasse gehen"],
+  [
+    "checkout",
+    "check out",
+    "proceed to checkout",
+    "continue to checkout",
+    "continue",
+    "weiter",
+    "zur kasse gehen",
+  ],
   ["apply", "apply coupon", "redeem", "use code", "gutschein einlösen"],
   ["accept", "accept all", "allow", "agree", "got it", "ok", "alle akzeptieren"],
   ["close", "dismiss", "no thanks", "not now", "×", "x", "schließen", "nein danke"],

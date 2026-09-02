@@ -61,9 +61,9 @@ export default async function LandingPage() {
                 No <code>SOLARI_API_KEY</code> is configured, so runs execute in{" "}
                 <strong className="font-medium text-[var(--color-ink-2)]">local mode</strong>: real
                 Chromium on this machine, against the bundled benchmark storefront. Everything works
-                and nothing is simulated — it simply is not a Solari run, and the UI says so on every
-                screen. Add a Solari key and the same suites run on real cloud browsers. That is the
-                only credential the product needs.
+                and nothing is simulated — it simply is not a Solari run, and the UI says so on
+                every screen. Add a Solari key and the same suites run on real cloud browsers. That
+                is the only credential the product needs.
               </>
             ) : (
               <>
@@ -110,8 +110,8 @@ export default async function LandingPage() {
           </p>
           <p className="mt-3 leading-relaxed text-[var(--color-ink-2)]">
             Completion is judged from the benchmark site&apos;s own server-side state — never from
-            the agent&apos;s report about itself. An agent can say &ldquo;done&rdquo;; only the state
-            decides.
+            the agent&apos;s report about itself. An agent can say &ldquo;done&rdquo;; only the
+            state decides.
           </p>
           <p className="mt-3 leading-relaxed text-[var(--color-ink-2)]">
             The built-in Reference Agent is deterministic and needs no model key, so results are
@@ -126,7 +126,7 @@ export default async function LandingPage() {
             <span className="chip">gauntlet run</span>
           </div>
           <pre className="overflow-x-auto px-4 py-4 font-mono text-[13px] leading-relaxed text-[var(--color-ink-2)]">
-{`AgentGauntlet
+            {`AgentGauntlet
 
   ✓ baseline           2/2
   ✓ cookie popup       2/2
@@ -149,7 +149,10 @@ export default async function LandingPage() {
         <section>
           <div className="flex items-baseline justify-between">
             <h2 className="text-sm font-semibold">Recent runs</h2>
-            <Link className="text-sm text-[var(--color-ink-2)] hover:text-[var(--color-ink)]" href="/runs">
+            <Link
+              className="text-sm text-[var(--color-ink-2)] hover:text-[var(--color-ink)]"
+              href="/runs"
+            >
               All runs →
             </Link>
           </div>
@@ -185,15 +188,7 @@ export default async function LandingPage() {
   )
 }
 
-function ValueProp({
-  Icon,
-  title,
-  body,
-}: {
-  Icon: typeof Repeat2
-  title: string
-  body: string
-}) {
+function ValueProp({ Icon, title, body }: { Icon: typeof Repeat2; title: string; body: string }) {
   return (
     <div className="card p-5">
       <Icon size={18} style={{ color: "var(--color-accent)" }} aria-hidden />

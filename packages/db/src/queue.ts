@@ -57,7 +57,10 @@ export async function heartbeat(db: Database, suiteRunId: string, workerId: stri
  * and periodically: without it, a `kill -9` mid-suite leaves a row that no
  * worker will ever pick up and a user staring at a spinner.
  */
-export async function reclaimStaleSuiteRuns(db: Database, staleMs = STALE_CLAIM_MS): Promise<number> {
+export async function reclaimStaleSuiteRuns(
+  db: Database,
+  staleMs = STALE_CLAIM_MS,
+): Promise<number> {
   const cutoff = new Date(Date.now() - staleMs)
   const reclaimed = await db
     .update(suiteRuns)

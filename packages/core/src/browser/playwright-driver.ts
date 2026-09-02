@@ -35,7 +35,7 @@ export function createPlaywrightPageDriver(page: PlaywrightLikePage): PageDriver
         waitUntil: options?.waitUntil ?? "domcontentloaded",
       })
     },
-    evaluate: <T,>(script: string, arg?: unknown) => page.evaluate(script, arg) as Promise<T>,
+    evaluate: <T>(script: string, arg?: unknown) => page.evaluate(script, arg) as Promise<T>,
     clickSelector: (selector: string, options?: ActionOptions) =>
       page.click(selector, { timeout: options?.timeoutMs ?? DEFAULT_ACTION_TIMEOUT_MS }),
     fillSelector: (selector: string, value: string, options?: ActionOptions) =>
@@ -80,7 +80,11 @@ export function createPlaywrightPageSignals(page: PlaywrightLikePage): PageSigna
     },
     onRequestFailed(handler) {
       page.on("requestfailed", ((request: RequestLike) => {
-        handler(request.url().slice(0, 500), request.failure()?.errorText ?? "unknown", request.method())
+        handler(
+          request.url().slice(0, 500),
+          request.failure()?.errorText ?? "unknown",
+          request.method(),
+        )
       }) as (payload: never) => void)
     },
     onNavigation(handler) {

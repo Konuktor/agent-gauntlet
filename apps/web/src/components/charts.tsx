@@ -2,7 +2,12 @@
 
 import { clsx } from "clsx"
 import Link from "next/link"
-import type { CategoryMetrics, FailureCategory, SuiteMetrics, VariantMetrics } from "@gauntlet/core/shared"
+import type {
+  CategoryMetrics,
+  FailureCategory,
+  SuiteMetrics,
+  VariantMetrics,
+} from "@gauntlet/core/shared"
 import { FAILURE_CATEGORY_META, CATEGORY_LABELS } from "@gauntlet/core/shared"
 import { fraction, percent } from "@/lib/format"
 import { STATUS_META, type RunStatus } from "./primitives"
@@ -41,8 +46,16 @@ export function ReliabilityHero({ metrics }: { metrics: SuiteMetrics }) {
       </div>
 
       <dl className="flex flex-wrap gap-x-8 gap-y-3">
-        <Split label="Baseline" value={metrics.baselineReliability} interval={metrics.baselineInterval} />
-        <Split label="Perturbed" value={metrics.perturbedReliability} interval={metrics.perturbedInterval} />
+        <Split
+          label="Baseline"
+          value={metrics.baselineReliability}
+          interval={metrics.baselineInterval}
+        />
+        <Split
+          label="Perturbed"
+          value={metrics.perturbedReliability}
+          interval={metrics.perturbedInterval}
+        />
       </dl>
     </div>
   )
@@ -60,7 +73,9 @@ function Split({
   return (
     <div>
       <dt className="section-title">{label}</dt>
-      <dd className="mt-1 text-2xl font-semibold tabular-nums">{value === null ? "—" : percent(value)}</dd>
+      <dd className="mt-1 text-2xl font-semibold tabular-nums">
+        {value === null ? "—" : percent(value)}
+      </dd>
       {interval ? (
         <div className="text-xs text-[var(--color-ink-3)] tnum">
           {percent(interval.low, 0)}–{percent(interval.high, 0)}
@@ -84,7 +99,8 @@ export function ReliabilityByVariant({ variants }: { variants: VariantMetrics[] 
   const rows = [...variants]
     .filter((v) => v.total > 0)
     .sort((a, b) => a.reliability - b.reliability || a.variantName.localeCompare(b.variantName))
-  if (rows.length === 0) return <p className="text-sm text-[var(--color-ink-3)]">No scored runs yet.</p>
+  if (rows.length === 0)
+    return <p className="text-sm text-[var(--color-ink-3)]">No scored runs yet.</p>
 
   return (
     <div className="space-y-2.5">
@@ -95,7 +111,9 @@ export function ReliabilityByVariant({ variants }: { variants: VariantMetrics[] 
         >
           <div className="min-w-0 sm:col-auto">
             <div className="truncate text-sm">{variant.variantName}</div>
-            <div className="text-[11px] text-[var(--color-ink-3)]">{CATEGORY_LABELS[variant.category]}</div>
+            <div className="text-[11px] text-[var(--color-ink-3)]">
+              {CATEGORY_LABELS[variant.category]}
+            </div>
           </div>
 
           <div
@@ -141,7 +159,8 @@ export function ReliabilityByVariant({ variants }: { variants: VariantMetrics[] 
 }
 
 export function ReliabilityByCategory({ categories }: { categories: CategoryMetrics[] }) {
-  if (categories.length === 0) return <p className="text-sm text-[var(--color-ink-3)]">No scored runs yet.</p>
+  if (categories.length === 0)
+    return <p className="text-sm text-[var(--color-ink-3)]">No scored runs yet.</p>
   return (
     <div className="space-y-2.5">
       {categories.map((category) => (
@@ -187,7 +206,10 @@ export function FailureDistribution({
       {distribution.map((entry) => {
         const meta = FAILURE_CATEGORY_META[entry.category]
         return (
-          <div key={entry.category} className="grid grid-cols-[minmax(7rem,9rem)_1fr_auto] items-center gap-3">
+          <div
+            key={entry.category}
+            className="grid grid-cols-[minmax(7rem,9rem)_1fr_auto] items-center gap-3"
+          >
             <div className="truncate text-sm" title={meta.summary}>
               {meta.label}
             </div>
@@ -201,7 +223,9 @@ export function FailureDistribution({
                 style={{
                   width: `${(entry.count / max) * 100}%`,
                   background:
-                    meta.blame === "infrastructure" ? "var(--color-warning)" : "var(--color-serious)",
+                    meta.blame === "infrastructure"
+                      ? "var(--color-warning)"
+                      : "var(--color-serious)",
                 }}
               />
             </div>
@@ -243,7 +267,10 @@ export function RunMatrix({
         </caption>
         <thead>
           <tr>
-            <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-[var(--color-ink-3)]">
+            <th
+              scope="col"
+              className="px-2 py-2 text-left text-xs font-medium text-[var(--color-ink-3)]"
+            >
               Perturbation
             </th>
             {Array.from({ length: repetitions }, (_, i) => (
@@ -255,7 +282,10 @@ export function RunMatrix({
                 Run {i + 1}
               </th>
             ))}
-            <th scope="col" className="px-2 py-2 text-right text-xs font-medium text-[var(--color-ink-3)]">
+            <th
+              scope="col"
+              className="px-2 py-2 text-right text-xs font-medium text-[var(--color-ink-3)]"
+            >
               Rate
             </th>
           </tr>
@@ -268,7 +298,9 @@ export function RunMatrix({
               </th>
               {Array.from({ length: repetitions }, (_, i) => {
                 const outcome = variant.outcomes[i]
-                const runId = outcome ? runIndex.get(`${variant.variant}#${outcome.repetition}`) : undefined
+                const runId = outcome
+                  ? runIndex.get(`${variant.variant}#${outcome.repetition}`)
+                  : undefined
                 return (
                   <td key={i} className="px-1 py-1 text-center">
                     {outcome ? (
@@ -287,7 +319,13 @@ export function RunMatrix({
                 )
               })}
               <td className="px-2 py-1.5 text-right tnum">
-                <span className={variant.reliability < 1 ? "text-[var(--color-ink)]" : "text-[var(--color-ink-2)]"}>
+                <span
+                  className={
+                    variant.reliability < 1
+                      ? "text-[var(--color-ink)]"
+                      : "text-[var(--color-ink-2)]"
+                  }
+                >
                   {variant.total > 0 ? percent(variant.reliability) : "—"}
                 </span>
               </td>
@@ -324,7 +362,9 @@ function MatrixCell({
         // Passed is a solid fill, failed is an outline — the shapes differ, so
         // the cells stay distinguishable in greyscale or with no colour at all.
         background:
-          status === "passed" ? "color-mix(in oklab, var(--color-good) 22%, transparent)" : "transparent",
+          status === "passed"
+            ? "color-mix(in oklab, var(--color-good) 22%, transparent)"
+            : "transparent",
         borderColor: `color-mix(in oklab, ${meta.color} 55%, transparent)`,
         color: meta.color,
       }}

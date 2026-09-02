@@ -424,11 +424,14 @@ export function createWorkerRuntime(options: WorkerRuntimeOptions): WorkerRuntim
       // stayed in `running_agent` forever, so the dashboard showed a finished
       // suite whose runs were still going.
       const stranded = await cancelOpenRuns(db, suiteRun.id).catch(() => 0)
-      if (stranded > 0) runLogger.warn("cancelled runs stranded by the failure", { count: stranded })
+      if (stranded > 0)
+        runLogger.warn("cancelled runs stranded by the failure", { count: stranded })
     } finally {
-      await runtime?.shutdown().catch((error: unknown) =>
-        runLogger.warn("runtime shutdown failed", { error: describe(error) }),
-      )
+      await runtime
+        ?.shutdown()
+        .catch((error: unknown) =>
+          runLogger.warn("runtime shutdown failed", { error: describe(error) }),
+        )
       // Forget a borrowed credential the moment the run is over, whether it
       // passed, failed or crashed. The operator does not keep other people's
       // secrets a second longer than the work requires.

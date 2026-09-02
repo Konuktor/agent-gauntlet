@@ -49,15 +49,22 @@ export function renderReport(report: GauntletReport): string {
   }
 
   const reliability = (metrics.reliability * 100).toFixed(1)
-  lines.push("", `  ${pc.bold("Reliability")}   ${pc.bold(`${reliability}%`)}  ${pc.dim(`(${metrics.passedRuns}/${metrics.scoredRuns})`)}`)
+  lines.push(
+    "",
+    `  ${pc.bold("Reliability")}   ${pc.bold(`${reliability}%`)}  ${pc.dim(`(${metrics.passedRuns}/${metrics.scoredRuns})`)}`,
+  )
   lines.push(
     `  ${pc.dim("95% CI")}        ${pc.dim(`${(metrics.interval.low * 100).toFixed(1)}% – ${(metrics.interval.high * 100).toFixed(1)}%`)}`,
   )
   if (metrics.baselineReliability !== null) {
-    lines.push(`  ${pc.dim("Baseline")}      ${pc.dim(`${(metrics.baselineReliability * 100).toFixed(1)}%`)}`)
+    lines.push(
+      `  ${pc.dim("Baseline")}      ${pc.dim(`${(metrics.baselineReliability * 100).toFixed(1)}%`)}`,
+    )
   }
   if (metrics.perturbedReliability !== null) {
-    lines.push(`  ${pc.dim("Perturbed")}     ${pc.dim(`${(metrics.perturbedReliability * 100).toFixed(1)}%`)}`)
+    lines.push(
+      `  ${pc.dim("Perturbed")}     ${pc.dim(`${(metrics.perturbedReliability * 100).toFixed(1)}%`)}`,
+    )
   }
 
   if (metrics.failureDistribution.length > 0) {
@@ -119,17 +126,24 @@ export function evaluateThresholds(report: GauntletReport): ThresholdVerdict {
   return { pass: required.every((r) => r.met), required }
 }
 
-export function renderComparison(comparison: SuiteComparison, labels: { previous: string; current: string }): string {
+export function renderComparison(
+  comparison: SuiteComparison,
+  labels: { previous: string; current: string },
+): string {
   const lines: string[] = ["", pc.bold("AgentGauntlet · comparison"), ""]
   lines.push(`  ${pc.dim(labels.previous)}  ${(comparison.previousReliability * 100).toFixed(1)}%`)
   lines.push(`  ${pc.dim(labels.current)}   ${(comparison.currentReliability * 100).toFixed(1)}%`)
   const sign = comparison.deltaPp > 0 ? "+" : ""
   const delta = `${sign}${comparison.deltaPp}pp`
-  lines.push(`  ${pc.bold("delta")}       ${comparison.regressed ? pc.red(delta) : pc.green(delta)}`)
+  lines.push(
+    `  ${pc.bold("delta")}       ${comparison.regressed ? pc.red(delta) : pc.green(delta)}`,
+  )
   lines.push("")
 
   const width = Math.max(12, ...comparison.variants.map((v) => v.variantName.length))
-  for (const variant of [...comparison.variants].sort((a, b) => (a.deltaPp ?? 0) - (b.deltaPp ?? 0))) {
+  for (const variant of [...comparison.variants].sort(
+    (a, b) => (a.deltaPp ?? 0) - (b.deltaPp ?? 0),
+  )) {
     if (variant.deltaPp === null) {
       lines.push(`  ${WARN} ${variant.variantName.padEnd(width)}  ${pc.dim("not in both runs")}`)
       continue
@@ -146,7 +160,11 @@ export function renderComparison(comparison: SuiteComparison, labels: { previous
   }
 
   lines.push("")
-  lines.push(comparison.regressed ? pc.red(pc.bold("  REGRESSION DETECTED")) : pc.green(pc.bold("  NO REGRESSION")))
+  lines.push(
+    comparison.regressed
+      ? pc.red(pc.bold("  REGRESSION DETECTED"))
+      : pc.green(pc.bold("  NO REGRESSION")),
+  )
   if (comparison.variantSetsDiffer) {
     lines.push(pc.yellow("  Note: the two runs did not test the same variant set."))
   }

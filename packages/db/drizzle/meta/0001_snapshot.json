@@ -70,12 +70,8 @@
           "name": "agents_project_id_projects_id_fk",
           "tableFrom": "agents",
           "tableTo": "projects",
-          "columnsFrom": [
-            "project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["project_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -163,12 +159,8 @@
           "name": "evaluation_results_individual_run_id_individual_runs_id_fk",
           "tableFrom": "evaluation_results",
           "tableTo": "individual_runs",
-          "columnsFrom": [
-            "individual_run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["individual_run_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -387,12 +379,8 @@
           "name": "individual_runs_suite_run_id_suite_runs_id_fk",
           "tableFrom": "individual_runs",
           "tableTo": "suite_runs",
-          "columnsFrom": [
-            "suite_run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["suite_run_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -448,9 +436,7 @@
         "projects_slug_unique": {
           "name": "projects_slug_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
+          "columns": ["slug"]
         }
       },
       "policies": {},
@@ -505,12 +491,8 @@
           "name": "replay_artifacts_individual_run_id_individual_runs_id_fk",
           "tableFrom": "replay_artifacts",
           "tableTo": "individual_runs",
-          "columnsFrom": [
-            "individual_run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["individual_run_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -591,12 +573,8 @@
           "name": "run_events_individual_run_id_individual_runs_id_fk",
           "tableFrom": "run_events",
           "tableTo": "individual_runs",
-          "columnsFrom": [
-            "individual_run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["individual_run_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -806,12 +784,8 @@
           "name": "suite_runs_suite_id_suites_id_fk",
           "tableFrom": "suite_runs",
           "tableTo": "suites",
-          "columnsFrom": [
-            "suite_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["suite_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -888,12 +862,8 @@
           "name": "suite_variants_suite_id_suites_id_fk",
           "tableFrom": "suite_variants",
           "tableTo": "suites",
-          "columnsFrom": [
-            "suite_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["suite_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -975,12 +945,8 @@
           "name": "suites_project_id_projects_id_fk",
           "tableFrom": "suites",
           "tableTo": "projects",
-          "columnsFrom": [
-            "project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["project_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -988,12 +954,8 @@
           "name": "suites_agent_id_agents_id_fk",
           "tableFrom": "suites",
           "tableTo": "agents",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1001,12 +963,8 @@
           "name": "suites_task_definition_id_task_definitions_id_fk",
           "tableFrom": "suites",
           "tableTo": "task_definitions",
-          "columnsFrom": [
-            "task_definition_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["task_definition_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -1100,12 +1058,8 @@
           "name": "task_definitions_project_id_projects_id_fk",
           "tableFrom": "task_definitions",
           "tableTo": "projects",
-          "columnsFrom": [
-            "project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["project_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }

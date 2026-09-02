@@ -192,7 +192,12 @@ function thumb(product: Product): string {
  * element genuinely does not exist until then — an agent that assumes the page
  * is complete on load will miss it.
  */
-function delayable(state: RunState, target: "add-to-cart" | "checkout", html: string, labels: Labels): string {
+function delayable(
+  state: RunState,
+  target: "add-to-cart" | "checkout",
+  html: string,
+  labels: Labels,
+): string {
   if (state.config.delayedElement?.target !== target) return html
   // The control is present in the DOM but `hidden`, so it is invisible to a
   // snapshot until the timer fires — the same observable behaviour as a widget
@@ -211,7 +216,9 @@ export function storePage(state: RunState): string {
     // for the literal string "Add to cart" fails; an agent that understands
     // "Add <product>" on a product card still succeeds (§31).
     const buttonLabel = renamed ? labels.addToCartShort : labels.addToCart
-    const ariaLabel = renamed ? `${labels.addToCartShort} ${product.name}` : `${labels.addToCart}: ${product.name}`
+    const ariaLabel = renamed
+      ? `${labels.addToCartShort} ${product.name}`
+      : `${labels.addToCart}: ${product.name}`
     const button = `<form method="post" action="${href(state, "/cart/add")}">
         <input type="hidden" name="sku" value="${product.sku}">
         <button type="submit" class="primary" data-testid="add-${product.sku}" aria-label="${escapeHtml(ariaLabel)}">${escapeHtml(buttonLabel)}</button>

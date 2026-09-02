@@ -43,7 +43,12 @@ export default async function ComparePage(ctx: {
           className="card flex items-start gap-3 p-4"
           style={{ borderColor: "color-mix(in oklab, var(--color-critical) 35%, transparent)" }}
         >
-          <AlertTriangle size={18} className="mt-0.5 shrink-0" style={{ color: "var(--color-critical)" }} aria-hidden />
+          <AlertTriangle
+            size={18}
+            className="mt-0.5 shrink-0"
+            style={{ color: "var(--color-critical)" }}
+            aria-hidden
+          />
           <div>
             <h2 className="text-sm font-semibold">Regression detected</h2>
             <p className="mt-1 text-sm text-[var(--color-ink-2)]">
@@ -51,7 +56,8 @@ export default async function ComparePage(ctx: {
               {regressedVariants > 0
                 ? `, and ${regressedVariants} ${regressedVariants === 1 ? "perturbation" : "perturbations"} got measurably worse.`
                 : "."}{" "}
-              A drop of {REGRESSION_THRESHOLD_PP}pp or more counts; smaller moves are treated as noise.
+              A drop of {REGRESSION_THRESHOLD_PP}pp or more counts; smaller moves are treated as
+              noise.
             </p>
           </div>
         </div>
@@ -61,7 +67,10 @@ export default async function ComparePage(ctx: {
         <SideCard title="Baseline" run={previous} />
         <div className="card flex flex-col items-center justify-center p-6">
           <div className="section-title">Delta</div>
-          <div className="mt-1 flex items-center gap-2 text-4xl font-semibold" style={{ color: deltaColor }}>
+          <div
+            className="mt-1 flex items-center gap-2 text-4xl font-semibold"
+            style={{ color: deltaColor }}
+          >
             {comparison.deltaPp > 0 ? (
               <TrendingUp size={26} aria-hidden />
             ) : comparison.deltaPp < 0 ? (
@@ -81,8 +90,8 @@ export default async function ComparePage(ctx: {
 
       {comparison.variantSetsDiffer ? (
         <p className="text-xs text-[var(--color-ink-3)]">
-          These runs did not test exactly the same variant set, so rows without a value on both sides
-          are not comparable.
+          These runs did not test exactly the same variant set, so rows without a value on both
+          sides are not comparable.
         </p>
       ) : null}
 
@@ -91,10 +100,18 @@ export default async function ComparePage(ctx: {
           <caption className="sr-only">Reliability change per perturbation</caption>
           <thead>
             <tr className="text-left text-xs text-[var(--color-ink-3)]">
-              <th scope="col" className="pb-2 font-medium">Perturbation</th>
-              <th scope="col" className="pb-2 text-right font-medium">Baseline</th>
-              <th scope="col" className="pb-2 text-right font-medium">Current</th>
-              <th scope="col" className="pb-2 text-right font-medium">Change</th>
+              <th scope="col" className="pb-2 font-medium">
+                Perturbation
+              </th>
+              <th scope="col" className="pb-2 text-right font-medium">
+                Baseline
+              </th>
+              <th scope="col" className="pb-2 text-right font-medium">
+                Current
+              </th>
+              <th scope="col" className="pb-2 text-right font-medium">
+                Change
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -133,7 +150,11 @@ export default async function ComparePage(ctx: {
                         {variant.deltaPp > 0 ? "+" : ""}
                         {variant.deltaPp}pp
                         <span className="sr-only">
-                          {variant.regressed ? " regression" : variant.improved ? " improvement" : " unchanged"}
+                          {variant.regressed
+                            ? " regression"
+                            : variant.improved
+                              ? " improvement"
+                              : " unchanged"}
                         </span>
                       </span>
                     )}
@@ -152,7 +173,14 @@ function SideCard({
   run,
 }: {
   title: string
-  run: { id: string; label: string | null; mode: string; completedAt: string | null; metrics: { reliability: number; passedRuns: number; scoredRuns: number }; git: { branch: string | null; sha: string | null } }
+  run: {
+    id: string
+    label: string | null
+    mode: string
+    completedAt: string | null
+    metrics: { reliability: number; passedRuns: number; scoredRuns: number }
+    git: { branch: string | null; sha: string | null }
+  }
 }) {
   return (
     <div className="card p-5">
@@ -160,7 +188,10 @@ function SideCard({
         <span className="section-title">{title}</span>
         <ModeBadge mode={run.mode} />
       </div>
-      <Link href={`/runs/${run.id}`} className="mt-2 block text-4xl font-semibold tabular-nums hover:underline">
+      <Link
+        href={`/runs/${run.id}`}
+        className="mt-2 block text-4xl font-semibold tabular-nums hover:underline"
+      >
         {percent(run.metrics.reliability)}
       </Link>
       <div className="mt-1 text-sm text-[var(--color-ink-2)]">

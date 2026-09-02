@@ -132,12 +132,29 @@ export async function loadSuiteRun(suiteRunId: string): Promise<SuiteRunView | n
 }
 
 export interface RunDetailView {
-  run: IndividualRunView & { suiteRunId: string; startedAt: string | null; completedAt: string | null; mode: string }
-  events: Array<{ sequence: number; timestamp: string; type: string; payload: Record<string, unknown> }>
+  run: IndividualRunView & {
+    suiteRunId: string
+    startedAt: string | null
+    completedAt: string | null
+    mode: string
+  }
+  events: Array<{
+    sequence: number
+    timestamp: string
+    type: string
+    payload: Record<string, unknown>
+  }>
   evaluation: {
     success: boolean
     score: number
-    assertions: Array<{ name: string; description: string; expected: unknown; actual: unknown; passed: boolean; weight: number }>
+    assertions: Array<{
+      name: string
+      description: string
+      expected: unknown
+      actual: unknown
+      passed: boolean
+      weight: number
+    }>
     evidence: Record<string, unknown>
   } | null
 }
@@ -173,7 +190,14 @@ export async function loadRunDetail(runId: string): Promise<RunDetailView | null
           score: evaluation.score,
           assertions: evaluation.assertionsJson as RunDetailView["evaluation"] extends null
             ? never
-            : Array<{ name: string; description: string; expected: unknown; actual: unknown; passed: boolean; weight: number }>,
+            : Array<{
+                name: string
+                description: string
+                expected: unknown
+                actual: unknown
+                passed: boolean
+                weight: number
+              }>,
           evidence: evaluation.evidenceJson as Record<string, unknown>,
         }
       : null,

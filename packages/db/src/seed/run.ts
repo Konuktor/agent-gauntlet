@@ -47,7 +47,10 @@ try {
         projectId: project!.id,
         name: "Reference Agent",
         type: "reference",
-        configJson: { preset: "reference", capabilities: ["dismissOverlays", "waitForLateElements"] },
+        configJson: {
+          preset: "reference",
+          capabilities: ["dismissOverlays", "waitForLateElements"],
+        },
       },
       {
         projectId: project!.id,
@@ -123,9 +126,7 @@ try {
     })
     .returning()
 
-  await handle.db
-    .insert(suiteVariants)
-    .values(VARIANTS.map((v) => ({ suiteId: suite!.id, ...v })))
+  await handle.db.insert(suiteVariants).values(VARIANTS.map((v) => ({ suiteId: suite!.id, ...v })))
 
   // Two runs of the SAME suite so the regression view has something real to
   // compare: the earlier one is the agent with overlay handling, the later one
@@ -150,7 +151,9 @@ try {
   console.log(`  project      ${project!.slug}`)
   console.log(`  agents       ${agentRows.length}`)
   console.log(`  suite        ${suite!.name} (${VARIANTS.length} variants x 2 repetitions)`)
-  console.log(`  baseline run ${earlier.id}  reliability ${(earlier.reliability * 100).toFixed(1)}%`)
+  console.log(
+    `  baseline run ${earlier.id}  reliability ${(earlier.reliability * 100).toFixed(1)}%`,
+  )
   console.log(`  regressed    ${later.id}  reliability ${(later.reliability * 100).toFixed(1)}%`)
   console.log("")
   console.log("  This is DEMO DATA. Outcomes were measured against the real fixture;")

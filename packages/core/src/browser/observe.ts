@@ -81,7 +81,9 @@ export function renderObservation(observation: PageObservation): string {
   if (observation.recentActions.length > 0) {
     lines.push("", "RECENT ACTIONS:")
     for (const record of observation.recentActions) {
-      lines.push(`  ${record.step}. ${record.action.type} — ${record.ok ? "ok" : "FAILED"}: ${record.detail}`)
+      lines.push(
+        `  ${record.step}. ${record.action.type} — ${record.ok ? "ok" : "FAILED"}: ${record.detail}`,
+      )
     }
   }
 

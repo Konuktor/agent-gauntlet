@@ -22,7 +22,11 @@ export async function GET(
   }
 }
 
-function summarise(view: Awaited<ReturnType<typeof loadComparison>> extends null ? never : NonNullable<Awaited<ReturnType<typeof loadComparison>>>["previous"]) {
+function summarise(
+  view: Awaited<ReturnType<typeof loadComparison>> extends null
+    ? never
+    : NonNullable<Awaited<ReturnType<typeof loadComparison>>>["previous"],
+) {
   return {
     id: view.id,
     label: view.label,

@@ -42,7 +42,9 @@ export function apiError(error: unknown, status = 500): NextResponse<ApiErrorBod
         error: {
           code: "invalid_request",
           title: "That request was not valid",
-          message: error.issues.map((i) => `${i.path.join(".") || "body"}: ${i.message}`).join("; "),
+          message: error.issues
+            .map((i) => `${i.path.join(".") || "body"}: ${i.message}`)
+            .join("; "),
           hint: "Check the highlighted fields and try again.",
         },
       },
@@ -113,5 +115,8 @@ export async function parseBody<T extends z.ZodTypeAny>(
 }
 
 export function ok<T>(value: T, init?: ResponseInit): NextResponse<T> {
-  return NextResponse.json(value, { ...init, headers: { "cache-control": "no-store", ...(init?.headers ?? {}) } })
+  return NextResponse.json(value, {
+    ...init,
+    headers: { "cache-control": "no-store", ...(init?.headers ?? {}) },
+  })
 }

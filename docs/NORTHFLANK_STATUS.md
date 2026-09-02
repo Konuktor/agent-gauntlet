@@ -3,39 +3,46 @@
 `[x]` done and verified · `[ ]` pending · `[!]` blocked
 
 ## 0 · Audit (baseline before any change)
+
 - [x] Clean tree at `bc904cb`, remote `github.com/Konuktor/agent-gauntlet`
 - [x] `pnpm typecheck` 14/14 · `lint` 12/12 · `test` 325 passed · `build` 4/4
 - [x] No Dockerfile existed; web start was `node dist/server.js`, worker `tsx src/index.ts`
 
 ## 1 · Render removal
+
 - [x] Deleted `render.yaml`, `render-tests/`, `vitest.render.config.ts`, `docs/RENDER_NOTES.md`, `docs/DEPLOYMENT_STATUS.md`
 - [x] Removed `GAUNTLET_DEPLOY_MODE` and the single-process mode; web no longer imports `@gauntlet/worker`
 - [x] Removed `RENDER_EXTERNAL_URL`; `GAUNTLET_PUBLIC_URL` is now the only public-origin knob
 - [x] Kept: dynamic `PORT`, `0.0.0.0` binding, graceful SIGTERM, health endpoint, startup migrations, run-token gate, secret redaction
 
 ## 2 · Research
+
 - [x] `docs/NORTHFLANK_NOTES.md` written from current docs + the live JSON schema at `api.northflank.com/v1/schemas/template`
 - [x] Sandbox allowance confirmed: **2 services, 2 jobs, 1 addon**, always-on
 
 ## 3–4 · Images
+
 - [x] One multi-stage `Dockerfile`, three targets: `web`, `worker`, `migrate`
 - [x] `.dockerignore` excludes node_modules, `.next`, `.git`, `.env`, artifacts, tests
 - [x] `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` — no browser ships in a production image
 - [x] Runs as `node`, not root
 
 ## 5–7 · Services and database
+
 - [x] Web: public port 3000, `/api/health` readiness probe
 - [x] Worker: `ports: []` — no port at all, no fake HTTP server
 - [x] Postgres addon: `externalAccessEnabled: false`, TLS on, version 17
 - [x] Secret group aliases `POSTGRES_URI` → `DATABASE_URL`
 
 ## 8–13 · Template
+
 - [x] `northflank/template.json`, `apiVersion: v1.2`, validated against the live schema
 - [x] Secrets are `argumentOverrides`; `GAUNTLET_RUN_TOKEN` uses `${fn.randomSecret(48)}`; no value committed
 - [x] `GAUNTLET_CREDENTIAL_KEY` (32 random bytes) seals a credential a visitor brings; blank in the
       template, generated per deployment, never committed
 
 ## 25 · Verification
+
 - [x] `pnpm typecheck` 13/13 · `lint` 12/12 · `test` 324 passed · `build` 4/4 · `test:e2e` 36 passed
 - [x] `pnpm test:deploy` — 26 passed, 1 skipped, including a job enqueued by the web service and claimed by a **separate** worker process
 - [x] `pnpm gauntlet demo` — 16/16 scored, 0 infrastructure errors, 87.5% against a 90% threshold
@@ -47,6 +54,7 @@
 - [x] Secret audit: working tree and history clean (the only match is the fake string in `redact.test.ts`)
 
 ## 14–22 · Deployment — LIVE
+
 - [x] CLI authenticated; template `agent-gauntlet` created and run
 - [x] Project, Postgres addon, secret group, web service, worker service, migration job — all created
 - [x] **Public URL: https://http--agent-gauntlet-web--hjwypxsqnrjv.code.run** — HTTPS, health `ok`, always-on
@@ -66,18 +74,19 @@
       Sandbox, 7 steps, 8/8 evaluator assertions. Then `expired_session`: FAIL at 6 steps,
       category `auth`. Details in `REAL_SOLARI_TEST.md`.
 - [x] **Bring-your-own credentials proved live** — a borrowed CDP endpoint sealed by the web
-      service, opened by the *separate* worker (so the sealing key round-trips across both),
+      service, opened by the _separate_ worker (so the sealing key round-trips across both),
       driven through `connectOverCDP`, `replay: not_requested`, and failed as
       `infrastructure_error` / `browser_error` rather than as an agent failure.
 - [!] **Credential leak found by that live run, and fixed.** The logger scrubbed the endpoint
-      everywhere; the *persisted* failure message did not, so `/api/suite-runs/:id` — and the
-      run detail page — served a live CDP endpoint verbatim. Playwright quotes the endpoint it
-      was handed inside its connect error, and that text was stored. Scrubbing now happens on
-      the way into Postgres. The local suite could not have caught it: without a fixture URL the
-      run dies before the dial, so nothing ever quotes an endpoint. Commit `15f4806`.
+  everywhere; the _persisted_ failure message did not, so `/api/suite-runs/:id` — and the
+  run detail page — served a live CDP endpoint verbatim. Playwright quotes the endpoint it
+  was handed inside its connect error, and that text was stored. Scrubbing now happens on
+  the way into Postgres. The local suite could not have caught it: without a fixture URL the
+  run dies before the dial, so nothing ever quotes an endpoint. Commit `15f4806`.
 - [ ] Full 8 x 2 gauntlet — not run; the small one is the meaningful proof and the rest is cost
 
 ## Submission QA (live URL, 1440x900 and 390x844)
+
 - [x] Landing, runs list, real Solari result, expired_session failure detail, comparison,
       suite builder, health — all 200 in under a second
 - [x] No localhost links, no console errors anywhere
@@ -91,12 +100,14 @@
       links, zero console errors**
 
 ### The mobile overflow was not where it looked
+
 `min-w-0` on the offending row changed nothing. The panel containing it is a **grid child**, and
 grid children default to `min-width: auto` — they refuse to shrink below their content, so one
 long Solari preview URL pushed the page 3228px wide. The fix belongs in `Panel`, once, rather than
 in every page that lays panels out.
 
 ### Things that only deploying could find
+
 1. `${refs.database.id}` is undefined — node responses nest under `data`. It does
    not fail: the dependency silently vanishes and the services start with no
    `DATABASE_URL`.

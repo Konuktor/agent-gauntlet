@@ -9,8 +9,19 @@ import { ErrorPanel, ModeBadge, Panel } from "./primitives"
 
 interface Catalog {
   agents: Array<{ id: string; name: string; type: string; config: Record<string, unknown> }>
-  tasks: Array<{ id: string; name: string; description: string; maxSteps: number; timeoutMs: number }>
-  perturbations: Array<{ id: string; name: string; description: string; category: PerturbationCategory }>
+  tasks: Array<{
+    id: string
+    name: string
+    description: string
+    maxSteps: number
+    timeoutMs: number
+  }>
+  perturbations: Array<{
+    id: string
+    name: string
+    description: string
+    category: PerturbationCategory
+  }>
 }
 
 const DEFAULT_SELECTED = new Set([
@@ -37,7 +48,12 @@ export function NewSuiteForm({
   const [variants, setVariants] = useState<Set<string>>(new Set(DEFAULT_SELECTED))
   const [repetitions, setRepetitions] = useState(2)
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<{ title: string; message: string; hint?: string; detail?: string } | null>(null)
+  const [error, setError] = useState<{
+    title: string
+    message: string
+    hint?: string
+    detail?: string
+  } | null>(null)
 
   // Runs cost money, so a public deployment gates them behind an access code.
   // Browsing everything else stays open.
@@ -106,7 +122,8 @@ export function NewSuiteForm({
 
   const llmUnavailable = agent?.type === "llm" && !capabilities.hasLlm
   const repoUnavailable = agent?.type === "repository" && !capabilities.hasSolari
-  const blocked = variants.size === 0 || overCap || !agentId || !taskId || llmUnavailable || repoUnavailable
+  const blocked =
+    variants.size === 0 || overCap || !agentId || !taskId || llmUnavailable || repoUnavailable
 
   // What the visitor brings, if anything. Never stored, never logged here:
   // it goes straight to the server, which seals it before it touches a queue.
@@ -167,30 +184,36 @@ export function NewSuiteForm({
           description="What is being tested. AgentGauntlet doesn't care how it thinks — only whether it survives."
         >
           <div className="grid gap-2 sm:grid-cols-2">
-            {[...catalog.agents].sort((a, b) => agentRank(a) - agentRank(b)).map((option) => (
-              <label
-                key={option.id}
-                className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors"
-                style={{
-                  borderColor: option.id === agentId ? "var(--color-accent)" : "var(--color-line)",
-                  background: option.id === agentId ? "color-mix(in oklab, var(--color-accent) 8%, transparent)" : "transparent",
-                }}
-              >
-                <input
-                  type="radio"
-                  name="agent"
-                  className="mt-1"
-                  checked={option.id === agentId}
-                  onChange={() => setAgentId(option.id)}
-                />
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium">{option.name}</span>
-                  <span className="block text-xs text-[var(--color-ink-3)]">
-                    {describeAgent(option)}
+            {[...catalog.agents]
+              .sort((a, b) => agentRank(a) - agentRank(b))
+              .map((option) => (
+                <label
+                  key={option.id}
+                  className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors"
+                  style={{
+                    borderColor:
+                      option.id === agentId ? "var(--color-accent)" : "var(--color-line)",
+                    background:
+                      option.id === agentId
+                        ? "color-mix(in oklab, var(--color-accent) 8%, transparent)"
+                        : "transparent",
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="agent"
+                    className="mt-1"
+                    checked={option.id === agentId}
+                    onChange={() => setAgentId(option.id)}
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium">{option.name}</span>
+                    <span className="block text-xs text-[var(--color-ink-3)]">
+                      {describeAgent(option)}
+                    </span>
                   </span>
-                </span>
-              </label>
-            ))}
+                </label>
+              ))}
           </div>
           {llmUnavailable ? (
             <p className="mt-3 text-sm text-[var(--color-ink-3)]">
@@ -201,21 +224,36 @@ export function NewSuiteForm({
           ) : null}
           {repoUnavailable ? (
             <p className="mt-3 text-sm" style={{ color: "var(--color-warning)" }}>
-              Repository agents run inside a Solari Sandbox, so they need <code>SOLARI_API_KEY</code>.
+              Repository agents run inside a Solari Sandbox, so they need{" "}
+              <code>SOLARI_API_KEY</code>.
             </p>
           ) : null}
         </Panel>
 
-        <Panel title="Task" description="What the agent has to accomplish, and how it will be judged.">
-          <label className="label" htmlFor="task">Task</label>
-          <select id="task" className="field" value={taskId} onChange={(e) => setTaskId(e.target.value)}>
+        <Panel
+          title="Task"
+          description="What the agent has to accomplish, and how it will be judged."
+        >
+          <label className="label" htmlFor="task">
+            Task
+          </label>
+          <select
+            id="task"
+            className="field"
+            value={taskId}
+            onChange={(e) => setTaskId(e.target.value)}
+          >
             {catalog.tasks.map((option) => (
-              <option key={option.id} value={option.id}>{option.name}</option>
+              <option key={option.id} value={option.id}>
+                {option.name}
+              </option>
             ))}
           </select>
           {task ? (
             <div className="mt-3 rounded border border-[var(--color-line)] bg-[var(--color-plane)] p-3">
-              <p className="text-sm leading-relaxed text-[var(--color-ink-2)]">{task.description}</p>
+              <p className="text-sm leading-relaxed text-[var(--color-ink-2)]">
+                {task.description}
+              </p>
               <p className="mt-2 text-xs text-[var(--color-ink-3)] tnum">
                 max {task.maxSteps} steps · {Math.round(task.timeoutMs / 1000)}s timeout
               </p>
@@ -237,7 +275,9 @@ export function NewSuiteForm({
                       key={perturbation.id}
                       className="flex cursor-pointer items-start gap-2.5 rounded-lg border p-2.5"
                       style={{
-                        borderColor: variants.has(perturbation.id) ? "var(--color-accent)" : "var(--color-line)",
+                        borderColor: variants.has(perturbation.id)
+                          ? "var(--color-accent)"
+                          : "var(--color-line)",
                       }}
                     >
                       <input
@@ -260,7 +300,10 @@ export function NewSuiteForm({
           </div>
         </Panel>
 
-        <Panel title="Repetitions" description="The same variant, run this many times. Repetition is where unreliability shows up.">
+        <Panel
+          title="Repetitions"
+          description="The same variant, run this many times. Repetition is where unreliability shows up."
+        >
           <div className="flex items-center gap-4">
             <input
               id="repetitions"
@@ -272,7 +315,9 @@ export function NewSuiteForm({
               className="w-64"
               aria-describedby="repetitions-value"
             />
-            <output id="repetitions-value" className="text-2xl font-semibold tabular-nums">{repetitions}</output>
+            <output id="repetitions-value" className="text-2xl font-semibold tabular-nums">
+              {repetitions}
+            </output>
           </div>
         </Panel>
       </div>
@@ -286,8 +331,8 @@ export function NewSuiteForm({
         <p className="mt-3 text-3xl font-semibold tabular-nums">{totalRuns}</p>
         <p className="text-sm text-[var(--color-ink-2)]">
           {variants.size} variant{variants.size === 1 ? "" : "s"} × {repetitions} repetition
-          {repetitions === 1 ? "" : "s"} = {totalRuns} browser run{totalRuns === 1 ? "" : "s"},
-          {" "}up to {concurrency} at a time
+          {repetitions === 1 ? "" : "s"} = {totalRuns} browser run{totalRuns === 1 ? "" : "s"}, up
+          to {concurrency} at a time
         </p>
 
         <dl className="mt-4 space-y-1.5 text-xs text-[var(--color-ink-3)]">
@@ -303,17 +348,20 @@ export function NewSuiteForm({
 
         {overCap ? (
           <p className="mt-3 text-sm" style={{ color: "var(--color-critical)" }}>
-            That is above the configured cap of {capabilities.maxRunsPerSuite}. Reduce variants or repetitions.
+            That is above the configured cap of {capabilities.maxRunsPerSuite}. Reduce variants or
+            repetitions.
           </p>
         ) : null}
 
         {capabilities.mode === "solari" ? (
           <p className="mt-3 text-xs text-[var(--color-ink-3)]">
-            Each run is one recorded Solari browser session. Nothing starts until you press the button.
+            Each run is one recorded Solari browser session. Nothing starts until you press the
+            button.
           </p>
         ) : capabilities.canExecuteRuns ? (
           <p className="mt-3 text-xs text-[var(--color-ink-3)]">
-            Local mode: real Chromium on this machine, no Solari credits spent. Results are labelled LOCAL.
+            Local mode: real Chromium on this machine, no Solari credits spent. Results are labelled
+            LOCAL.
           </p>
         ) : (
           <p className="mt-3 text-xs" style={{ color: "var(--color-warning)" }}>
@@ -400,8 +448,8 @@ export function NewSuiteForm({
               <p className="mt-2 text-xs text-[var(--color-ink-3)]">
                 Encrypted before it is stored, used for this run only, and deleted the moment it
                 finishes. Needed for a repository agent, which requires a sandbox of its own —
-                otherwise prefer <strong className="font-medium">My session</strong>, which asks
-                for less.
+                otherwise prefer <strong className="font-medium">My session</strong>, which asks for
+                less.
               </p>
             </>
           )}
@@ -414,7 +462,11 @@ export function NewSuiteForm({
               disabled={blocked || submitting || (!capabilities.canExecuteRuns && !bringsOwn)}
               onClick={submit}
             >
-              {submitting ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Play size={15} aria-hidden />}
+              {submitting ? (
+                <Loader2 size={15} className="animate-spin" aria-hidden />
+              ) : (
+                <Play size={15} aria-hidden />
+              )}
               {submitting ? "Starting…" : "Run the Gauntlet"}
             </button>
             {variants.size === 0 ? (
@@ -440,11 +492,20 @@ export function NewSuiteForm({
               onChange={(event) => setAccessCode(event.target.value)}
               autoComplete="off"
               placeholder={
-                capabilities.canExecuteRuns ? "Required to spend Solari credits" : "Runs need a Solari key first"
+                capabilities.canExecuteRuns
+                  ? "Required to spend Solari credits"
+                  : "Runs need a Solari key first"
               }
             />
-            <button className="btn btn-secondary mt-2 w-full" disabled={authorizing || accessCode.length === 0}>
-              {authorizing ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <KeyRound size={15} aria-hidden />}
+            <button
+              className="btn btn-secondary mt-2 w-full"
+              disabled={authorizing || accessCode.length === 0}
+            >
+              {authorizing ? (
+                <Loader2 size={15} className="animate-spin" aria-hidden />
+              ) : (
+                <KeyRound size={15} aria-hidden />
+              )}
               {authorizing ? "Checking…" : "Authorize"}
             </button>
             {authError ? (
@@ -465,7 +526,8 @@ export function NewSuiteForm({
 }
 
 function describeAgent(agent: { type: string; config: Record<string, unknown> }): string {
-  if (agent.type === "llm") return "Optional adapter. Needs a model API key; nothing else here does."
+  if (agent.type === "llm")
+    return "Optional adapter. Needs a model API key; nothing else here does."
   if (agent.type === "repository") return "Run your own agent inside an isolated Solari Sandbox."
   const capabilities = (agent.config.capabilities as string[] | undefined) ?? []
   if (capabilities.length === 0) {
@@ -482,7 +544,9 @@ function agentRank(agent: { type: string }): number {
 }
 
 async function toError(response: Response) {
-  const body = (await response.json().catch(() => null)) as { error?: { title: string; message: string; hint?: string; detail?: string } } | null
+  const body = (await response.json().catch(() => null)) as {
+    error?: { title: string; message: string; hint?: string; detail?: string }
+  } | null
   return (
     body?.error ?? {
       title: "Request failed",

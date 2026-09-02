@@ -120,9 +120,9 @@ describe("assertPublicDeploymentIsSafe", () => {
   // The failure this prevents: a public URL, a real Solari key, and no gate —
   // i.e. anyone who finds the deployment can spend the operator's money.
   it("refuses a public deployment that can spend credits without a token", () => {
-    expect(() => assertPublicDeploymentIsSafe(parseEnv({ ...publicProd, SOLARI_API_KEY: "slr_live_x" }))).toThrow(
-      /GAUNTLET_RUN_TOKEN/,
-    )
+    expect(() =>
+      assertPublicDeploymentIsSafe(parseEnv({ ...publicProd, SOLARI_API_KEY: "slr_live_x" })),
+    ).toThrow(/GAUNTLET_RUN_TOKEN/)
   })
 
   it("allows it once a run token is set", () => {

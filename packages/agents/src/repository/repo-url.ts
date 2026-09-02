@@ -67,9 +67,7 @@ export function validateRepositoryUrl(input: string): ValidatedRepository {
   }
 
   if (!ALLOWED_PROTOCOLS.has(parsed.protocol)) {
-    throw invalid(
-      `Only https:// repository URLs are allowed. "${parsed.protocol}//" is not.`,
-    )
+    throw invalid(`Only https:// repository URLs are allowed. "${parsed.protocol}//" is not.`)
   }
 
   // Credentials in the URL would be written into the sandbox's git config and

@@ -1,10 +1,20 @@
 import { describe, expect, it } from "vitest"
 import { deriveSeed } from "@gauntlet/core"
-import { DEFAULT_VARIANTS, getPerturbation, PERTURBATIONS, requirePerturbation } from "./registry.js"
+import {
+  DEFAULT_VARIANTS,
+  getPerturbation,
+  PERTURBATIONS,
+  requirePerturbation,
+} from "./registry.js"
 import { resolvePerturbation } from "./resolve.js"
 
 const resolve = (variant: string, repetition = 1, suiteRunId = "suite-1") =>
-  resolvePerturbation({ suiteRunId, individualRunId: `run-${variant}-${repetition}`, variant, repetition })
+  resolvePerturbation({
+    suiteRunId,
+    individualRunId: `run-${variant}-${repetition}`,
+    variant,
+    repetition,
+  })
 
 describe("registry", () => {
   it("exposes unique ids and complete metadata", () => {
@@ -51,7 +61,9 @@ describe("determinism", () => {
 
   it("derives the seed from suite, variant and repetition", () => {
     expect(resolve("cookie_popup", 1).context.seed).toBe(deriveSeed("suite-1", "cookie_popup", 1))
-    expect(resolve("cookie_popup", 2).context.seed).not.toBe(resolve("cookie_popup", 1).context.seed)
+    expect(resolve("cookie_popup", 2).context.seed).not.toBe(
+      resolve("cookie_popup", 1).context.seed,
+    )
     expect(resolve("cookie_popup", 1, "suite-2").context.seed).not.toBe(
       resolve("cookie_popup", 1, "suite-1").context.seed,
     )
@@ -76,7 +88,9 @@ describe("determinism", () => {
   })
 
   it("varies timing across repetitions so a fixed obstacle cannot be memorised", () => {
-    const delays = [1, 2, 3, 4, 5].map((r) => resolve("unexpected_modal", r).fixtureConfig.unexpectedModal?.afterMs)
+    const delays = [1, 2, 3, 4, 5].map(
+      (r) => resolve("unexpected_modal", r).fixtureConfig.unexpectedModal?.afterMs,
+    )
     expect(new Set(delays).size).toBeGreaterThan(1)
   })
 })

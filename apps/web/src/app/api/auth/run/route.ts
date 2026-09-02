@@ -28,7 +28,10 @@ export async function POST(request: Request) {
     const granted = grantRunSession(body.token)
     if (!granted) {
       // Deliberately vague, and no hint about length or shape.
-      return ok({ gated: true, authorized: false, error: "That access code is not valid." }, { status: 401 })
+      return ok(
+        { gated: true, authorized: false, error: "That access code is not valid." },
+        { status: 401 },
+      )
     }
 
     const response = ok({ gated: true, authorized: true })

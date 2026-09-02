@@ -32,7 +32,9 @@ export function parseDirectives(description: string): Directive[] {
   }
 
   // "apply coupon SAVE20" / "use code SAVE20"
-  const coupon = text.match(/(?:apply|use|enter|redeem)\s+(?:the\s+)?(?:coupon|discount|promo)?\s*(?:code\s+)?([A-Z0-9][A-Z0-9_-]{2,})/i)
+  const coupon = text.match(
+    /(?:apply|use|enter|redeem)\s+(?:the\s+)?(?:coupon|discount|promo)?\s*(?:code\s+)?([A-Z0-9][A-Z0-9_-]{2,})/i,
+  )
   if (coupon?.[1]) {
     const code = coupon[1].toUpperCase()
     directives.push({

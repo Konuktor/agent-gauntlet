@@ -11,18 +11,18 @@ AgentGauntlet host. That isolation is the reason this feature can exist at all.
 ```yaml
 version: 1
 
-install:                      # optional
+install: # optional
   command: npm
   args: ["install", "--omit=dev"]
 
-run:                          # required
+run: # required
   command: node
   args: ["agent.mjs"]
 
-workdir: .                    # optional, relative to the clone
-installTimeoutMs: 300000      # optional, clamped to the product limit
-timeoutMs: 120000             # optional, clamped to the task's own timeout
-env:                          # optional, literal values only
+workdir: . # optional, relative to the clone
+installTimeoutMs: 300000 # optional, clamped to the product limit
+timeoutMs: 120000 # optional, clamped to the task's own timeout
+env: # optional, literal values only
   AGENT_LOG_LEVEL: info
 ```
 
@@ -31,13 +31,13 @@ one, ask for it: `command: sh, args: ["-c", "…"]`.
 
 ## What your process receives
 
-| Variable | Meaning |
-|---|---|
-| `AGENT_GAUNTLET_TASK` | The task, in plain English |
-| `AGENT_GAUNTLET_START_URL` | Where to begin, already scoped to this run |
-| `AGENT_GAUNTLET_CDP_ENDPOINT` | A live Chrome DevTools Protocol endpoint |
-| `AGENT_GAUNTLET_RUN_ID` | This run's id |
-| `AGENT_GAUNTLET_MAX_STEPS` | The step budget the task declares |
+| Variable                      | Meaning                                    |
+| ----------------------------- | ------------------------------------------ |
+| `AGENT_GAUNTLET_TASK`         | The task, in plain English                 |
+| `AGENT_GAUNTLET_START_URL`    | Where to begin, already scoped to this run |
+| `AGENT_GAUNTLET_CDP_ENDPOINT` | A live Chrome DevTools Protocol endpoint   |
+| `AGENT_GAUNTLET_RUN_ID`       | This run's id                              |
+| `AGENT_GAUNTLET_MAX_STEPS`    | The step budget the task declares          |
 
 Connect with anything that speaks CDP:
 
@@ -68,7 +68,7 @@ Two consequences worth knowing:
 The same reasoning runs in the other direction, and that is worth stating
 because it is the same idea twice. AgentGauntlet asks untrusted code for the
 least authority that works — a scoped endpoint, not a key. So a hosted
-AgentGauntlet asks *you* for the least authority that works, too: run
+AgentGauntlet asks _you_ for the least authority that works, too: run
 `gauntlet session` on your own machine and paste the endpoint it prints, and the
 deployment drives one browser you created without ever seeing your account. A
 key is only needed when the run has to create something itself — a repository
@@ -107,12 +107,12 @@ VM and a `command`/`args` of your choosing.
 
 ## Limits
 
-| Limit | Value |
-|---|---|
-| Install time | 10 minutes, or your `installTimeoutMs` |
-| Run time | 10 minutes, or the lower of your `timeoutMs` and the task's |
-| stdout + stderr retained | 256 KB, then truncated with a marker |
-| Repository URL | `https://` on a public host only |
+| Limit                    | Value                                                       |
+| ------------------------ | ----------------------------------------------------------- |
+| Install time             | 10 minutes, or your `installTimeoutMs`                      |
+| Run time                 | 10 minutes, or the lower of your `timeoutMs` and the task's |
+| stdout + stderr retained | 256 KB, then truncated with a marker                        |
+| Repository URL           | `https://` on a public host only                            |
 
 Rejected before any clone is attempted: `file://`, SCP-style (`git@host:org/repo`),
 credentials embedded in the URL, `localhost`, RFC1918 ranges, `.local`/`.internal`,

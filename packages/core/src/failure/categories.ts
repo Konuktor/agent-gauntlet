@@ -66,13 +66,21 @@ export const FAILURE_CATEGORY_META: Record<FailureCategory, FailureCategoryMeta>
     summary: "The agent repeated the same action with no change in page state.",
     blame: "agent",
   },
-  agent_error: { label: "Agent error", summary: "The agent itself threw or exited badly.", blame: "agent" },
+  agent_error: {
+    label: "Agent error",
+    summary: "The agent itself threw or exited badly.",
+    blame: "agent",
+  },
   evaluator_failure: {
     label: "Evaluator failure",
     summary: "We could not read authoritative state, so the run could not be judged.",
     blame: "infrastructure",
   },
-  sandbox_error: { label: "Sandbox error", summary: "The Solari sandbox failed.", blame: "infrastructure" },
+  sandbox_error: {
+    label: "Sandbox error",
+    summary: "The Solari sandbox failed.",
+    blame: "infrastructure",
+  },
   browser_error: {
     label: "Browser error",
     summary: "The Solari browser session failed or disconnected.",

@@ -26,9 +26,21 @@ export const webAssertionSchema = z.object({
         z.object({ type: z.literal("url_equals"), value: z.string() }),
         z.object({ type: z.literal("text_visible"), value: z.string() }),
         z.object({ type: z.literal("selector_exists"), selector: z.string() }),
-        z.object({ type: z.literal("selector_text_equals"), selector: z.string(), value: z.string() }),
-        z.object({ type: z.literal("selector_text_contains"), selector: z.string(), value: z.string() }),
-        z.object({ type: z.literal("expression_equals"), expression: z.string(), value: z.unknown() }),
+        z.object({
+          type: z.literal("selector_text_equals"),
+          selector: z.string(),
+          value: z.string(),
+        }),
+        z.object({
+          type: z.literal("selector_text_contains"),
+          selector: z.string(),
+          value: z.string(),
+        }),
+        z.object({
+          type: z.literal("expression_equals"),
+          expression: z.string(),
+          value: z.unknown(),
+        }),
       ]),
     )
     .min(1),

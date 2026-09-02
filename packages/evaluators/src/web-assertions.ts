@@ -75,23 +75,47 @@ export class WebAssertionEvaluator implements Evaluator {
       switch (assertion.type) {
         case "url_contains": {
           const url = page.url()
-          return { ...base, description: `URL contains "${assertion.value}"`, expected: assertion.value, actual: url, passed: url.includes(assertion.value) }
+          return {
+            ...base,
+            description: `URL contains "${assertion.value}"`,
+            expected: assertion.value,
+            actual: url,
+            passed: url.includes(assertion.value),
+          }
         }
         case "url_equals": {
           const url = page.url()
-          return { ...base, description: `URL equals "${assertion.value}"`, expected: assertion.value, actual: url, passed: url === assertion.value }
+          return {
+            ...base,
+            description: `URL equals "${assertion.value}"`,
+            expected: assertion.value,
+            actual: url,
+            passed: url === assertion.value,
+          }
         }
         case "text_visible": {
           const found = await page.evaluate<boolean>(
             `(() => (document.body ? document.body.innerText : "").includes(${JSON.stringify(assertion.value)}))()`,
           )
-          return { ...base, description: `page shows "${assertion.value}"`, expected: true, actual: found, passed: found }
+          return {
+            ...base,
+            description: `page shows "${assertion.value}"`,
+            expected: true,
+            actual: found,
+            passed: found,
+          }
         }
         case "selector_exists": {
           const found = await page.evaluate<boolean>(
             `(() => Boolean(document.querySelector(${JSON.stringify(assertion.selector)})))()`,
           )
-          return { ...base, description: `${assertion.selector} exists`, expected: true, actual: found, passed: found }
+          return {
+            ...base,
+            description: `${assertion.selector} exists`,
+            expected: true,
+            actual: found,
+            passed: found,
+          }
         }
         case "selector_text_equals":
         case "selector_text_contains": {

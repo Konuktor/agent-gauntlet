@@ -27,7 +27,10 @@ export interface AnthropicProviderOptions {
 const DECISION_JSON_SCHEMA = {
   type: "object",
   properties: {
-    observation: { type: "string", description: "One sentence describing what is on the page now." },
+    observation: {
+      type: "string",
+      description: "One sentence describing what is on the page now.",
+    },
     action: {
       type: "string",
       enum: ["click", "type", "navigate", "press", "wait", "finish"],
@@ -84,7 +87,10 @@ export class AnthropicLlmProvider implements LlmProvider {
           system: input.system,
           output_config: {
             effort: this.effort,
-            format: { type: "json_schema", schema: DECISION_JSON_SCHEMA as unknown as Record<string, unknown> },
+            format: {
+              type: "json_schema",
+              schema: DECISION_JSON_SCHEMA as unknown as Record<string, unknown>,
+            },
           },
           messages: [{ role: "user", content: input.user }],
         },

@@ -139,7 +139,10 @@ export interface RetryOptions {
 }
 
 /** Exponential backoff with full jitter, for INFRASTRUCTURE only (§17). */
-export async function retry<T>(fn: (attempt: number) => Promise<T>, opts: RetryOptions): Promise<T> {
+export async function retry<T>(
+  fn: (attempt: number) => Promise<T>,
+  opts: RetryOptions,
+): Promise<T> {
   const maxDelay = opts.maxDelayMs ?? 8_000
   let lastError: unknown
 
