@@ -503,6 +503,12 @@ describe("production images", () => {
     expect(dockerfile).not.toMatch(/playwright\s+install/)
   })
 
+  // The image must say it has no browser, or the app would keep offering local
+  // runs that die in the worker. The two facts have to travel together.
+  it("declares that it carries no browser", () => {
+    expect(dockerfile).toMatch(/ENV GAUNTLET_LOCAL_BROWSER=false/)
+  })
+
   it("runs as an unprivileged user", () => {
     expect(dockerfile).toMatch(/^USER node$/m)
   })

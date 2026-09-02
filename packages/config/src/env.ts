@@ -72,6 +72,17 @@ export const envSchema = z.object({
   GAUNTLET_PUBLIC_URL: optionalString,
   PORT: intInRange(1, 65535, 3000),
 
+  /**
+   * Whether a Chromium is present for local mode.
+   *
+   * The image says so itself rather than being guessed at: a production image
+   * ships no browser on purpose — AgentGauntlet orchestrates runs, Solari hosts
+   * them — and the Dockerfile sets this to false. Inferring it from NODE_ENV
+   * would be wrong, because the e2e suite runs the production build on a
+   * machine that does have a browser.
+   */
+  GAUNTLET_LOCAL_BROWSER: boolish.default(true),
+
   SOLARI_E2E: boolish.default(false),
 })
 
@@ -90,8 +101,8 @@ export interface GauntletConfig extends RawEnv {
    * Whether this deployment can actually execute a run.
    *
    * Local mode drives real Chromium, and a production image deliberately ships
-   * no browser — AgentGauntlet orchestrates runs, it does not host them. So a
-   * production deployment can only run for real once Solari is configured, and
+   * no browser — AgentGauntlet orchestrates runs, it does not host them. So
+   * such a deployment can only run for real once Solari is configured, and
    * saying otherwise would promise something the container cannot do.
    */
   readonly canExecuteRuns: boolean
@@ -117,7 +128,7 @@ export function buildConfig(raw: RawEnv): GauntletConfig {
     hasLlmCredentials: Boolean(raw.ANTHROPIC_API_KEY),
     llmModel: raw.LLM_MODEL ?? DEFAULT_LLM_MODEL,
     runsAreGated: Boolean(raw.GAUNTLET_RUN_TOKEN),
-    canExecuteRuns: hasSolariCredentials || raw.NODE_ENV !== "production",
+    canExecuteRuns: hasSolariCredentials || raw.GAUNTLET_LOCAL_BROWSER,
     publicUrl: resolvePublicUrl(raw),
   }
 }

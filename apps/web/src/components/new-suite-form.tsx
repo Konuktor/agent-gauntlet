@@ -299,15 +299,25 @@ export function NewSuiteForm({
           <p className="mt-3 text-xs text-[var(--color-ink-3)]">
             Each run is one recorded Solari browser session. Nothing starts until you press the button.
           </p>
-        ) : (
+        ) : capabilities.canExecuteRuns ? (
           <p className="mt-3 text-xs text-[var(--color-ink-3)]">
             Local mode: real Chromium on this machine, no Solari credits spent. Results are labelled LOCAL.
+          </p>
+        ) : (
+          <p className="mt-3 text-xs" style={{ color: "var(--color-warning)" }}>
+            This deployment cannot execute a run: no Solari key is configured, and the production
+            image carries no browser by design — browsers belong on Solari. The seeded results below
+            are fully explorable; starting a run needs a Solari key, not an access code.
           </p>
         )}
 
         {authorized ? (
           <>
-            <button className="btn btn-primary mt-4 w-full" disabled={blocked || submitting} onClick={submit}>
+            <button
+              className="btn btn-primary mt-4 w-full"
+              disabled={blocked || submitting || !capabilities.canExecuteRuns}
+              onClick={submit}
+            >
               {submitting ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Play size={15} aria-hidden />}
               {submitting ? "Starting…" : "Run the Gauntlet"}
             </button>
@@ -333,7 +343,9 @@ export function NewSuiteForm({
               value={accessCode}
               onChange={(event) => setAccessCode(event.target.value)}
               autoComplete="off"
-              placeholder="Required to spend Solari credits"
+              placeholder={
+                capabilities.canExecuteRuns ? "Required to spend Solari credits" : "Runs need a Solari key first"
+              }
             />
             <button className="btn btn-secondary mt-2 w-full" disabled={authorizing || accessCode.length === 0}>
               {authorizing ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <KeyRound size={15} aria-hidden />}
@@ -345,7 +357,9 @@ export function NewSuiteForm({
               </p>
             ) : null}
             <p className="mt-2 text-xs text-[var(--color-ink-3)]">
-              Every run here is a real Solari browser session. Exploring the seeded results needs no code.
+              {capabilities.canExecuteRuns
+                ? "Every run here is a real Solari browser session. Exploring the seeded results needs no code."
+                : "The code unlocks the run controls, but this deployment still has no Solari key, so no run can start yet. Exploring the seeded results needs no code."}
             </p>
           </form>
         )}

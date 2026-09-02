@@ -77,6 +77,15 @@ describe("parseEnv", () => {
       ).toBe("https://gauntlet.example.com")
     })
 
+    it("cannot execute runs when the image carries no browser and there is no Solari key", () => {
+      const noBrowser = { ...base, GAUNTLET_LOCAL_BROWSER: "false" }
+      expect(parseEnv(noBrowser).canExecuteRuns).toBe(false)
+      // A Solari key restores it: the browser was never meant to be local.
+      expect(parseEnv({ ...noBrowser, SOLARI_API_KEY: "slr_live_x" }).canExecuteRuns).toBe(true)
+      // And a laptop, which does have a browser, is unaffected.
+      expect(parseEnv(base).canExecuteRuns).toBe(true)
+    })
+
     it("reports whether real runs are gated", () => {
       expect(parseEnv(base).runsAreGated).toBe(false)
       expect(parseEnv({ ...base, GAUNTLET_RUN_TOKEN: "s3cret" }).runsAreGated).toBe(true)

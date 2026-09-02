@@ -71,6 +71,10 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 # ---------------------------------------------------------------- runtime
 FROM base AS runtime
 ENV NODE_ENV=production
+# This image carries no browser on purpose (see PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD
+# above). Saying so explicitly lets the app refuse local runs it cannot perform,
+# instead of offering a button that would fail in the worker.
+ENV GAUNTLET_LOCAL_BROWSER=false
 # Northflank runs containers as-is; an unprivileged user costs nothing here.
 USER node
 
