@@ -18,6 +18,27 @@ work that preceded it.
    `POSTGRES_URI` is exposed to the application as `DATABASE_URL` without any
    code change and without credentials ever entering git.
 
+## The one thing that stops a deploy dead
+
+**Every account must add a payment method before it can create any resource
+that consumes compute or storage — including on the free plan.** Northflank's
+billing page says it plainly: *"all users must add a payment method to start
+creating resources on Northflank, regardless of plan selection"*, for identity
+verification and abuse prevention. The Developer Sandbox itself carries no
+charge (only BYOC bills you, via your own cloud provider).
+
+Nothing in the Sandbox or template docs mentions this. It surfaces as an HTTP
+409 from the template run:
+
+```
+{"code": 409, "message": "Please complete your account by adding a default payment method."}
+```
+
+The line is drawn at compute, not at the API: creating the **project** and a
+**secret group** both succeed on an unverified account; the **Postgres addon**
+is the first node that fails. So a template run will get partway and stop,
+which is what happened here.
+
 ## Sandbox allowances
 
 | Resource | Free allowance | Source |

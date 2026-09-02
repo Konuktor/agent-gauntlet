@@ -45,7 +45,22 @@
 - [x] Secret audit: working tree and history clean (the only match is the fake string in `redact.test.ts`)
 
 ## 14–22 · Deployment
-- [!] **Northflank CLI is not authenticated** — `northflank context ls` reports `No contexts found`. This needs a browser login.
-- [ ] Project, addon, secret group, services, migration job created
+- [x] CLI authenticated (context `autologin-konuktors-team-…`)
+- [x] Template `agent-gauntlet` created and validated by Northflank's own API
+- [x] Project `agent-gauntlet` created (free, no payment needed)
+- [x] Secret group `agent-gauntlet-runtime` created (free, no payment needed)
+- [!] **Postgres addon refused: HTTP 409, "Please complete your account by adding a default payment method."**
+      Northflank requires a card on file before any account may create compute or storage, on every plan
+      including the free Sandbox — for identity verification, not for billing. The Sandbox itself is free.
+      Adding it is the account owner's action; the deployment stops here until it is done.
+- [ ] Services and migration job — not reached; they run after the addon
 - [ ] Public HTTPS URL reachable
 - [ ] Real Solari smoke test (needs `SOLARI_API_KEY`)
+
+### Resuming
+The template is idempotent (`updateMode: put` on every node). Once a payment
+method exists, one command finishes the deployment:
+
+```
+npx --yes @northflank/cli run template --templateId agent-gauntlet -f <args.json>
+```

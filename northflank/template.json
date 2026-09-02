@@ -19,9 +19,6 @@
     "kind": "Workflow",
     "spec": {
       "type": "sequential",
-      "context": {
-        "projectId": "${args.projectName}"
-      },
       "steps": [
         {
           "kind": "Project",
@@ -35,186 +32,198 @@
           "updateMode": "put"
         },
         {
-          "kind": "Addon",
-          "ref": "database",
+          "kind": "Workflow",
+          "ref": "project-resources",
           "spec": {
-            "name": "agent-gauntlet-db",
-            "description": "Suite runs, individual runs, events, evaluations and replay artifacts.",
-            "type": "postgresql",
-            "version": "${args.postgresVersion}",
-            "billing": {
-              "deploymentPlan": "${args.computePlan}",
-              "storage": 4096,
-              "replicas": 1
+            "type": "sequential",
+            "context": {
+              "projectId": "${refs.project.id}"
             },
-            "tlsEnabled": true,
-            "externalAccessEnabled": false
-          },
-          "updateMode": "put"
-        },
-        {
-          "kind": "SecretGroup",
-          "ref": "runtime-secrets",
-          "spec": {
-            "name": "agent-gauntlet-runtime",
-            "description": "Runtime configuration for the web service, the worker and the migration job.",
-            "type": "secret",
-            "secretType": "environment",
-            "priority": 10,
-            "addonDependencies": [
+            "steps": [
               {
-                "addonId": "${refs.database.id}",
-                "keys": [
-                  {
-                    "keyName": "POSTGRES_URI",
-                    "aliases": [
-                      "DATABASE_URL"
-                    ]
+                "kind": "Addon",
+                "ref": "database",
+                "spec": {
+                  "name": "agent-gauntlet-db",
+                  "description": "Suite runs, individual runs, events, evaluations and replay artifacts.",
+                  "type": "postgresql",
+                  "version": "${args.postgresVersion}",
+                  "billing": {
+                    "deploymentPlan": "${args.computePlan}",
+                    "storage": 4096,
+                    "replicas": 1
+                  },
+                  "tlsEnabled": true,
+                  "externalAccessEnabled": false
+                },
+                "updateMode": "put"
+              },
+              {
+                "kind": "SecretGroup",
+                "ref": "runtime-secrets",
+                "spec": {
+                  "name": "agent-gauntlet-runtime",
+                  "description": "Runtime configuration for the web service, the worker and the migration job.",
+                  "type": "secret",
+                  "secretType": "environment",
+                  "priority": 10,
+                  "addonDependencies": [
+                    {
+                      "addonId": "${refs.database.id}",
+                      "keys": [
+                        {
+                          "keyName": "POSTGRES_URI",
+                          "aliases": [
+                            "DATABASE_URL"
+                          ]
+                        }
+                      ]
+                    }
+                  ],
+                  "secrets": {
+                    "variables": {
+                      "NODE_ENV": "production",
+                      "GAUNTLET_MODE": "auto",
+                      "GAUNTLET_MAX_CONCURRENCY": "3",
+                      "GAUNTLET_MAX_SANDBOXES": "1",
+                      "GAUNTLET_MAX_RUNS_PER_SUITE": "16",
+                      "LOG_LEVEL": "info",
+                      "GAUNTLET_PUBLIC_URL": "${args.publicUrl}",
+                      "SOLARI_API_KEY": "${args.SOLARI_API_KEY}",
+                      "GAUNTLET_RUN_TOKEN": "${args.GAUNTLET_RUN_TOKEN}"
+                    }
                   }
-                ]
-              }
-            ],
-            "secrets": {
-              "variables": {
-                "NODE_ENV": "production",
-                "GAUNTLET_MODE": "auto",
-                "GAUNTLET_MAX_CONCURRENCY": "3",
-                "GAUNTLET_MAX_SANDBOXES": "1",
-                "GAUNTLET_MAX_RUNS_PER_SUITE": "16",
-                "LOG_LEVEL": "info",
-                "GAUNTLET_PUBLIC_URL": "${args.publicUrl}",
-                "SOLARI_API_KEY": "${args.SOLARI_API_KEY}",
-                "GAUNTLET_RUN_TOKEN": "${args.GAUNTLET_RUN_TOKEN}"
-              }
-            }
-          },
-          "updateMode": "put"
-        },
-        {
-          "kind": "CombinedService",
-          "ref": "web",
-          "spec": {
-            "name": "agent-gauntlet-web",
-            "description": "Next.js dashboard and API. The only publicly reachable service.",
-            "billing": {
-              "deploymentPlan": "${args.computePlan}",
-              "buildPlan": "${args.buildPlan}"
-            },
-            "buildSource": "git",
-            "vcsData": {
-              "projectUrl": "${args.repositoryUrl}",
-              "projectType": "github",
-              "projectBranch": "${args.branch}"
-            },
-            "buildSettings": {
-              "dockerfile": {
-                "buildEngine": "buildkit",
-                "dockerFilePath": "/Dockerfile",
-                "dockerWorkDir": "/"
-              }
-            },
-            "buildConfiguration": {
-              "dockerfileTarget": "web"
-            },
-            "deployment": {
-              "instances": 1,
-              "docker": {
-                "configType": "default"
-              }
-            },
-            "ports": [
+                },
+                "updateMode": "put"
+              },
               {
-                "name": "http",
-                "internalPort": 3000,
-                "public": true,
-                "protocol": "HTTP"
-              }
-            ],
-            "healthChecks": [
+                "kind": "CombinedService",
+                "ref": "web",
+                "spec": {
+                  "name": "agent-gauntlet-web",
+                  "description": "Next.js dashboard and API. The only publicly reachable service.",
+                  "billing": {
+                    "deploymentPlan": "${args.computePlan}",
+                    "buildPlan": "${args.buildPlan}"
+                  },
+                  "buildSource": "git",
+                  "vcsData": {
+                    "projectUrl": "${args.repositoryUrl}",
+                    "projectType": "github",
+                    "projectBranch": "${args.branch}"
+                  },
+                  "buildSettings": {
+                    "dockerfile": {
+                      "buildEngine": "buildkit",
+                      "dockerFilePath": "/Dockerfile",
+                      "dockerWorkDir": "/"
+                    }
+                  },
+                  "buildConfiguration": {
+                    "dockerfileTarget": "web"
+                  },
+                  "deployment": {
+                    "instances": 1,
+                    "docker": {
+                      "configType": "default"
+                    }
+                  },
+                  "ports": [
+                    {
+                      "name": "http",
+                      "internalPort": 3000,
+                      "public": true,
+                      "protocol": "HTTP"
+                    }
+                  ],
+                  "healthChecks": [
+                    {
+                      "protocol": "HTTP",
+                      "type": "readinessProbe",
+                      "path": "${args.healthPath}",
+                      "port": "${args.healthPort}",
+                      "initialDelaySeconds": 15,
+                      "periodSeconds": 20,
+                      "timeoutSeconds": 5,
+                      "failureThreshold": 3
+                    }
+                  ]
+                },
+                "updateMode": "put"
+              },
               {
-                "protocol": "HTTP",
-                "type": "readinessProbe",
-                "path": "${args.healthPath}",
-                "port": "${args.healthPort}",
-                "initialDelaySeconds": 15,
-                "periodSeconds": 20,
-                "timeoutSeconds": 5,
-                "failureThreshold": 3
+                "kind": "CombinedService",
+                "ref": "worker",
+                "spec": {
+                  "name": "agent-gauntlet-worker",
+                  "description": "Claims suite runs from Postgres and executes them on Solari. No port, no public URL.",
+                  "billing": {
+                    "deploymentPlan": "${args.computePlan}",
+                    "buildPlan": "${args.buildPlan}"
+                  },
+                  "buildSource": "git",
+                  "vcsData": {
+                    "projectUrl": "${args.repositoryUrl}",
+                    "projectType": "github",
+                    "projectBranch": "${args.branch}"
+                  },
+                  "buildSettings": {
+                    "dockerfile": {
+                      "buildEngine": "buildkit",
+                      "dockerFilePath": "/Dockerfile",
+                      "dockerWorkDir": "/"
+                    }
+                  },
+                  "buildConfiguration": {
+                    "dockerfileTarget": "worker"
+                  },
+                  "deployment": {
+                    "instances": 1,
+                    "docker": {
+                      "configType": "default"
+                    }
+                  },
+                  "ports": []
+                },
+                "updateMode": "put"
+              },
+              {
+                "kind": "ManualJob",
+                "ref": "migrate",
+                "spec": {
+                  "name": "agent-gauntlet-migrate",
+                  "description": "Applies the schema. Idempotent, non-zero on failure, never seeds and never drops.",
+                  "billing": {
+                    "deploymentPlan": "${args.computePlan}",
+                    "buildPlan": "${args.buildPlan}"
+                  },
+                  "backoffLimit": 1,
+                  "activeDeadlineSeconds": 600,
+                  "buildSettings": {
+                    "dockerfile": {
+                      "buildEngine": "buildkit",
+                      "dockerFilePath": "/Dockerfile",
+                      "dockerWorkDir": "/"
+                    }
+                  },
+                  "buildConfiguration": {
+                    "dockerfileTarget": "migrate"
+                  },
+                  "deployment": {
+                    "vcs": {
+                      "projectUrl": "${args.repositoryUrl}",
+                      "projectType": "github",
+                      "projectBranch": "${args.branch}"
+                    },
+                    "docker": {
+                      "configType": "default"
+                    }
+                  }
+                },
+                "updateMode": "put"
               }
             ]
-          },
-          "updateMode": "put"
-        },
-        {
-          "kind": "CombinedService",
-          "ref": "worker",
-          "spec": {
-            "name": "agent-gauntlet-worker",
-            "description": "Claims suite runs from Postgres and executes them on Solari. No port, no public URL.",
-            "billing": {
-              "deploymentPlan": "${args.computePlan}",
-              "buildPlan": "${args.buildPlan}"
-            },
-            "buildSource": "git",
-            "vcsData": {
-              "projectUrl": "${args.repositoryUrl}",
-              "projectType": "github",
-              "projectBranch": "${args.branch}"
-            },
-            "buildSettings": {
-              "dockerfile": {
-                "buildEngine": "buildkit",
-                "dockerFilePath": "/Dockerfile",
-                "dockerWorkDir": "/"
-              }
-            },
-            "buildConfiguration": {
-              "dockerfileTarget": "worker"
-            },
-            "deployment": {
-              "instances": 1,
-              "docker": {
-                "configType": "default"
-              }
-            },
-            "ports": []
-          },
-          "updateMode": "put"
-        },
-        {
-          "kind": "ManualJob",
-          "ref": "migrate",
-          "spec": {
-            "name": "agent-gauntlet-migrate",
-            "description": "Applies the schema. Idempotent, non-zero on failure, never seeds and never drops.",
-            "billing": {
-              "deploymentPlan": "${args.computePlan}",
-              "buildPlan": "${args.buildPlan}"
-            },
-            "backoffLimit": 1,
-            "activeDeadlineSeconds": 600,
-            "buildSettings": {
-              "dockerfile": {
-                "buildEngine": "buildkit",
-                "dockerFilePath": "/Dockerfile",
-                "dockerWorkDir": "/"
-              }
-            },
-            "buildConfiguration": {
-              "dockerfileTarget": "migrate"
-            },
-            "deployment": {
-              "vcs": {
-                "projectUrl": "${args.repositoryUrl}",
-                "projectType": "github",
-                "projectBranch": "${args.branch}"
-              },
-              "docker": {
-                "configType": "default"
-              }
-            }
-          },
-          "updateMode": "put"
+          }
         }
       ]
     }
