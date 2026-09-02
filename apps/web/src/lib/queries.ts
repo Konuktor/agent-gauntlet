@@ -3,6 +3,7 @@ import {
   computeSuiteMetrics,
   compareSuites,
   clusterFailures,
+  displaySessionId,
   type FailureCategory,
   type PerturbationCategory,
   type IndividualRunStatus,
@@ -68,7 +69,8 @@ function toRunView(row: IndividualRun): IndividualRunView {
     status: row.status as IndividualRunStatus,
     durationMs: row.durationMs,
     steps: row.steps,
-    sessionId: row.sessionId,
+    // Never the raw composite: it authorizes the session it names.
+    sessionId: displaySessionId(row.sessionId),
     failureCategory: row.failureCategory as FailureCategory | null,
     failureMessage: row.failureMessage,
     replayStatus: row.replayStatus,

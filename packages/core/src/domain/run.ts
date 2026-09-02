@@ -58,6 +58,29 @@ const RUN_TRANSITIONS: Record<IndividualRunStatus, readonly IndividualRunStatus[
  */
 export const BORROWED_SESSION_ID = "borrowed"
 
+/**
+ * A session id you can show, from one you must not.
+ *
+ * Solari's composite id — `host:uuid:cuid:timestamp.signature` — is the
+ * authorizing component of that session's WebSocket URL. Prefix it with the
+ * public base and you are holding the capability, which is why the endpoint
+ * itself is treated as a secret everywhere else in this codebase.
+ *
+ * It has to be *stored*: replay retrieval happens minutes after a run ends and
+ * needs the real id. Nothing outside the worker has any use for it, though, so
+ * it must never leave the API. This keeps the part that identifies a run and
+ * drops the parts that authorize anything — the signature, and the internal
+ * hostname that comes with it.
+ */
+export function displaySessionId(sessionId: string | null | undefined): string | null {
+  if (!sessionId) return null
+  // A borrowed session has no id of ours; the marker is meaningful as-is.
+  if (sessionId === BORROWED_SESSION_ID) return sessionId
+  const segments = sessionId.split(":")
+  const identifier = segments.length > 1 ? segments[1]! : sessionId
+  return identifier.split(".")[0]!.slice(0, 12)
+}
+
 export const TERMINAL_SUITE_STATUSES: readonly SuiteRunStatus[] = [
   "completed",
   "failed",
