@@ -34,7 +34,7 @@ alone — there is no `Authorization` header. Solari's own documentation is
 explicit: _anyone holding the URL can drive the browser_. So AgentGauntlet
 treats `wss://…/cdp/…`, `/ws/…` and `/control/…` URLs exactly like API keys:
 
-- no column stores one;
+- no column stores an endpoint;
 - none is sent to the browser or rendered in the UI;
 - the logger scrubs them;
 - **the persistence layer scrubs them too**, because a Playwright connect
@@ -42,6 +42,20 @@ treats `wss://…/cdp/…`, `/ws/…` and `/control/…` URLs exactly like API k
   is stored as a run's failure message. This was a real disclosure path, found
   by running against live infrastructure and fixed in `15f4806`; migration
   `0004` scrubs rows written before the fix.
+
+**The session id is part of that credential, and is treated as one.** Solari's
+composite id — `host:uuid:cuid:timestamp.signature` — is the authorizing
+component of the session's URL: prefix it with the public base and you hold the
+browser. It _is_ stored, because asynchronous replay retrieval needs the real
+value minutes after a run ends, but it never leaves the API: responses carry a
+short identifying fragment with the signature and the internal hostname removed.
+
+That distinction was not always made. Until `v1.0.1` every real run's full
+composite id was served by `/api/suite-runs/:id` while this document claimed no
+column held one. The sessions in question had expired hours earlier and were
+released at the end of their runs, so none was exploitable — but the claim was
+wrong and the exposure was real. Found by scanning the live deployment's own
+responses after fixing the first leak.
 
 **Third-party code never runs on the host.** A repository agent is cloned and
 executed inside a Solari Sandbox. There is no `child_process` path for

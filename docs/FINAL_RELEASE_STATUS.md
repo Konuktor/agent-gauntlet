@@ -165,6 +165,33 @@ concurrent runs never contaminated each other, and the verdicts were correct
 throughout — the demo printed an accurate 87.5% before hanging. Only process
 exit was broken.
 
+### 8. Session ids were served through the public API — found after v1.0.0
+
+Re-running the credential scan against production _after_ deploying the first
+fix — rather than assuming the first fix was the whole story — found a second
+exposure of the same class, one level down.
+
+`/api/suite-runs/:id` returned every real run's full Solari composite id:
+`host:uuid:cuid:timestamp.signature`. That string is the authorizing component
+of the session's WebSocket URL; prefixed with the public base it _is_ the
+capability. It affected every Solari run in the deployment, not one row.
+
+Not exploitable — Solari sessions expire within the hour, all of these were
+hours old, and each was released at the end of its run, so nothing needed
+rotating. But `SECURITY.md` claimed "no column stores one", and while the
+endpoint column does not, the `session_id` column effectively did.
+
+Migration `0004` did not catch it because that scrubbed _message text_. This is
+a structured column, deliberately populated, and genuinely needed: the
+asynchronous replay sweeper fetches a recording minutes after a run ends using
+that id. So storage has to keep the real value; the exposure was the bug.
+
+Fixed at the view boundary in `v1.0.1`. `displaySessionId()` keeps the
+identifying fragment and drops the signature and the internal hostname —
+`e6220cda-6d8` rather than the composite. The server-side replay route reads the
+database directly and is unaffected, and the `borrowed` marker passes through so
+the UI can still explain why a lent session has no replay.
+
 ## Secret audit
 
 | Scope                       | Result                                                                                                                                                                                                 |

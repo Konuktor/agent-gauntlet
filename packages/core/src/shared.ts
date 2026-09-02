@@ -15,6 +15,7 @@ export {
 
 export {
   BORROWED_SESSION_ID,
+  displaySessionId,
   individualRunStatuses,
   isPass,
   isScorable,

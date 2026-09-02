@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.0.1 — 2026-09-03
+
+### Security
+
+- **Stopped serving Solari session ids through the public API.** Every real
+  run's full composite id — `host:uuid:cuid:timestamp.signature` — was returned
+  by `/api/suite-runs/:id`. That string is the authorizing component of the
+  session's WebSocket URL: prefix it with the public base and you hold the
+  browser. Responses now carry a short identifying fragment with the signature
+  and the internal hostname removed.
+
+  Not exploitable: Solari sessions expire within the hour, every one of these
+  was hours old, and each was released at the end of its run. But `SECURITY.md`
+  claimed no column held such a thing, and the `session_id` column effectively
+  did. That document now states exactly what is stored and why — asynchronous
+  replay retrieval needs the real id minutes after a run ends — and that it
+  never leaves the API.
+
+  Found by re-running the credential scan against the live deployment after
+  shipping the previous fix, rather than assuming the previous fix was the whole
+  story.
+
 ## 1.0.0 — 2026-09-02
 
 First public release, built for the Pinetree Research / Solari SWE challenge.
