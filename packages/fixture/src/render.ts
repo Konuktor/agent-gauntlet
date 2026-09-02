@@ -26,6 +26,11 @@ export function setFixtureBasePath(value: string): void {
   basePath = value.replace(/\/$/, "")
 }
 
+/** Where the storefront is mounted; "" when it owns its origin. */
+export function fixtureBasePath(): string {
+  return basePath
+}
+
 function href(state: RunState, path: string): string {
   return `${basePath}${path}${path.includes("?") ? "&" : "?"}run=${encodeURIComponent(state.runId)}`
 }

@@ -99,6 +99,25 @@ describe.skipIf(!built)("hosted benchmark site", () => {
     for (const h of internal) expect(h.startsWith("/__fixture/")).toBe(true)
   })
 
+  // Links were fixed first; redirects were not, and a POST that redirects is
+  // how you get from the product page to the cart. The agent added the product
+  // and then hunted for the coupon field on the app's 404 page.
+  it("redirects back into the mount, not out of it", async () => {
+    await fetch(`${base}/__fixture/__gauntlet/session`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ runId: "redirect-test", variant: "baseline", seed: 1, config: {} }),
+    })
+    const res = await fetch(`${base}/__fixture/cart/add?run=redirect-test`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "sku=aurora-headphones",
+      redirect: "manual",
+    })
+    expect(res.status).toBe(303)
+    expect(res.headers.get("location")).toMatch(/^\/__fixture\/cart\?/)
+  })
+
   it("does not shadow the application", async () => {
     expect((await fetch(`${base}/api/health`)).ok).toBe(true)
     expect((await fetch(base)).status).toBe(200)

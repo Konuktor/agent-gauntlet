@@ -1,4 +1,5 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http"
+import { fixtureBasePath } from "./render.js"
 import { findProduct } from "./catalog.js"
 import {
   addToCart,
@@ -267,7 +268,11 @@ function json(res: ServerResponse, status: number, value: unknown): void {
 
 /** 303 so the browser re-issues a GET; prevents a resubmit on reload. */
 function redirect(res: ServerResponse, location: string): void {
-  res.writeHead(303, { location, "cache-control": "no-store" })
+  // Prefixed for the same reason links are: mounted under a base path, a bare
+  // "/cart" Location sends the browser out of the store and into whatever else
+  // is serving that origin. An external agent got as far as adding the product
+  // and then looked for the coupon field on somebody else's 404 page.
+  res.writeHead(303, { location: `${fixtureBasePath()}${location}`, "cache-control": "no-store" })
   res.end()
 }
 
