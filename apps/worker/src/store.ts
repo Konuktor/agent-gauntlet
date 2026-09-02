@@ -1,5 +1,6 @@
 import { gzip as gzipCallback } from "node:zlib"
 import { promisify } from "node:util"
+import { redactValue } from "@gauntlet/config"
 import {
   appendRunEvents,
   listIndividualRuns,
@@ -28,6 +29,13 @@ import type {
  *
  * All the state-machine enforcement lives in the query layer, so an impossible
  * transition is rejected at the database boundary rather than only in memory.
+ *
+ * It is also the last place a secret can be stopped. Everything written here is
+ * later served by the API and rendered on a run page, and the text is not ours:
+ * a Playwright connect failure quotes the endpoint it was given, verbatim, and
+ * that endpoint is a live credential — "anyone holding the URL can drive the
+ * browser". The logger has always scrubbed. Persistence has to as well, or the
+ * run detail page hands out what the log refused to print.
  */
 export class DrizzleRunStore implements RunStore {
   constructor(
@@ -55,7 +63,7 @@ export class DrizzleRunStore implements RunStore {
   ): Promise<void> {
     await transitionSuiteRun(this.db, this.suiteRunId, status, {
       ...(patch.errorCode ? { errorCode: patch.errorCode } : {}),
-      ...(patch.errorMessage ? { errorMessage: patch.errorMessage } : {}),
+      ...(patch.errorMessage ? { errorMessage: scrub(patch.errorMessage) } : {}),
       ...(patch.fixtureSandboxId ? { fixtureSandboxId: patch.fixtureSandboxId } : {}),
       ...(patch.completedAt ? { completedAt: patch.completedAt } : {}),
     })
@@ -64,8 +72,8 @@ export class DrizzleRunStore implements RunStore {
   async updateRun(runId: string, patch: RunPatch): Promise<void> {
     const { status, metadata, ...rest } = patch
     const columns = {
-      ...rest,
-      ...(metadata ? { metadataJson: metadata } : {}),
+      ...scrub(rest),
+      ...(metadata ? { metadataJson: scrub(metadata) } : {}),
     }
     if (status) {
       await transitionIndividualRun(this.db, runId, status, columns)
@@ -75,15 +83,17 @@ export class DrizzleRunStore implements RunStore {
   }
 
   async appendEvents(runId: string, events: RunEventInput[]): Promise<void> {
-    await appendRunEvents(this.db, runId, events)
+    // The recorder carries agent output and page URLs; both can quote an
+    // endpoint we were handed.
+    await appendRunEvents(this.db, runId, scrub(events))
   }
 
   async saveEvaluation(runId: string, result: EvaluationResult): Promise<void> {
     await saveEvaluation(this.db, runId, {
       success: result.success,
       score: result.score,
-      assertions: result.assertions,
-      evidence: result.evidence,
+      assertions: scrub(result.assertions),
+      evidence: scrub(result.evidence),
       agentClaim: (result.evidence as { agentClaim?: unknown }).agentClaim,
     })
   }
@@ -123,4 +133,14 @@ function countLines(bytes: Uint8Array): number {
   let count = 1
   for (const byte of bytes) if (byte === 0x0a) count++
   return count
+}
+
+/**
+ * Scrub secrets out of anything on its way into the database.
+ *
+ * Typed as identity because it is: {@link redactValue} rewrites strings and
+ * leaves every other shape — Dates, byte arrays, class instances — alone.
+ */
+function scrub<T>(value: T): T {
+  return redactValue(value) as T
 }

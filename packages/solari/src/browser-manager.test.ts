@@ -377,6 +377,17 @@ describe("a borrowed session", () => {
     const env = await borrowing().create({ recording: true, stealth: false })
     expect(env.recordingEnabled).toBe(false)
   })
+
+  // The point of borrowing is that the host needs no Solari account. Building
+  // the SDK client eagerly quietly reintroduced that requirement, and the
+  // deployment only looked fine because it happened to have a key.
+  it("needs no API key of its own", async () => {
+    const p = new SolariBrowserProvider({ borrowedCdpEndpoint: borrowed })
+    const env = await p.create({ recording: false, stealth: false })
+    expect(connectOverCDP).toHaveBeenCalledWith(borrowed, expect.anything())
+    await env.dispose()
+    await p.shutdown()
+  })
 })
 
 describe("replay", () => {

@@ -424,12 +424,20 @@ describe.skipIf(!built)("Deployment contract", () => {
         await stop(server)
         logLines.length = 0
         workerLines.length = 0
+        // Hosting the fixture matters here: without a benchmark site to point
+        // at, the worker gives up before it ever dials the browser — and the
+        // leak this suite guards against only exists inside the dial. The
+        // production deployment sets both of these, so the test does too.
         server = startServer({
           GAUNTLET_CREDENTIAL_KEY: sealingKey,
           GAUNTLET_RUN_TOKEN: runToken,
+          GAUNTLET_HOST_FIXTURE: "true",
         })
         await waitForHealth()
-        workerProc = startWorker({ GAUNTLET_CREDENTIAL_KEY: sealingKey })
+        workerProc = startWorker({
+          GAUNTLET_CREDENTIAL_KEY: sealingKey,
+          GAUNTLET_FIXTURE_URL: `${baseUrl}/__fixture`,
+        })
         await waitForWorker()
       })
 
@@ -497,6 +505,43 @@ describe.skipIf(!built)("Deployment contract", () => {
       it("never writes a borrowed endpoint into either service's logs", () => {
         const leaked = [...logLines, ...workerLines].filter((line) => line.includes(borrowed))
         expect(leaked, leaked.join("\n")).toHaveLength(0)
+      })
+
+      /**
+       * And never serves one back either.
+       *
+       * This is the failure that only appeared on real infrastructure. A
+       * Playwright connect error quotes the endpoint it was given, verbatim,
+       * and that text is persisted as the run's failure message — so the run
+       * page was handing out a live credential that the logger had refused to
+       * print. Scrubbing on the way into the database is the fix; this is the
+       * assertion that keeps it.
+       */
+      it("never serves a borrowed endpoint back through the API", async () => {
+        const suiteId = await suiteFor("byo-no-leak")
+        if (!suiteId) return
+        await waitForIdle(300_000)
+
+        const started = await post(suiteId, { byoSession: borrowed })
+        expect(started.status).toBe(202)
+        const runId = ((await started.json()) as { id: string }).id
+
+        // The run must genuinely fail at the connect step, or this asserts
+        // nothing: an earlier failure never quotes the endpoint at all.
+        let body = ""
+        const deadline = Date.now() + 120_000
+        while (Date.now() < deadline) {
+          await new Promise((r) => setTimeout(r, 1_000))
+          body = await (await fetch(`${baseUrl}/api/suite-runs/${runId}`)).text()
+          if (/"status":"(completed|failed|cancelled)"/.test(body)) break
+        }
+        expect(body, "the run never reached the browser connect step").toContain(
+          "redacted-session-endpoint",
+        )
+        expect(body).not.toContain(borrowed)
+        expect(body).not.toContain("deploy-test.invalid/cdp")
+
+        await waitForIdle()
       })
     })
   })

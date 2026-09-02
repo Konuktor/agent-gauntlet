@@ -58,4 +58,34 @@ describe("redactValue", () => {
     expect(redactValue(null)).toBe(null)
     expect(redactValue(true)).toBe(true)
   })
+
+  // Walking these with Object.entries flattens a Date to `{}` and a byte array
+  // to a map of indices. This scrubber runs on values headed for the database,
+  // so destroying one is worse than the leak it was meant to prevent.
+  it("leaves anything that is not a plain object intact", () => {
+    const when = new Date("2026-01-01T00:00:00.000Z")
+    expect(redactValue(when)).toBe(when)
+    const bytes = new Uint8Array([1, 2, 3])
+    expect(redactValue(bytes)).toBe(bytes)
+    expect(redactValue({ completedAt: when, note: "fine" })).toEqual({
+      completedAt: when,
+      note: "fine",
+    })
+  })
+
+  // The shape that actually leaked: Playwright quotes the endpoint it was
+  // handed, inside a multi-line error, nested in a patch bound for Postgres.
+  it("scrubs an endpoint quoted inside a nested error message", () => {
+    const patch = {
+      failureMessage:
+        "browserType.connectOverCDP: WebSocket error\nCall log:\n" +
+        "  - <ws connecting> wss://api.getsolari.com/cdp/abc.signature\n" +
+        "  - <ws error> wss://api.getsolari.com/cdp/abc.signature error",
+      completedAt: new Date("2026-01-01T00:00:00.000Z"),
+    }
+    const safe = redactValue(patch) as typeof patch
+    expect(safe.failureMessage).not.toContain("abc.signature")
+    expect(safe.failureMessage).toContain("[redacted-session-endpoint]")
+    expect(safe.completedAt).toBe(patch.completedAt)
+  })
 })

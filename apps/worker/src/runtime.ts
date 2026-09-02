@@ -75,7 +75,7 @@ export async function createRuntime(
     }
 
     const browsers = new SolariBrowserProvider({
-      apiKey: apiKey ?? "",
+      ...(apiKey ? { apiKey } : {}),
       baseUrl: config.SOLARI_BASE_URL,
       logger: logger.child({ component: "solari-browser" }),
       // Borrowing means: create no session, release no session.

@@ -21,7 +21,12 @@ import { isRetryableInfrastructure, mapSolariError } from "./errors.js"
 import { fetchReplayWithBackoff } from "./replay.js"
 
 export interface SolariBrowserProviderOptions {
-  apiKey: string
+  /**
+   * Optional, and only because of {@link borrowedCdpEndpoint}: borrowing a
+   * session means creating nothing, releasing nothing and recording nothing,
+   * which is every call this client exists to make.
+   */
+  apiKey?: string
   /**
    * A session the visitor created and owns.
    *
@@ -83,20 +88,42 @@ const CAPACITY_WAIT_MS = 10_000
 export class SolariBrowserProvider implements BrowserProvider {
   readonly mode = "solari" as const
 
-  private readonly client: Solari
+  private readonly client: Solari | undefined
   private readonly logger: Logger
   private readonly liveSessions = new Set<string>()
   private readonly capacityWaitAttempts: number
   private readonly capacityWaitMs: number
 
   constructor(private readonly options: SolariBrowserProviderOptions) {
-    this.client = new Solari({
-      apiKey: options.apiKey,
-      ...(options.baseUrl ? { baseUrl: options.baseUrl } : {}),
-    })
+    // Constructing this without a key throws, and a deployment that only ever
+    // drives browsers other people lend it has no key to give.
+    this.client = options.apiKey
+      ? new Solari({
+          apiKey: options.apiKey,
+          ...(options.baseUrl ? { baseUrl: options.baseUrl } : {}),
+        })
+      : undefined
     this.logger = options.logger ?? nullLogger
     this.capacityWaitAttempts = options.capacityWaitAttempts ?? CAPACITY_WAIT_ATTEMPTS
     this.capacityWaitMs = options.capacityWaitMs ?? CAPACITY_WAIT_MS
+  }
+
+  /**
+   * The Solari client, for the calls that genuinely need an account.
+   *
+   * Every caller here is doing something to a session we created — releasing
+   * it, or fetching its recording — so reaching this without a key means a
+   * borrowed session took a path it should never reach.
+   */
+  private sdk(): Solari {
+    if (!this.client) {
+      throw new GauntletError({
+        code: "config_invalid",
+        message: "That operation needs a Solari API key of this deployment's own.",
+        detail: "Borrowed sessions are never created, released or recorded by us.",
+      })
+    }
+    return this.client
   }
 
   async create(options: BrowserEnvironmentOptions): Promise<BrowserEnvironment> {
@@ -206,7 +233,7 @@ export class SolariBrowserProvider implements BrowserProvider {
     return fetchReplayWithBackoff(
       environment.sessionId,
       {
-        downloadReplay: (id) => this.client.sessions.downloadReplay(id),
+        downloadReplay: (id) => this.sdk().sessions.downloadReplay(id),
         logger: this.logger.child({ sessionId: environment.sessionId }),
       },
       signal ? { signal } : {},
@@ -225,7 +252,7 @@ export class SolariBrowserProvider implements BrowserProvider {
     return fetchReplayWithBackoff(
       sessionId,
       {
-        downloadReplay: (id) => this.client.sessions.downloadReplay(id),
+        downloadReplay: (id) => this.sdk().sessions.downloadReplay(id),
         logger: this.logger.child({ sessionId }),
       },
       // One attempt: the sweeper decides when to come back.
@@ -235,7 +262,7 @@ export class SolariBrowserProvider implements BrowserProvider {
 
   async mintReplayUrl(sessionId: string): Promise<{ url: string; expiresInSeconds: number } | null> {
     try {
-      const { url, expiresInSeconds } = await this.client.sessions.getReplayUrl(sessionId)
+      const { url, expiresInSeconds } = await this.sdk().sessions.getReplayUrl(sessionId)
       return { url, expiresInSeconds }
     } catch (error) {
       this.logger.warn("could not mint a replay url", {
@@ -260,7 +287,7 @@ export class SolariBrowserProvider implements BrowserProvider {
     // REQUIRED in Node. The client keeps a loopback proxy server open for its
     // connection-retry path, and that handle keeps the event loop alive: skip
     // this and the worker prints its last log line and then hangs forever.
-    await this.client.close().catch((error: unknown) => {
+    await this.client?.close().catch((error: unknown) => {
       this.logger.warn("solari client close failed", {
         error: error instanceof Error ? error.message : String(error),
       })
@@ -456,7 +483,7 @@ export class SolariBrowserProvider implements BrowserProvider {
     try {
       // releaseAndWait, not release: the replay upload only starts once the
       // session is genuinely released, and we are about to poll for it.
-      await this.client.sessions.releaseAndWait(sessionId)
+      await this.sdk().sessions.releaseAndWait(sessionId)
     } catch (error) {
       // A failed release is not fatal — the pool reaps orphans after a grace
       // period — but it is worth knowing about, so it is logged loudly.

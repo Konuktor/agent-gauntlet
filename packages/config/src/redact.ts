@@ -28,13 +28,26 @@ export function redactValue<T>(value: T, seen = new WeakSet<object>()): unknown 
   if (typeof value === "string") return redactSecrets(value)
   if (value === null || typeof value !== "object") return value
   if (seen.has(value as object)) return "[circular]"
-  seen.add(value as object)
-  if (Array.isArray(value)) return value.map((v) => redactValue(v, seen))
+  if (Array.isArray(value)) {
+    seen.add(value)
+    return value.map((v) => redactValue(v, seen))
+  }
+  // Only plain objects are walked. A Date, a Buffer or any class instance has
+  // no own enumerable entries worth speaking of, so Object.entries would quietly
+  // flatten it — a Date to `{}`, a byte array to a map of indices. Destroying a
+  // value is not redacting it, and this runs on data headed for the database.
+  if (!isPlainObject(value)) return value
+  seen.add(value)
   const out: Record<string, unknown> = {}
   for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
     out[k] = SENSITIVE_KEYS.has(k.toLowerCase()) ? "[redacted]" : redactValue(v, seen)
   }
   return out
+}
+
+function isPlainObject(value: object): boolean {
+  const proto = Object.getPrototypeOf(value) as object | null
+  return proto === Object.prototype || proto === null
 }
 
 const SENSITIVE_KEYS = new Set([
