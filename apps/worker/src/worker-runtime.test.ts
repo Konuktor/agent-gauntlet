@@ -119,6 +119,25 @@ describe.skipIf(!available)("worker runtime failure handling", () => {
     throw new Error(`suite run never reached a terminal state (stuck in ${last?.status})`)
   }
 
+  /** Wait for the worker to let go of a suite it has finished with. */
+  async function settleClaim(runId: string, timeoutMs = 20_000): Promise<SuiteRun | null> {
+    const deadline = Date.now() + timeoutMs
+    let run = await getSuiteRun(handle.db, runId)
+    while (Date.now() < deadline && run?.claimedBy != null) {
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      run = await getSuiteRun(handle.db, runId)
+    }
+    return run
+  }
+
+  /** Poll an in-memory condition with the same patience. */
+  async function waitFor(predicate: () => boolean, timeoutMs = 20_000): Promise<void> {
+    const deadline = Date.now() + timeoutMs
+    while (Date.now() < deadline && !predicate()) {
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    }
+  }
+
   it("leaves a suite terminal when setup fails, rather than wedged in preparing", async () => {
     const queued = await enqueue()
     const runtime = createWorkerRuntime({ config: config(), pollIntervalMs: 100 })
@@ -180,8 +199,14 @@ describe.skipIf(!available)("worker runtime failure handling", () => {
     const loop = launch(runtime)
     try {
       await settle(queued.id)
-      const run = await getSuiteRun(handle.db, queued.id)
+      // The status turns terminal inside the run; the claim is released after
+      // it, in the finally block that also shuts the runtime down. Asserting
+      // the moment the status flips is therefore a race the test loses on a
+      // slow machine — so wait for the release itself. A claim that is never
+      // released still fails here, which is the behaviour being guarded.
+      const run = await settleClaim(queued.id)
       expect(run?.claimedBy).toBeNull()
+      await waitFor(() => runtime.activeSuiteRunId === undefined)
       expect(runtime.activeSuiteRunId).toBeUndefined()
     } finally {
       await runtime.shutdown(2_000)
