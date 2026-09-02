@@ -257,6 +257,12 @@ export function createWorkerRuntime(options: WorkerRuntimeOptions): WorkerRuntim
         // really is stuck, so it must not be swallowed silently.
         runLogger.warn("could not mark the failed suite terminal", { error: describe(cause) })
       })
+      // A terminal suite must leave nothing alive behind it. Observed for real:
+      // a suite failed with `solari_concurrency` while four individual runs
+      // stayed in `running_agent` forever, so the dashboard showed a finished
+      // suite whose runs were still going.
+      const stranded = await cancelOpenRuns(db, suiteRun.id).catch(() => 0)
+      if (stranded > 0) runLogger.warn("cancelled runs stranded by the failure", { count: stranded })
     } finally {
       await runtime?.shutdown().catch((error: unknown) =>
         runLogger.warn("runtime shutdown failed", { error: describe(error) }),

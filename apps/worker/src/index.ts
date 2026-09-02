@@ -19,12 +19,32 @@ const worker = createWorkerRuntime({ config })
 const logger = createWorkerLogger(config, worker.workerId)
 
 let stopping = false
+let drainingSince = 0
+
+/**
+ * How long a repeat signal is ignored.
+ *
+ * A second Ctrl+C is a human saying "I mean it", and it should still work. A
+ * platform that sends SIGTERM twice in the same instant is not saying that —
+ * and honouring it cost us three live Solari browser sessions during a deploy,
+ * which then held the free plan's whole concurrency budget until they expired
+ * and failed the next suite with `solari_concurrency`. Draining is what
+ * releases those sessions, so it gets a few seconds of protection.
+ */
+const PANIC_EXIT_AFTER_MS = 5_000
+
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, () => {
     if (stopping) {
-      logger.warn("second signal received; exiting immediately")
+      const draining = Date.now() - drainingSince
+      if (draining < PANIC_EXIT_AFTER_MS) {
+        logger.info("already draining; ignoring repeat signal", { signal, drainingMs: draining })
+        return
+      }
+      logger.warn("second signal received; exiting immediately", { drainingMs: draining })
       process.exit(1)
     }
+    drainingSince = Date.now()
     stopping = true
     logger.info(`${signal} received; draining`)
     void worker

@@ -1,9 +1,10 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest"
 import { parseEnv } from "@gauntlet/config"
-import { deriveSeed } from "@gauntlet/core"
+import { deriveSeed, TERMINAL_RUN_STATUSES } from "@gauntlet/core"
 import {
   enqueueSuiteRun,
   getSuiteRun,
+  listIndividualRuns,
   type DbHandle,
   type SuiteRun,
 } from "@gauntlet/db"
@@ -147,6 +148,26 @@ describe.skipIf(!available)("worker runtime failure handling", () => {
       const settled = await settle(second.id)
       expect(settled.status).toBe("failed")
       expect(settled.id).not.toBe(first.id)
+    } finally {
+      await runtime.shutdown(2_000)
+      await loop
+    }
+  })
+
+  it("leaves no run alive when the suite fails", async () => {
+    // Observed in production: a suite failed with solari_concurrency while
+    // four individual runs stayed in `running_agent`, so a finished suite
+    // showed runs that were still going.
+    const queued = await enqueue()
+    const runtime = createWorkerRuntime({ config: config(), pollIntervalMs: 100 })
+    const loop = launch(runtime)
+    try {
+      await settle(queued.id)
+      const runs = await listIndividualRuns(handle.db, queued.id)
+      expect(runs.length).toBeGreaterThan(0)
+      const terminal = new Set<string>(TERMINAL_RUN_STATUSES)
+      const alive = runs.filter((r) => !terminal.has(r.status))
+      expect(alive.map((r) => `${r.variant}:${r.status}`)).toEqual([])
     } finally {
       await runtime.shutdown(2_000)
       await loop
