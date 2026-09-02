@@ -175,6 +175,13 @@ export async function executeRun(
       finishReason: agentResult.finishReason,
       steps: agentResult.steps,
     })
+    // A repository agent's stdout/stderr is the only account of why somebody
+    // else's code failed. It was being collected and then dropped, which left
+    // "Agent exited 1." as the entire diagnosis — useless for the one feature
+    // whose whole purpose is diagnosing agent failures. Already capped upstream.
+    if (agentResult.output) {
+      recorder.log("agent output", { output: agentResult.output })
+    }
 
     overlayPresentAtEnd = await probeOverlay(environment)
 

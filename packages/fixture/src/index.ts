@@ -14,6 +14,7 @@ export {
   totals,
 } from "./state.js"
 export { createFixtureApp, startFixtureServer } from "./server.js"
+export { setFixtureBasePath } from "./render.js"
 export type { FixtureServerHandle, FixtureServerOptions } from "./server.js"
 export type { CartLine, FixtureConfig, PublicRunState, RunState, Stage } from "./types.js"
 

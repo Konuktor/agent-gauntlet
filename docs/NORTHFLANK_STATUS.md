@@ -62,6 +62,17 @@
       19 steps instead of 7. Details in `REAL_SOLARI_TEST.md`.
 - [ ] Full 8 x 2 gauntlet — not run; the small one is the meaningful proof and the rest is cost
 
+## Submission QA (live URL, 1440x900 and 390x844)
+- [x] Landing, runs list, real Solari result, expired_session failure detail, comparison,
+      suite builder, health — all 200 in under a second
+- [x] No localhost links, no console errors anywhere
+- [x] Found and fixed: `expired_session` detail overflowed **3228px** at 390px — a long URL in the
+      action trace had no `min-w-0` or word break on its row
+- [x] Found and fixed: the storefront, once mounted under `/__fixture`, emitted root-relative links
+      that navigated straight out of the store on the first click
+- [x] Found and fixed: a repository agent's stdout/stderr was collected and then dropped, leaving
+      "Agent exited 1." as the entire diagnosis for somebody else's failing code
+
 ### Things that only deploying could find
 1. `${refs.database.id}` is undefined — node responses nest under `data`. It does
    not fail: the dependency silently vanishes and the services start with no

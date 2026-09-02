@@ -29,6 +29,13 @@ export function RunDetail({ detail, suiteRunId }: { detail: RunDetailView; suite
   const actions = events.filter((e) => e.type === "agent_action")
   const consoleEvents = events.filter((e) => e.type === "console" || e.type === "page_error")
   const networkEvents = events.filter((e) => e.type === "network_error")
+  // A repository agent's own stdout/stderr — the only account of why somebody
+  // else's code failed, and worth a panel of its own when there is one.
+  const agentOutput = events
+    .filter((e) => e.type === "log" && (e.payload as { message?: string })?.message === "agent output")
+    .map((e) => (e.payload as { output?: string }).output)
+    .filter(Boolean)
+    .join("\n")
   const agentClaim = (evaluation?.evidence as { agentClaim?: { finishReason?: string; message?: string } } | undefined)
     ?.agentClaim
 
@@ -168,7 +175,7 @@ export function RunDetail({ detail, suiteRunId }: { detail: RunDetailView; suite
                 }
                 const action = payload.action ?? {}
                 return (
-                  <li key={index} className="flex items-start gap-2.5 text-sm">
+                  <li key={index} className="flex min-w-0 items-start gap-2.5 text-sm">
                     <span className="mt-0.5 w-5 shrink-0 text-right text-xs text-[var(--color-ink-3)] tnum">
                       {payload.step ?? index + 1}
                     </span>
@@ -179,7 +186,7 @@ export function RunDetail({ detail, suiteRunId }: { detail: RunDetailView; suite
                     >
                       {payload.ok === false ? <X size={13} /> : <Check size={13} />}
                     </span>
-                    <span className="min-w-0">
+                    <span className="min-w-0 break-words">
                       <span className="font-mono text-xs text-[var(--color-ink)]">{action.type}</span>{" "}
                       <span className="text-[var(--color-ink-2)]">
                         {action.text ?? action.label ?? action.url ?? (action.ms ? `${action.ms}ms` : "")}
@@ -196,12 +203,23 @@ export function RunDetail({ detail, suiteRunId }: { detail: RunDetailView; suite
           )}
         </Panel>
 
+        {agentOutput ? (
+          <Panel
+            title="Agent output"
+            description="Exactly what the agent's own process printed."
+          >
+            <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words rounded bg-[var(--color-plane)] p-3 font-mono text-xs text-[var(--color-ink-2)]">
+              {agentOutput}
+            </pre>
+          </Panel>
+        ) : null}
+
         <Panel title="Timeline" description="Every lifecycle beat, in order.">
           <ol className="space-y-1 font-mono text-xs">
             {events
               .filter((e) => e.type === "lifecycle" || e.type === "navigation" || e.type === "evaluator")
               .map((event, index) => (
-                <li key={index} className="flex gap-3">
+                <li key={index} className="flex min-w-0 gap-3">
                   <span className="w-16 shrink-0 text-[var(--color-ink-3)] tnum">
                     {new Date(event.timestamp).toISOString().slice(14, 23)}
                   </span>

@@ -12,8 +12,22 @@ export function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;")
 }
 
+/**
+ * Where this storefront is mounted.
+ *
+ * Normally "" — the site owns the root of its own sandbox. When it is served
+ * from inside another app under a prefix, every link it emits is root-relative
+ * and would otherwise navigate straight out of the store, which is exactly what
+ * happened the first time an external agent tried to shop here.
+ */
+let basePath = ""
+
+export function setFixtureBasePath(value: string): void {
+  basePath = value.replace(/\/$/, "")
+}
+
 function href(state: RunState, path: string): string {
-  return `${path}${path.includes("?") ? "&" : "?"}run=${encodeURIComponent(state.runId)}`
+  return `${basePath}${path}${path.includes("?") ? "&" : "?"}run=${encodeURIComponent(state.runId)}`
 }
 
 const STYLES = `

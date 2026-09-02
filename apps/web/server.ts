@@ -5,7 +5,7 @@ import next from "next"
 import { assertPublicDeploymentIsSafe, parseEnv, type GauntletConfig } from "@gauntlet/config"
 import { createLogger, type Logger } from "@gauntlet/core"
 import { createDb, loadDotEnv, runMigrations, type DbHandle } from "@gauntlet/db"
-import { createFixtureApp } from "@gauntlet/fixture"
+import { createFixtureApp, setFixtureBasePath } from "@gauntlet/fixture"
 /**
  * The web entrypoint.
  *
@@ -52,6 +52,9 @@ async function main(): Promise<void> {
   // The benchmark storefront, optionally served from here. See
   // GAUNTLET_HOST_FIXTURE: it exists so a repository agent can have the free
   // plan's single sandbox to itself.
+  // Every link the storefront emits is root-relative, so it has to be told
+  // where it lives or the first click leaves the store entirely.
+  if (config.GAUNTLET_HOST_FIXTURE) setFixtureBasePath(FIXTURE_PREFIX)
   const fixture = config.GAUNTLET_HOST_FIXTURE ? createFixtureApp() : undefined
   if (fixture) logger.info("hosting the benchmark site", { path: FIXTURE_PREFIX })
 

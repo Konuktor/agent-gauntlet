@@ -84,6 +84,21 @@ describe.skipIf(!built)("hosted benchmark site", () => {
     expect(await state.json()).toMatchObject({ stage: expect.any(String) })
   })
 
+  // The first external-agent run died here: root-relative links navigated
+  // straight out of the store on the very first click.
+  it("emits links that stay inside the mount", async () => {
+    await fetch(`${base}/__fixture/__gauntlet/session`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ runId: "link-test", variant: "baseline", seed: 1, config: {} }),
+    })
+    const html = await (await fetch(`${base}/__fixture/?run=link-test`)).text()
+    const hrefs = [...html.matchAll(/(?:href|action)="([^"]+)"/g)].map((m) => m[1]!)
+    const internal = hrefs.filter((h) => h.startsWith("/"))
+    expect(internal.length).toBeGreaterThan(0)
+    for (const h of internal) expect(h.startsWith("/__fixture/")).toBe(true)
+  })
+
   it("does not shadow the application", async () => {
     expect((await fetch(`${base}/api/health`)).ok).toBe(true)
     expect((await fetch(base)).status).toBe(200)
