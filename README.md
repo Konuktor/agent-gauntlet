@@ -54,6 +54,35 @@ whatever framework or model it uses.
 Those numbers are real. They are the bundled Reference Agent, measured against
 the bundled benchmark storefront — reproduce them with `pnpm gauntlet demo`.
 
+### And here it is on real Solari infrastructure
+
+Four runs, four real cloud browser sessions, on the deployment linked above.
+Not seeded, not local: sandbox-hosted storefront, recorded Solari browsers,
+verdicts read from the site's server-side state.
+
+```
+  ✓ baseline           PASS    7 steps      Reliability     75%
+  ✓ cookie_popup       PASS    7 steps      Baseline       100%
+  ✓ unexpected_modal   PASS   19 steps      Perturbed     66.7%
+  ✗ expired_session    FAIL    7 steps      Infrastructure   0 errors
+```
+
+**Read the third line before the fourth.** `unexpected_modal` passed — and took
+**19 steps instead of 7**. Unexpected UI did not cause a binary failure; it
+nearly tripled the agent's trajectory. That is degradation a pass/fail benchmark
+hides completely, and it is the kind of thing that turns into a timeout, a cost
+overrun or a rate limit in production.
+
+The failure, classified from evidence rather than from the agent's own account:
+
+> *"The shopping session expired mid-task and the agent did not re-establish it."*
+
+**On the 75%.** Four runs is a demonstration, not a benchmark. The Wilson
+interval on that sample is **30.1% – 95.4%** — the product reports it, and this
+README will not pretend otherwise. What four runs *do* establish is that the
+whole path works end to end and that the measurement distinguishes a survivable
+perturbation from a fatal one.
+
 <div align="center">
   <img src="docs/images/dashboard.png" alt="The result dashboard: reliability with a confidence interval, reliability by perturbation, the run matrix, failure clusters" width="900">
 </div>
@@ -215,7 +244,10 @@ host. It receives a scoped CDP endpoint and drives a real cloud browser; it
 never receives a Solari API key. Use Claude, GPT, Gemini, browser-use,
 Stagehand, or something you wrote yourself — the harness is indifferent. See
 [docs/AGENT_CONTRACT.md](docs/AGENT_CONTRACT.md) and
-[examples/custom-agent](examples/custom-agent).
+[examples/custom-agent](examples/custom-agent), and the same agent lives in a
+**genuinely separate public repository** —
+[`agent-gauntlet-example-agent`](https://github.com/Konuktor/agent-gauntlet-example-agent) —
+which is what the live external-agent run actually clones.
 
 **LLM Agent** *(optional, experimental)*. A small provider-neutral planning loop
 with an Anthropic implementation, included to show the adapter seam. It is never

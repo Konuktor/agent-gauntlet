@@ -70,6 +70,18 @@ try {
         type: "llm",
         configJson: { effort: "low" },
       },
+      {
+        // A genuinely separate repository, cloned and executed inside a Solari
+        // Sandbox. It is here so the external-agent path is one click away
+        // rather than a thing you have to construct by hand.
+        projectId: project!.id,
+        name: "Example Repository Agent",
+        type: "repository",
+        configJson: {
+          repository: "https://github.com/Konuktor/agent-gauntlet-example-agent",
+          branch: "master",
+        },
+      },
     ])
     .returning()
 

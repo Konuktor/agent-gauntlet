@@ -108,3 +108,7 @@ suite, not once per run.
 
 [`examples/custom-agent`](../examples/custom-agent) — about 80 lines of
 Playwright, implementing every part of this contract.
+
+The same agent as a **separate public repository**, which is what a real run
+clones into a sandbox:
+[`Konuktor/agent-gauntlet-example-agent`](https://github.com/Konuktor/agent-gauntlet-example-agent).
