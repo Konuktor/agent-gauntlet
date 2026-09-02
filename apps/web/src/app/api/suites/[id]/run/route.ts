@@ -1,6 +1,18 @@
 import { z } from "zod"
-import { deriveSeed, GauntletError } from "@gauntlet/core"
-import { countActiveSuiteRuns, enqueueSuiteRun, getSuite } from "@gauntlet/db"
+import {
+  deriveSeed,
+  GauntletError,
+  parseSealingKey,
+  sealSecret,
+  validateCdpEndpoint,
+} from "@gauntlet/core"
+import {
+  attachRunCredential,
+  countActiveSuiteRuns,
+  enqueueSuiteRun,
+  getSuite,
+  type SealedRunCredential,
+} from "@gauntlet/db"
 import { requirePerturbation } from "@gauntlet/perturbations"
 import { apiError, notFound, ok, parseBody } from "@/lib/api"
 import { checkRunAuthorization } from "@/lib/auth"
@@ -10,6 +22,16 @@ export const dynamic = "force-dynamic"
 
 const runSchema = z.object({
   label: z.string().max(120).optional(),
+  /**
+   * A credential the visitor brings so the run spends THEIR credits.
+   *
+   * `byoSession` is a CDP endpoint for a browser they created — the least
+   * authority that makes a run possible, and the option that never asks them
+   * to hand over an account key. `byoKey` is a Solari API key, needed only for
+   * a repository agent, which requires a sandbox of its own.
+   */
+  byoSession: z.string().min(1).max(2_000).optional(),
+  byoKey: z.string().min(1).max(500).optional(),
   git: z
     .object({ repo: z.string().optional(), branch: z.string().optional(), sha: z.string().optional() })
     .optional(),
@@ -29,9 +51,14 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
 
     const cfg = config()
 
+    // Whose credits pay for this. A visitor who brings their own session or
+    // key is spending their own money, so the operator's access code — which
+    // exists only to protect the operator's balance — does not apply to them.
+    const byo = await sealBorrowedCredential(body, cfg.GAUNTLET_CREDENTIAL_KEY)
+
     // Money is spent past this line. Everything above it — browsing the seeded
     // demo, inspecting a failure, comparing two runs — stays public.
-    const auth = await checkRunAuthorization()
+    const auth = byo ? { authorized: true as const, reason: "byo" as const } : await checkRunAuthorization()
     if (!auth.authorized) {
       return ok(
         {
@@ -74,7 +101,9 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     if (suite.agent.type === "repository" && auth.reason === "ungated" && cfg.runsAreGated) {
       return ok({ error: { code: "unauthorized", title: "Not permitted", message: "Repository agents require authorization.", hint: "" } }, { status: 401 })
     }
-    if (cfg.resolvedMode === "solari" && !cfg.hasSolariCredentials) {
+    // Both of the next two gates ask "can THIS deployment pay for a run?".
+    // A visitor who brought a session or a key is not asking it to.
+    if (!byo && cfg.resolvedMode === "solari" && !cfg.hasSolariCredentials) {
       throw new GauntletError({
         code: "config_invalid",
         message: "Real runs need a Solari API key. Add SOLARI_API_KEY to .env and restart.",
@@ -83,7 +112,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     // Local mode drives a real browser, and a production image ships none on
     // purpose: this service orchestrates runs, it never hosts one. Refusing
     // here beats enqueuing work the worker cannot possibly do.
-    if (!cfg.canExecuteRuns) {
+    if (!byo && !cfg.canExecuteRuns) {
       throw new GauntletError({
         code: "config_invalid",
         message:
@@ -107,7 +136,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
 
     const suiteRun = await enqueueSuiteRun(database, {
       suiteId: suite.suite.id,
-      mode: cfg.resolvedMode,
+      mode: byo ? "solari" : cfg.resolvedMode,
       ...(body.label ? { label: body.label } : {}),
       variants,
       runsPerVariant: suite.suite.runsPerVariant,
@@ -117,11 +146,55 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
       ...(body.git ? { git: body.git } : {}),
     })
 
+    // Attached after the row exists, and wiped by the worker the moment the
+    // run finishes. It is sealed already; nothing here has the plaintext.
+    if (byo) await attachRunCredential(database, suiteRun.id, byo)
+
     return ok(
-      { id: suiteRun.id, totalRuns: total, mode: cfg.resolvedMode, status: suiteRun.status },
+      { id: suiteRun.id, totalRuns: total, mode: suiteRun.mode, status: suiteRun.status },
       { status: 202 },
     )
   } catch (error) {
     return apiError(error)
   }
+}
+
+
+/**
+ * Seal what the visitor brought, or return undefined when they brought nothing.
+ *
+ * Two refusals here are deliberate. Without a sealing key the feature is simply
+ * off — a borrowed secret never goes into the queue in plaintext. And a session
+ * endpoint is validated against the same private-address rules as a repository
+ * URL, because accepting one from a stranger is accepting an instruction to
+ * connect somewhere.
+ */
+async function sealBorrowedCredential(
+  body: { byoSession?: string; byoKey?: string },
+  sealingKey: string | undefined,
+): Promise<SealedRunCredential | undefined> {
+  const raw = body.byoSession ?? body.byoKey
+  if (!raw) return undefined
+
+  const key = parseSealingKey(sealingKey)
+  if (!key) {
+    throw new GauntletError({
+      code: "config_invalid",
+      message: "This deployment cannot accept your own key or session.",
+      detail: "GAUNTLET_CREDENTIAL_KEY is not configured, so a borrowed credential has nowhere safe to live.",
+    })
+  }
+
+  if (body.byoSession) {
+    return { kind: "session", ...sealSecret(validateCdpEndpoint(body.byoSession), key) }
+  }
+  const apiKey = body.byoKey!.trim()
+  if (!apiKey.startsWith("slr_")) {
+    throw new GauntletError({
+      code: "config_invalid",
+      message: "That does not look like a Solari API key.",
+      detail: "Solari keys begin with slr_.",
+    })
+  }
+  return { kind: "key", ...sealSecret(apiKey, key) }
 }

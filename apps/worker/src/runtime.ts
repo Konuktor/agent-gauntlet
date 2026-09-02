@@ -40,12 +40,34 @@ export interface Runtime {
   shutdown(): Promise<void>
 }
 
-export async function createRuntime(config: GauntletConfig, logger: Logger): Promise<Runtime> {
+/**
+ * A credential the visitor brought, already opened.
+ *
+ * `session` borrows one browser they created — we never see an account key.
+ * `key` is their own Solari key, used for this run and then forgotten.
+ */
+export interface BorrowedCredential {
+  kind: "session" | "key"
+  value: string
+}
+
+export async function createRuntime(
+  config: GauntletConfig,
+  logger: Logger,
+  borrowed?: BorrowedCredential,
+): Promise<Runtime> {
   const artifacts = new ArtifactStore(config.GAUNTLET_ARTIFACT_DIR)
 
-  if (config.resolvedMode === "solari") {
-    const apiKey = config.SOLARI_API_KEY
-    if (!apiKey) {
+  // A borrowed credential IS a Solari session or key, so it settles the mode by
+  // itself — a deployment with no key of its own still runs the visitor's run
+  // on Solari rather than falling back to a local browser it does not ship.
+  if (config.resolvedMode === "solari" || borrowed) {
+    // A visitor's key pays for their own run; ours is the fallback. A borrowed
+    // SESSION comes with no key at all — that is the point of it — so a key is
+    // only genuinely required when we have to create something ourselves.
+    const apiKey = borrowed?.kind === "key" ? borrowed.value : config.SOLARI_API_KEY
+    const borrowingSession = borrowed?.kind === "session"
+    if (!apiKey && !borrowingSession) {
       throw new GauntletError({
         code: "config_invalid",
         message: "Solari mode requires SOLARI_API_KEY.",
@@ -53,32 +75,48 @@ export async function createRuntime(config: GauntletConfig, logger: Logger): Pro
     }
 
     const browsers = new SolariBrowserProvider({
-      apiKey,
+      apiKey: apiKey ?? "",
       baseUrl: config.SOLARI_BASE_URL,
       logger: logger.child({ component: "solari-browser" }),
+      // Borrowing means: create no session, release no session.
+      ...(borrowingSession ? { borrowedCdpEndpoint: borrowed.value } : {}),
     })
-    const sandboxes = new SolariSandboxProvider({
-      apiKey,
-      baseUrl: config.SOLARI_BASE_URL,
-      logger: logger.child({ component: "solari-sandbox" }),
-    })
+    const sandboxes = apiKey
+      ? new SolariSandboxProvider({
+          apiKey,
+          baseUrl: config.SOLARI_BASE_URL,
+          logger: logger.child({ component: "solari-sandbox" }),
+        })
+      : undefined
 
     // An operator-supplied fixture URL wins: it is the documented escape hatch
-    // when a deployment has no preview domain (Solari answers 501 there).
+    // when a deployment has no preview domain (Solari answers 501 there). It is
+    // also the only option left when someone lends us a browser and nothing
+    // else — a borrowed session cannot conjure a VM to host the benchmark site.
     const fixtures: FixtureProvider = config.GAUNTLET_FIXTURE_URL
       ? new (await localRuntime()).ExternalFixtureProvider(config.GAUNTLET_FIXTURE_URL)
-      : new SolariFixtureProvider({ sandboxes, logger })
+      : sandboxes
+        ? new SolariFixtureProvider({ sandboxes, logger })
+        : (() => {
+            throw new GauntletError({
+              code: "config_invalid",
+              message: "There is nowhere to host the benchmark site for this run.",
+              detail:
+                "A borrowed browser session drives a page; it cannot host one. This deployment " +
+                "needs either GAUNTLET_FIXTURE_URL or a Solari key of its own.",
+            })
+          })()
 
     return {
       mode: "solari",
       browsers,
-      sandboxes,
+      ...(sandboxes ? { sandboxes } : {}),
       fixtures,
       artifacts,
       shutdown: async () => {
         // Order matters: release sessions and sandboxes before dropping the
         // clients that know how to release them.
-        await sandboxes.shutdown().catch(() => {})
+        await sandboxes?.shutdown().catch(() => {})
         await browsers.shutdown().catch(() => {})
       },
     }

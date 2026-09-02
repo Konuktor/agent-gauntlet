@@ -108,6 +108,14 @@ export function NewSuiteForm({
   const repoUnavailable = agent?.type === "repository" && !capabilities.hasSolari
   const blocked = variants.size === 0 || overCap || !agentId || !taskId || llmUnavailable || repoUnavailable
 
+  // What the visitor brings, if anything. Never stored, never logged here:
+  // it goes straight to the server, which seals it before it touches a queue.
+  const [byoKind, setByoKind] = useState<"none" | "session" | "key">("none")
+  const [byoValue, setByoValue] = useState("")
+  const bringsOwn = byoKind !== "none" && byoValue.trim().length > 0
+  // A lent session is a single browser, so those runs are serial.
+  const concurrency = byoKind === "session" ? 1 : capabilities.maxConcurrency
+
   const submit = async () => {
     setSubmitting(true)
     setError(null)
@@ -129,7 +137,11 @@ export function NewSuiteForm({
       const runResponse = await fetch(`/api/suites/${suite.id}/run`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ label: `${agent?.name ?? "Agent"} · ${new Date().toISOString().slice(0, 16).replace("T", " ")}` }),
+        body: JSON.stringify({
+          label: `${agent?.name ?? "Agent"} · ${new Date().toISOString().slice(0, 16).replace("T", " ")}`,
+          ...(byoKind === "session" && byoValue.trim() ? { byoSession: byoValue.trim() } : {}),
+          ...(byoKind === "key" && byoValue.trim() ? { byoKey: byoValue.trim() } : {}),
+        }),
       })
       if (!runResponse.ok) throw await toError(runResponse)
 
@@ -275,13 +287,13 @@ export function NewSuiteForm({
         <p className="text-sm text-[var(--color-ink-2)]">
           {variants.size} variant{variants.size === 1 ? "" : "s"} × {repetitions} repetition
           {repetitions === 1 ? "" : "s"} = {totalRuns} browser run{totalRuns === 1 ? "" : "s"},
-          {" "}up to {capabilities.maxConcurrency} at a time
+          {" "}up to {concurrency} at a time
         </p>
 
         <dl className="mt-4 space-y-1.5 text-xs text-[var(--color-ink-3)]">
           <div className="flex justify-between">
             <dt>Concurrency</dt>
-            <dd className="tnum">{capabilities.maxConcurrency} at a time</dd>
+            <dd className="tnum">{concurrency} at a time</dd>
           </div>
           <div className="flex justify-between">
             <dt>Cap per suite</dt>
@@ -311,11 +323,95 @@ export function NewSuiteForm({
           </p>
         )}
 
-        {authorized ? (
+        {/*
+          Whose credits pay for this run. Stated plainly, because the honest
+          version of "bring your own agent" is also "bring your own bill" —
+          and because asking a stranger for an API key deserves an explanation
+          of why the cheaper option exists.
+        */}
+        <div className="mt-4 rounded border border-[var(--color-line)] bg-[var(--color-plane)] p-3">
+          <div className="section-title">Whose credits</div>
+          <div className="mt-2 grid grid-cols-3 gap-1.5">
+            {(
+              [
+                ["none", "Operator's"],
+                ["session", "My session"],
+                ["key", "My key"],
+              ] as const
+            ).map(([kind, label]) => (
+              <button
+                key={kind}
+                type="button"
+                className={`px-0 text-xs ${byoKind === kind ? "btn btn-primary" : "btn btn-ghost"}`}
+                onClick={() => {
+                  setByoKind(kind)
+                  setByoValue("")
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {byoKind === "none" ? (
+            <p className="mt-2 text-xs text-[var(--color-ink-3)]">
+              {capabilities.runsGated
+                ? "Runs on the operator's Solari account, so it needs the access code below."
+                : "Runs on this deployment's own Solari account."}
+            </p>
+          ) : byoKind === "session" ? (
+            <>
+              <label className="label mt-3" htmlFor="byo-session">
+                CDP endpoint
+              </label>
+              <input
+                id="byo-session"
+                type="text"
+                className="field font-mono text-xs"
+                value={byoValue}
+                onChange={(event) => setByoValue(event.target.value)}
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="wss://api.getsolari.com/cdp/…"
+              />
+              <p className="mt-2 text-xs text-[var(--color-ink-3)]">
+                Run <code>gauntlet session</code> on your machine and paste what it prints. Your API
+                key never leaves you — this endpoint drives one browser you own, and closing that
+                command ends it. No access code needed, because you are paying.
+              </p>
+              <p className="mt-1.5 text-xs text-[var(--color-ink-3)]">
+                A borrowed session cannot be recorded, so these runs have no replay.
+              </p>
+            </>
+          ) : (
+            <>
+              <label className="label mt-3" htmlFor="byo-key">
+                Solari API key
+              </label>
+              <input
+                id="byo-key"
+                type="password"
+                className="field font-mono text-xs"
+                value={byoValue}
+                onChange={(event) => setByoValue(event.target.value)}
+                autoComplete="off"
+                placeholder="slr_…"
+              />
+              <p className="mt-2 text-xs text-[var(--color-ink-3)]">
+                Encrypted before it is stored, used for this run only, and deleted the moment it
+                finishes. Needed for a repository agent, which requires a sandbox of its own —
+                otherwise prefer <strong className="font-medium">My session</strong>, which asks
+                for less.
+              </p>
+            </>
+          )}
+        </div>
+
+        {authorized || bringsOwn ? (
           <>
             <button
               className="btn btn-primary mt-4 w-full"
-              disabled={blocked || submitting || !capabilities.canExecuteRuns}
+              disabled={blocked || submitting || (!capabilities.canExecuteRuns && !bringsOwn)}
               onClick={submit}
             >
               {submitting ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Play size={15} aria-hidden />}

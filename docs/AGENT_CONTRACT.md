@@ -65,6 +65,15 @@ Two consequences worth knowing:
 - **It expires**, and the session is released when your process exits. Do your
   work inside the run.
 
+The same reasoning runs in the other direction, and that is worth stating
+because it is the same idea twice. AgentGauntlet asks untrusted code for the
+least authority that works — a scoped endpoint, not a key. So a hosted
+AgentGauntlet asks *you* for the least authority that works, too: run
+`gauntlet session` on your own machine and paste the endpoint it prints, and the
+deployment drives one browser you created without ever seeing your account. A
+key is only needed when the run has to create something itself — a repository
+agent needs a sandbox — and that key is sealed, used once, and wiped.
+
 ## Reporting your result
 
 Print one line to stdout, any time before you exit:

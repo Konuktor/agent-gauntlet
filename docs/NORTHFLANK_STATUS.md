@@ -32,6 +32,8 @@
 ## 8–13 · Template
 - [x] `northflank/template.json`, `apiVersion: v1.2`, validated against the live schema
 - [x] Secrets are `argumentOverrides`; `GAUNTLET_RUN_TOKEN` uses `${fn.randomSecret(48)}`; no value committed
+- [x] `GAUNTLET_CREDENTIAL_KEY` (32 random bytes) seals a credential a visitor brings; blank in the
+      template, generated per deployment, never committed
 
 ## 25 · Verification
 - [x] `pnpm typecheck` 13/13 · `lint` 12/12 · `test` 324 passed · `build` 4/4 · `test:e2e` 36 passed

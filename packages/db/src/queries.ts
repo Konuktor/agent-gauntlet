@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray, isNotNull, lte, sql } from "drizzle-orm"
+import { and, asc, count, desc, eq, inArray, isNotNull, lte, or, sql } from "drizzle-orm"
 import {
   assertRunTransition,
   assertSuiteTransition,
@@ -571,4 +571,94 @@ export async function scheduleReplayRetry(
       replayNextAttemptAt: nextAttemptAt,
     })
     .where(eq(individualRuns.id, runId))
+}
+
+/** A credential a visitor brought, still sealed. */
+export interface SealedRunCredential {
+  kind: "session" | "key"
+  ciphertext: string
+  iv: string
+  tag: string
+}
+
+/** Attach a sealed credential to a queued run. */
+export async function attachRunCredential(
+  db: Database,
+  suiteRunId: string,
+  credential: SealedRunCredential,
+): Promise<void> {
+  await db
+    .update(suiteRuns)
+    .set({
+      byoKind: credential.kind,
+      byoCiphertext: credential.ciphertext,
+      byoIv: credential.iv,
+      byoTag: credential.tag,
+    })
+    .where(eq(suiteRuns.id, suiteRunId))
+}
+
+/** Read it back in the worker. Returns null when the run brought nothing. */
+export async function readRunCredential(
+  db: Database,
+  suiteRunId: string,
+): Promise<SealedRunCredential | null> {
+  const [row] = await db
+    .select({
+      kind: suiteRuns.byoKind,
+      ciphertext: suiteRuns.byoCiphertext,
+      iv: suiteRuns.byoIv,
+      tag: suiteRuns.byoTag,
+    })
+    .from(suiteRuns)
+    .where(eq(suiteRuns.id, suiteRunId))
+    .limit(1)
+  if (!row?.kind || !row.ciphertext || !row.iv || !row.tag) return null
+  return {
+    kind: row.kind === "key" ? "key" : "session",
+    ciphertext: row.ciphertext,
+    iv: row.iv,
+    tag: row.tag,
+  }
+}
+
+/**
+ * Forget a borrowed credential.
+ *
+ * Called the moment a run reaches a terminal state, and on every worker boot
+ * for anything already finished — a credential that outlives its run is
+ * exactly what this design exists to avoid.
+ */
+export async function wipeRunCredential(db: Database, suiteRunId: string): Promise<void> {
+  await db
+    .update(suiteRuns)
+    .set({ byoKind: null, byoCiphertext: null, byoIv: null, byoTag: null })
+    .where(eq(suiteRuns.id, suiteRunId))
+}
+
+/**
+ * Wipe every credential that has outlived its usefulness.
+ *
+ * Two ways that happens. A run finished, so nothing needs it any more — the
+ * common case. Or a run never ran at all, and the age bound catches it: a
+ * borrowed session expires on Solari's side within the hour, so anything older
+ * than {@link CREDENTIAL_MAX_AGE_MS} is pure liability whatever its status.
+ */
+export const CREDENTIAL_MAX_AGE_MS = 2 * 60 * 60 * 1_000
+
+export async function wipeStaleCredentials(db: Database, now = new Date()): Promise<number> {
+  const rows = await db
+    .update(suiteRuns)
+    .set({ byoKind: null, byoCiphertext: null, byoIv: null, byoTag: null })
+    .where(
+      and(
+        isNotNull(suiteRuns.byoCiphertext),
+        or(
+          inArray(suiteRuns.status, ["completed", "failed", "cancelled"]),
+          lte(suiteRuns.createdAt, new Date(now.getTime() - CREDENTIAL_MAX_AGE_MS)),
+        ),
+      ),
+    )
+    .returning({ id: suiteRuns.id })
+  return rows.length
 }

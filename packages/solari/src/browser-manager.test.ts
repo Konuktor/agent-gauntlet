@@ -61,7 +61,13 @@ const connect = vi.fn(async () => ({
   close: browserClose,
 }))
 
-vi.mock("patchright-core", () => ({ chromium: { connect: (...a: unknown[]) => connect(...(a as [])) } }))
+const connectOverCDP = vi.fn()
+vi.mock("patchright-core", () => ({
+  chromium: {
+    connect: (...a: unknown[]) => connect(...(a as [])),
+    connectOverCDP: (...a: unknown[]) => connectOverCDP(...(a as [])),
+  },
+}))
 
 const { SolariBrowserProvider } = await import("./browser-manager.js")
 
@@ -105,6 +111,7 @@ beforeEach(() => {
   respondWithSession()
   sessions.releaseAndWait.mockResolvedValue(undefined)
   connect.mockResolvedValue({ contexts: () => [contextStub], newContext, close: browserClose })
+  connectOverCDP.mockResolvedValue({ contexts: () => [contextStub], newContext, close: browserClose })
   contextStub.newPage.mockResolvedValue(pageStub)
 })
 
@@ -331,6 +338,44 @@ describe("retries", () => {
       code: "solari_concurrency",
     })
     expect(fetchMock).toHaveBeenCalledTimes(3)
+  })
+})
+
+/**
+ * A visitor may bring a session they created, so the run spends their credits
+ * and we never see an account key. The rules are narrow and all of them matter:
+ * create nothing, release nothing, promise no replay.
+ */
+describe("a borrowed session", () => {
+  const borrowed = "wss://api.getsolari.com/cdp/theirs.signature"
+  const borrowing = () => provider({ borrowedCdpEndpoint: borrowed })
+
+  it("creates no session at all", async () => {
+    await borrowing().create({ recording: true, stealth: false })
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(sessions.create).not.toHaveBeenCalled()
+  })
+
+  it("connects over CDP to the endpoint it was given", async () => {
+    await borrowing().create({ recording: false, stealth: false })
+    expect(connectOverCDP).toHaveBeenCalledWith(borrowed, expect.anything())
+    expect(connect).not.toHaveBeenCalled()
+  })
+
+  // Releasing somebody else's session would end a browser they are still using
+  // and, on a small plan, hand their concurrency back without being asked.
+  it("never releases it, on dispose or on shutdown", async () => {
+    const p = borrowing()
+    const env = await p.create({ recording: false, stealth: false })
+    await env.dispose()
+    await p.shutdown()
+    expect(sessions.releaseAndWait).not.toHaveBeenCalled()
+    expect(sessions.release).not.toHaveBeenCalled()
+  })
+
+  it("promises no replay, because recording cannot be turned on later", async () => {
+    const env = await borrowing().create({ recording: true, stealth: false })
+    expect(env.recordingEnabled).toBe(false)
   })
 })
 

@@ -135,6 +135,19 @@ export const suiteRuns = pgTable(
     errorCode: text("error_code"),
     errorMessage: text("error_message"),
 
+    /**
+     * A credential the visitor brought so the run spends THEIR credits.
+     *
+     * `session` is a scoped CDP endpoint; `key` is a Solari API key. Both are
+     * sealed (AES-256-GCM) because this table is the queue between two
+     * services, and both are wiped the moment the run finishes — the operator
+     * is not in the business of storing other people's secrets.
+     */
+    byoKind: text("byo_kind"),
+    byoCiphertext: text("byo_ciphertext"),
+    byoIv: text("byo_iv"),
+    byoTag: text("byo_tag"),
+
     /** DB-backed queue bookkeeping. No Redis: a claim is FOR UPDATE SKIP LOCKED
      *  and a dead worker is detected by a stale heartbeat. */
     claimedBy: text("claimed_by"),

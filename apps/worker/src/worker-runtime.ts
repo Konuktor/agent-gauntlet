@@ -3,6 +3,8 @@ import type { GauntletConfig } from "@gauntlet/config"
 import {
   GauntletError,
   GauntletRunner,
+  openSecret,
+  parseSealingKey,
   REPLAY_BACKOFF_MS,
   sleep,
   taskDefinitionSchema,
@@ -13,6 +15,9 @@ import {
 } from "@gauntlet/core"
 import {
   cancelOpenRuns,
+  readRunCredential,
+  wipeRunCredential,
+  wipeStaleCredentials,
   listDueReplays,
   markReplayReady,
   scheduleReplayRetry,
@@ -29,6 +34,7 @@ import { resolvePerturbation } from "@gauntlet/perturbations"
 import { DrizzleRunStore } from "./store.js"
 import type { Runtime } from "./runtime.js"
 import { createAgent, createRuntime, createTaskEvaluator, createWorkerLogger } from "./runtime.js"
+import type { BorrowedCredential } from "./runtime.js"
 
 const POLL_INTERVAL_MS = 1_500
 
@@ -102,6 +108,14 @@ export function createWorkerRuntime(options: WorkerRuntimeOptions): WorkerRuntim
     const reclaimed = await reclaimStaleSuiteRuns(handle.db)
     if (reclaimed > 0) logger.warn("requeued abandoned suite runs", { count: reclaimed })
 
+    // A worker killed mid-run cannot wipe what it borrowed. Anything still
+    // attached to a finished run is swept on the way up.
+    const wiped = await wipeStaleCredentials(handle.db).catch((error: unknown) => {
+      logger.error("could not sweep borrowed credentials", { error: describe(error) })
+      return 0
+    })
+    if (wiped > 0) logger.warn("wiped credentials left by a previous instance", { count: wiped })
+
     loop = (async () => {
       let sinceLastSweep = 0
       let sinceReplaySweep = 0
@@ -118,6 +132,15 @@ export function createWorkerRuntime(options: WorkerRuntimeOptions): WorkerRuntim
             return 0
           })
           if (requeued > 0) logger.warn("requeued abandoned suite runs", { count: requeued })
+
+          // Same reason, for the other thing a long-lived worker would
+          // otherwise only clean up at boot: a credential someone lent us and
+          // whose run never happened.
+          const wipedNow = await wipeStaleCredentials(handle!.db).catch((error: unknown) => {
+            logger.warn("credential sweep failed", { error: describe(error) })
+            return 0
+          })
+          if (wipedNow > 0) logger.info("wiped expired borrowed credentials", { count: wipedNow })
         }
 
         sinceReplaySweep += pollIntervalMs
@@ -262,6 +285,30 @@ export function createWorkerRuntime(options: WorkerRuntimeOptions): WorkerRuntim
     }
   }
 
+  /**
+   * Open the credential a visitor attached to this run, if any.
+   *
+   * Absent a sealing key the ciphertext cannot be opened at all, which is the
+   * correct failure: better to refuse the run than to guess.
+   */
+  async function openBorrowedCredential(
+    suiteRunId: string,
+    runLogger: Logger,
+  ): Promise<BorrowedCredential | undefined> {
+    const sealed = await readRunCredential(handle!.db, suiteRunId)
+    if (!sealed) return undefined
+    const key = parseSealingKey(config.GAUNTLET_CREDENTIAL_KEY)
+    if (!key) {
+      throw new GauntletError({
+        code: "config_invalid",
+        message: "This run carries a credential this deployment cannot open.",
+        detail: "GAUNTLET_CREDENTIAL_KEY is not set on the worker.",
+      })
+    }
+    runLogger.info("run uses a credential the visitor brought", { kind: sealed.kind })
+    return { kind: sealed.kind, value: openSecret(sealed, key) }
+  }
+
   async function executeSuiteRun(suiteRun: SuiteRun): Promise<void> {
     const db = handle!.db
     const runLogger = logger.child({ suiteRunId: suiteRun.id })
@@ -274,6 +321,7 @@ export function createWorkerRuntime(options: WorkerRuntimeOptions): WorkerRuntim
     // try/finally would leave the claim held, the suite stuck in `preparing`,
     // and (because the loop awaits this) the whole worker dead.
     let runtime: Runtime | undefined
+    let borrowed: BorrowedCredential | undefined
     try {
       const suite = await getSuite(db, suiteRun.suiteId)
       if (!suite) {
@@ -286,7 +334,9 @@ export function createWorkerRuntime(options: WorkerRuntimeOptions): WorkerRuntim
         return
       }
 
-      runtime = await createRuntime(config, runLogger)
+      // A credential the visitor brought, opened for exactly this run.
+      borrowed = await openBorrowedCredential(suiteRun.id, runLogger)
+      runtime = await createRuntime(config, runLogger, borrowed)
 
       // The free Solari plan allows one sandbox. A worker killed mid-suite
       // cannot release its own, so a single orphan blocks every later suite
@@ -337,7 +387,10 @@ export function createWorkerRuntime(options: WorkerRuntimeOptions): WorkerRuntim
         {
           suiteRunId: suiteRun.id,
           task,
-          maxConcurrency: config.GAUNTLET_MAX_CONCURRENCY,
+          // A borrowed session is ONE browser somebody lent us. Fanning three
+          // runs across it would put three concurrent gauntlets in the same
+          // Chrome — cross-contaminating the very state we evaluate on.
+          maxConcurrency: borrowed?.kind === "session" ? 1 : config.GAUNTLET_MAX_CONCURRENCY,
           // Recording is only meaningful on Solari; local mode captures rrweb
           // itself and labels it as a local capture.
           browserDefaults: { recording: true, stealth: false },
@@ -376,6 +429,15 @@ export function createWorkerRuntime(options: WorkerRuntimeOptions): WorkerRuntim
       await runtime?.shutdown().catch((error: unknown) =>
         runLogger.warn("runtime shutdown failed", { error: describe(error) }),
       )
+      // Forget a borrowed credential the moment the run is over, whether it
+      // passed, failed or crashed. The operator does not keep other people's
+      // secrets a second longer than the work requires.
+      if (borrowed) {
+        await wipeRunCredential(db, suiteRun.id).catch((error: unknown) =>
+          runLogger.error("could not wipe a borrowed credential", { error: describe(error) }),
+        )
+        borrowed = undefined
+      }
       await releaseClaim(db, suiteRun.id).catch(() => {})
       activeSuiteRunId = undefined
       activeController = undefined

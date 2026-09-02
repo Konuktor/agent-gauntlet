@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises"
 import pc from "picocolors"
+import { runSessionCommand } from "./session-command.js"
 import { compareSuites, GauntletError, ERROR_COPY } from "@gauntlet/core"
 import { loadDotEnv } from "@gauntlet/db"
 import { parseEnv } from "@gauntlet/config"
@@ -15,11 +16,14 @@ const USAGE = `${pc.bold("gauntlet")} — crash-test your browser agent
   ${pc.bold("gauntlet run")} <config.yaml>        run a gauntlet from a config file
   ${pc.bold("gauntlet compare")} <a.json> <b.json>  compare two run reports
   ${pc.bold("gauntlet doctor")}                   check this machine's configuration
+  ${pc.bold("gauntlet session")}                  open a browser session on YOUR Solari account,
+                                    and print an endpoint a hosted gauntlet can drive
 
 Options
   --report <path>   where to write the JSON report (run/demo)
   --label <text>    label this run in the report
   --quiet           only print the verdict
+  --json            print the endpoint as one JSON line (session)
 
 Exit codes
   0  every configured threshold met
@@ -40,6 +44,9 @@ async function main(argv: string[]): Promise<number> {
           quiet: flags.quiet,
         })
       ).exitCode
+
+    case "session":
+      return runSessionCommand({ json: flags.json })
 
     case "run": {
       const path = flags.positional[0]
@@ -144,13 +151,16 @@ interface Flags {
   report?: string
   label?: string
   quiet: boolean
+  /** `gauntlet session --json`, for scripting. */
+  json: boolean
 }
 
 function parseFlags(argv: string[]): Flags {
-  const flags: Flags = { positional: [], quiet: false }
+  const flags: Flags = { positional: [], quiet: false, json: false }
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!
     if (arg === "--quiet") flags.quiet = true
+    else if (arg === "--json") flags.json = true
     else if (arg === "--report") flags.report = argv[++i]
     else if (arg === "--label") flags.label = argv[++i]
     else if (!arg.startsWith("-")) flags.positional.push(arg)

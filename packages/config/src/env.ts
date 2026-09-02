@@ -94,6 +94,16 @@ export const envSchema = z.object({
    */
   GAUNTLET_HOST_FIXTURE: boolish.default(false),
 
+  /**
+   * 32 base64 bytes that seal a credential a visitor brought.
+   *
+   * Without it, "bring your own key/session" is simply unavailable: the queue
+   * between the web service and the worker is a database table, and a borrowed
+   * secret does not go in one unencrypted. Absent is a closed door, never a
+   * silent downgrade to plaintext.
+   */
+  GAUNTLET_CREDENTIAL_KEY: optionalString,
+
   SOLARI_E2E: boolish.default(false),
 })
 

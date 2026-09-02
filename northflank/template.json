@@ -11,6 +11,7 @@
     "publicUrl": "",
     "SOLARI_API_KEY": "",
     "GAUNTLET_RUN_TOKEN": "",
+    "GAUNTLET_CREDENTIAL_KEY": "",
     "healthPath": "/api/health",
     "healthPort": "3000"
   },
@@ -89,7 +90,10 @@
                       "LOG_LEVEL": "info",
                       "GAUNTLET_PUBLIC_URL": "${args.publicUrl}",
                       "SOLARI_API_KEY": "${args.SOLARI_API_KEY}",
-                      "GAUNTLET_RUN_TOKEN": "${args.GAUNTLET_RUN_TOKEN}"
+                      "GAUNTLET_RUN_TOKEN": "${args.GAUNTLET_RUN_TOKEN}",
+                      "GAUNTLET_CREDENTIAL_KEY": "${args.GAUNTLET_CREDENTIAL_KEY}",
+                      "GAUNTLET_HOST_FIXTURE": "true",
+                      "GAUNTLET_FIXTURE_URL": "${args.publicUrl}/__fixture"
                     }
                   }
                 },

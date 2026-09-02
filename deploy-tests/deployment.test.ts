@@ -358,6 +358,149 @@ describe.skipIf(!built)("Deployment contract", () => {
     })
   })
 
+  /**
+   * Bring-your-own credentials.
+   *
+   * The feature that lets a stranger run their own agent here without the
+   * operator paying for it — and therefore the feature with the most ways to
+   * go wrong. Each assertion below is one of them: accepting a secret with
+   * nowhere safe to put it, letting a pasted endpoint aim the browser at
+   * private infrastructure, and writing what someone lent us into a log.
+   */
+  describe("bring-your-own credentials", () => {
+    const suiteFor = async (name: string): Promise<string | undefined> => {
+      const catalog = (await (await fetch(`${baseUrl}/api/catalog`)).json()) as {
+        agents: Array<{ id: string }>
+        tasks: Array<{ id: string }>
+      }
+      if (catalog.agents.length === 0 || catalog.tasks.length === 0) return undefined
+      const created = await fetch(`${baseUrl}/api/suites`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name,
+          agentId: catalog.agents[0]!.id,
+          taskDefinitionId: catalog.tasks[0]!.id,
+          variants: ["baseline"],
+          runsPerVariant: 1,
+        }),
+      })
+      return ((await created.json()) as { id: string }).id
+    }
+
+    const post = async (suiteId: string, body: unknown) =>
+      fetch(`${baseUrl}/api/suites/${suiteId}/run`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      })
+
+    // No sealing key means no safe storage, and the honest answer to that is
+    // "this deployment cannot accept your key", not a silent plaintext write.
+    it("refuses a borrowed credential when it has nowhere safe to keep it", async () => {
+      const suiteId = await suiteFor("byo-unconfigured")
+      if (!suiteId) return
+
+      const response = await post(suiteId, { byoSession: "wss://deploy-test.invalid/cdp/abc" })
+      expect(response.status).toBeGreaterThanOrEqual(400)
+      const body = (await response.json()) as { error: { message: string } }
+      expect(body.error.message).toMatch(/cannot accept/i)
+    })
+
+    describe("on a deployment configured to accept them", () => {
+      // 32 bytes, generated here and never leaving this file: the tests must
+      // not depend on a real deployment's key, and must not invent one that
+      // looks like a credential someone might reuse.
+      const sealingKey = Buffer.alloc(32, 7).toString("base64")
+      const runToken = "deploy-test-token"
+      // A reserved TLD that never resolves: the assertion is about the gate and
+      // the sealing, so this must not send an unauthenticated connect attempt
+      // at Solari on every CI run. The worker fails it fast, which is fine —
+      // the run reaching the queue at all is what is being tested.
+      const borrowed = "wss://deploy-test.invalid/cdp/borrowed-endpoint"
+
+      beforeAll(async () => {
+        await stop(workerProc)
+        await stop(server)
+        logLines.length = 0
+        workerLines.length = 0
+        server = startServer({
+          GAUNTLET_CREDENTIAL_KEY: sealingKey,
+          GAUNTLET_RUN_TOKEN: runToken,
+        })
+        await waitForHealth()
+        workerProc = startWorker({ GAUNTLET_CREDENTIAL_KEY: sealingKey })
+        await waitForWorker()
+      })
+
+      afterAll(async () => {
+        await stop(workerProc)
+        await stop(server)
+        server = startServer()
+        await waitForHealth()
+        workerProc = startWorker()
+        await waitForWorker()
+      })
+
+      it("still gates a run that would spend the operator's credits", async () => {
+        const suiteId = await suiteFor("byo-gated")
+        if (!suiteId) return
+        const response = await post(suiteId, {})
+        expect(response.status).toBe(401)
+      })
+
+      // The whole point: paying for your own run is the authorization. The
+      // access code protects a balance, and this visitor is not spending it.
+      it("lets a visitor who brings a session start a run without the access code", async () => {
+        const suiteId = await suiteFor("byo-session")
+        if (!suiteId) return
+        // Generous on purpose. An earlier test SIGKILLs the worker mid-suite,
+        // and recovering from that is deliberately unhurried: a claim is only
+        // stale after STALE_CLAIM_MS (90s) and the sweep that notices runs once
+        // a minute, so the deployment can legitimately take past two minutes to
+        // drain before the one-suite-at-a-time limiter lets anything else in.
+        await waitForIdle(300_000)
+
+        const response = await post(suiteId, { byoSession: borrowed })
+        expect(response.status, JSON.stringify(await response.clone().json())).toBe(202)
+        // Borrowing a session means borrowing a Solari browser, whatever this
+        // deployment would otherwise have done.
+        expect(((await response.json()) as { mode: string }).mode).toBe("solari")
+
+        await waitForIdle()
+      })
+
+      // "Paste an endpoint" is an instruction to connect somewhere, so it gets
+      // the same treatment as a repository URL: nothing private, nothing local.
+      it.each([
+        ["ws://deploy-test.invalid/cdp/x", "an unencrypted endpoint"],
+        ["wss://127.0.0.1:9222/devtools/browser/x", "loopback"],
+        ["wss://10.0.0.4:9222/devtools/browser/x", "a private network"],
+        ["https://deploy-test.invalid/cdp/x", "the wrong scheme entirely"],
+      ])("rejects %s (%s)", async (endpoint) => {
+        const suiteId = await suiteFor("byo-bad-endpoint")
+        if (!suiteId) return
+        const response = await post(suiteId, { byoSession: endpoint })
+        expect(response.status).toBeGreaterThanOrEqual(400)
+      })
+
+      it("rejects something that is not a Solari key", async () => {
+        const suiteId = await suiteFor("byo-bad-key")
+        if (!suiteId) return
+        const response = await post(suiteId, { byoKey: "sk-ant-not-a-solari-key" })
+        expect(response.status).toBeGreaterThanOrEqual(400)
+        const body = (await response.json()) as { error: { message: string } }
+        expect(body.error.message).toMatch(/solari api key/i)
+      })
+
+      // A credential that reaches a log has escaped, whatever the database does.
+      it("never writes a borrowed endpoint into either service's logs", () => {
+        const leaked = [...logLines, ...workerLines].filter((line) => line.includes(borrowed))
+        expect(leaked, leaked.join("\n")).toHaveLength(0)
+      })
+    })
+  })
+
   describe("graceful shutdown", () => {
     // The platform SIGTERMs and then SIGKILLs after a grace period. Exiting
     // cleanly inside it is what releases in-flight Solari sessions.
@@ -489,7 +632,9 @@ describe("northflank template", () => {
       .filter(([, v]) => v === "")
       .map(([k]) => k)
       .sort()
-    expect(blank).toEqual(["GAUNTLET_RUN_TOKEN", "SOLARI_API_KEY", "publicUrl"].sort())
+    expect(blank).toEqual(
+      ["GAUNTLET_CREDENTIAL_KEY", "GAUNTLET_RUN_TOKEN", "SOLARI_API_KEY", "publicUrl"].sort(),
+    )
   })
 })
 

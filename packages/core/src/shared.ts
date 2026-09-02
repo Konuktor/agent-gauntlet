@@ -14,6 +14,7 @@ export {
 } from "./domain/perturbation.js"
 
 export {
+  BORROWED_SESSION_ID,
   individualRunStatuses,
   isPass,
   isScorable,

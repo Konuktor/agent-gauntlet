@@ -288,6 +288,7 @@ pnpm gauntlet doctor              # what mode am I in, what is configured
 pnpm gauntlet demo                # the bundled suite
 pnpm gauntlet run ./gauntlet.yaml # your config
 pnpm gauntlet compare a.json b.json
+pnpm gauntlet session             # lend a browser to a hosted gauntlet
 ```
 
 The CLI runs **entirely in memory** — no database. A reliability gate in CI
@@ -329,8 +330,45 @@ workflow is at [.github/workflows/agent-gauntlet.yml](.github/workflows/agent-ga
 
 Always-on — Northflank's free Developer Sandbox does not sleep, so the first
 click is as fast as the tenth. It runs the seeded dataset, which is labelled
-**DEMO DATA** on every screen. Starting a real gauntlet asks for an access
-code, so a passer-by cannot spend Solari credits.
+**DEMO DATA** on every screen.
+
+---
+
+## Whose credits
+
+Every real run is a cloud browser somebody pays for, so the first question a
+public deployment has to answer is *whose*. The demo answers it in four tiers,
+and says which one you are in on the page itself.
+
+| You bring | You get | Why it is safe |
+|---|---|---|
+| Nothing | The full seeded dataset — every run, every failure, every replay | Nothing executes |
+| **Your own session** — a CDP endpoint from `gauntlet session` | A real gauntlet on a browser **you** created | Your API key never leaves your machine. We drive one browser you own and never release it — closing the command does |
+| **Your own key** — `slr_…` | A real gauntlet including repository agents, which need a sandbox | Sealed with AES-256-GCM before it touches the queue, used for that one run, wiped when it ends |
+| **The access code** | The operator's Solari account | That code exists to protect one balance, and nothing else |
+
+The middle row is the one worth noticing. The cheapest credential that makes a
+run possible is not an API key — it is a WebSocket URL scoped to a single
+browser session, which is exactly what the repository-agent contract already
+hands to untrusted code. So a stranger can crash-test their agent here without
+trusting us with an account, and we can host a public URL without funding it:
+
+```bash
+pnpm gauntlet session          # on your machine, with your SOLARI_API_KEY
+# → wss://api.getsolari.com/cdp/…   paste it into the form, keep the terminal open
+```
+
+The endpoint is validated the way a repository URL is — `wss://` only, no
+loopback, no RFC1918, no `.internal` — because accepting one from a stranger is
+accepting an instruction to connect somewhere. Borrowed sessions are not
+recorded, so those runs have no replay; the reliability numbers are unaffected,
+because the verdict has never come from a recording.
+
+Two honest limits. A borrowed browser can drive the benchmark site but cannot
+host it, so a deployment still needs somewhere to serve the fixture — here, the
+web service itself. And the sealing key is required: with no
+`GAUNTLET_CREDENTIAL_KEY` configured the feature refuses outright rather than
+quietly storing a secret in plaintext.
 
 ## Deploy on Northflank
 

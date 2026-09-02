@@ -1,6 +1,7 @@
 import { Solari, SolariError, type CreateSessionOptions } from "@solarisdk/browser"
 import { chromium, type Browser, type BrowserContext } from "patchright-core"
 import {
+  BORROWED_SESSION_ID,
   createPlaywrightPageDriver,
   createPlaywrightPageSignals,
   createRng,
@@ -21,6 +22,18 @@ import { fetchReplayWithBackoff } from "./replay.js"
 
 export interface SolariBrowserProviderOptions {
   apiKey: string
+  /**
+   * A session the visitor created and owns.
+   *
+   * When set, no session is created and none is released: this provider
+   * borrows one browser for the run. It is how somebody can test an agent
+   * without handing over an account key — the endpoint is a capability scoped
+   * to a single session they can revoke by closing it.
+   *
+   * Recording cannot be turned on after the fact, so a borrowed session yields
+   * no replay. That is stated rather than silently degraded.
+   */
+  borrowedCdpEndpoint?: string
   baseUrl?: string
   logger?: Logger
   /** Attempts for the connect step only. Never used to retry an agent. */
@@ -102,10 +115,15 @@ export class SolariBrowserProvider implements BrowserProvider {
     let session: RawSession | undefined
     let browser: Browser | undefined
     let context: BrowserContext | undefined
+    const borrowed = this.options.borrowedCdpEndpoint
 
     try {
-      session = await this.createSessionWithCapacityWait(sessionOptions, options.signal)
-      this.liveSessions.add(session.id)
+      session = borrowed
+        ? // Somebody else's session. We connect and, crucially, never release.
+          { id: BORROWED_SESSION_ID, wsEndpoint: borrowed, cdpEndpoint: borrowed, expiresAt: "" }
+        : await this.createSessionWithCapacityWait(sessionOptions, options.signal)
+      // Only sessions we created are ours to release.
+      if (!borrowed) this.liveSessions.add(session.id)
 
       browser = await this.connect(session, options.signal)
       context = await this.openContext(browser, options)
@@ -136,13 +154,17 @@ export class SolariBrowserProvider implements BrowserProvider {
         id: newId(),
         sessionId,
         mode: "solari",
-        recordingEnabled: options.recording,
+        // Recording is fixed when a session is created, so a borrowed one can
+        // never produce a replay. Say so rather than queue a fetch that will
+        // 404 forever.
+        recordingEnabled: borrowed ? false : options.recording,
         page: createPlaywrightPageDriver(like),
         signals: createPlaywrightPageSignals(like),
         dispose: async () => {
           if (disposed) return
           disposed = true
-          await this.dispose(scopedBrowser, sessionId)
+          // Disconnect, but never release: the session is theirs.
+          await this.dispose(scopedBrowser, borrowed ? undefined : sessionId)
           // The endpoint is a live credential; drop it the moment the session
           // it controls is gone.
           CDP_ENDPOINTS.delete(environment)
@@ -358,7 +380,13 @@ export class SolariBrowserProvider implements BrowserProvider {
   }
 
   private async connect(session: RawSession, signal?: AbortSignal): Promise<Browser> {
-    return retry(() => chromium.connect(session.wsEndpoint, { timeout: 30_000 }), {
+    // A session we created answers Playwright's own protocol; one the visitor
+    // created is reached over plain CDP, which is all they can hand us.
+    const open = () =>
+      session.id === BORROWED_SESSION_ID
+        ? chromium.connectOverCDP(session.cdpEndpoint, { timeout: 30_000 })
+        : chromium.connect(session.wsEndpoint, { timeout: 30_000 })
+    return retry(open, {
       attempts: this.options.connectAttempts ?? 2,
       baseDelayMs: 500,
       ...(signal ? { signal } : {}),

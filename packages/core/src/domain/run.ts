@@ -49,6 +49,15 @@ const RUN_TRANSITIONS: Record<IndividualRunStatus, readonly IndividualRunStatus[
   cancelled: [],
 }
 
+/**
+ * The session id recorded for a run that borrowed the visitor's browser.
+ *
+ * A borrowed session has no id we are entitled to — it is theirs — so this
+ * marks the run instead. It is also why such runs carry no replay: recording
+ * is fixed when a session is created, and we did not create this one.
+ */
+export const BORROWED_SESSION_ID = "borrowed"
+
 export const TERMINAL_SUITE_STATUSES: readonly SuiteRunStatus[] = ["completed", "failed", "cancelled"]
 export const TERMINAL_RUN_STATUSES: readonly IndividualRunStatus[] = [
   "passed",

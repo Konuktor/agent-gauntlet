@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Check, ExternalLink, PlayCircle, X } from "lucide-react"
-import { FAILURE_CATEGORY_META, type FailureCategory } from "@gauntlet/core/shared"
+import { BORROWED_SESSION_ID, FAILURE_CATEGORY_META, type FailureCategory } from "@gauntlet/core/shared"
 import type { RunDetailView } from "@/lib/queries"
 import { duration, percent, shortId } from "@/lib/format"
 import { EmptyState, ModeBadge, Panel, StatTile, StatusPill } from "./primitives"
@@ -357,6 +357,12 @@ function ReplayPanel({
       ) : mode === "demo" ? (
         <EmptyState title="Seeded demo runs carry no replay.">
           Replays come from real browser sessions. Start a run to record one.
+        </EmptyState>
+      ) : sessionId === BORROWED_SESSION_ID ? (
+        <EmptyState title="A borrowed session carries no replay.">
+          This run drove a browser somebody lent to the deployment, and recording can only be
+          switched on when a session is created. The verdict is unaffected: it comes from
+          server-side state, never from the recording.
         </EmptyState>
       ) : (
         <EmptyState title="This run was not recorded." />
