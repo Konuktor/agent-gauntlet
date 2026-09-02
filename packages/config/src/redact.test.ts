@@ -3,9 +3,9 @@ import { redactSecrets, redactValue } from "./redact.js"
 
 describe("redactSecrets", () => {
   it("redacts Solari and model API keys", () => {
-    expect(redactSecrets("SOLARI_API_KEY=slr_live_abc123DEF")).toBe("SOLARI_API_KEY=slr_live_[redacted]")
-    expect(redactSecrets("sk-ant-api03-xyz789")).toBe("sk-ant-[redacted]")
-    expect(redactSecrets("sk-proj1234567890abcdefghij")).toBe("sk-[redacted]")
+    expect(redactSecrets("SOLARI_API_KEY=slr_live_EXAMPLENOTAREALKEY")).toBe("SOLARI_API_KEY=slr_live_[redacted]")
+    expect(redactSecrets("sk-ant-EXAMPLENOTAREALKEY")).toBe("sk-ant-[redacted]")
+    expect(redactSecrets("sk-EXAMPLENOTAREALKEYAAAAA")).toBe("sk-[redacted]")
   })
 
   // The docs are explicit that these URLs ARE the credential: anyone holding
