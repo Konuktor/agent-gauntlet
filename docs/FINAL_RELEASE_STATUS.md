@@ -17,9 +17,15 @@ Run locally against a real Postgres, before and after the release changes.
 | `pnpm test:e2e`                     | 36 passed                                         |
 | `pnpm test:deploy`                  | 46 passed, 1 skipped                              |
 | `pnpm gauntlet run ./gauntlet.yaml` | 14/16, reliability 87.5%, 0 infrastructure errors |
+| `pnpm gauntlet demo`                | 33.9s, exit 1 — 87.5% against the demo's 90% gate |
 
 The CLI gate reproduces the documented behaviour exactly: `baseline` 7 steps,
 `unexpected_modal` 19 steps, `expired_session` 0/2.
+
+`gauntlet demo` exits 1 on purpose — the bundled suite is configured with a 90%
+threshold that the Reference Agent's 87.5% deliberately misses, so the gate can
+be seen working rather than described. Before the concurrency fix below it could
+not signal anything at all, because the process never returned.
 
 ## What the audit found
 
@@ -147,6 +153,17 @@ The regression test counts launches rather than inspecting the result, because
 asserting on the returned environments passes against the broken version too.
 Verified by restoring the racy implementation: `expected "spy" to be called 1
 times, but got 4 times`.
+
+**Result.** `pnpm gauntlet demo` went from a 25-minute `SIGTERM` to **33.9s and
+exit 1** — the exit code is meaningful again, since the process now returns at
+all. And the reliability gate completed in CI for the first time in the
+repository's history: **89 seconds**, reliability 87.5% against an 85% threshold,
+baseline 100%, `expired_session` 0/2.
+
+Nothing here changed a measurement. Perturbation config is scoped per run id,
+concurrent runs never contaminated each other, and the verdicts were correct
+throughout — the demo printed an accurate 87.5% before hanging. Only process
+exit was broken.
 
 ## Secret audit
 
