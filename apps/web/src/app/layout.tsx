@@ -33,11 +33,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         <header className="sticky top-0 z-40 border-b border-[var(--color-line)] bg-[color-mix(in_oklab,var(--color-plane)_88%,transparent)] backdrop-blur">
           <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-3 overflow-hidden px-4 sm:gap-4 sm:px-5">
-            <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
+            <Link
+              href="/"
+              className="flex shrink-0 items-center gap-2 font-semibold tracking-tight"
+            >
               <Swords size={17} style={{ color: "var(--color-accent)" }} aria-hidden />
-              AgentGauntlet
+              {/* The full name does not fit beside the nav and the mode badge
+                  at 390px, and the badge is the part that must never be cut. */}
+              <span className="hidden sm:inline">AgentGauntlet</span>
+              <span className="sm:hidden">Gauntlet</span>
             </Link>
-            <nav aria-label="Main" className="ml-4 flex items-center gap-1 text-sm">
+            <nav aria-label="Main" className="flex items-center gap-1 text-sm sm:ml-4">
               <Link className="btn btn-ghost" href="/runs">
                 Runs
               </Link>
@@ -45,7 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 New suite
               </Link>
             </nav>
-            <div className="ml-auto flex min-w-0 shrink items-center gap-2">
+            <div className="ml-auto flex shrink-0 items-center gap-2">
               {/* Which mode a NEW run would execute in. Never hidden. */}
               <ModeBadge mode={capabilities.mode} />
               {!capabilities.hasSolari ? (
