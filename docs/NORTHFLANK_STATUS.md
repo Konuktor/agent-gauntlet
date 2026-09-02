@@ -53,8 +53,11 @@
 - [x] Production QA at 1440×900 and 390×844: 6 pages, all 200 in <1s,
       no horizontal overflow, no localhost links, no console errors
 - [x] Unauthenticated run refused with 401; run token absent from `/api/capabilities`
-- [ ] Real Solari smoke test — **needs `SOLARI_API_KEY`**
-- [ ] Small 4-run gauntlet — needs the same
+- [x] **Real Solari smoke test PASSED** — sandbox, benchmark site, preview URL, recorded
+      cloud browser, 7 agent steps, verdict from server state, replay (60 events / 70 KB),
+      0 infrastructure errors, 0 sandboxes left running. Details in `REAL_SOLARI_TEST.md`.
+- [ ] Small 4-variant gauntlet — blocked twice by concurrency held by sessions stranded
+      before the signal fix; capacity confirmed free, rerunning
 
 ### Things that only deploying could find
 1. `${refs.database.id}` is undefined — node responses nest under `data`. It does
