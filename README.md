@@ -173,7 +173,7 @@ in **[docs/SOLARI_NOTES.md](docs/SOLARI_NOTES.md)**.
 ## Quickstart
 
 ```bash
-git clone <this repo> && cd agent-gauntlet
+git clone https://github.com/Konuktor/agent-gauntlet.git && cd agent-gauntlet
 cp .env.example .env
 pnpm install
 docker compose up -d          # Postgres on :5433
@@ -191,18 +191,19 @@ so. Add `SOLARI_API_KEY` to `.env` and the same suites run on Solari.
 
 ### Environment
 
-| Variable                      | Default                    | Meaning                                                                                            |
-| ----------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                | `…localhost:5433/gauntlet` | Postgres, matching `docker-compose.yml`                                                            |
-| `SOLARI_API_KEY`              | —                          | Enables real mode. Absent ⇒ local mode                                                             |
-| `GAUNTLET_MODE`               | `auto`                     | `auto` \| `solari` \| `local`. `solari` without a key is a startup error, never a silent downgrade |
-| `GAUNTLET_RUN_TOKEN`          | —                          | Access code required to _start_ a run. Mandatory for a public deployment                           |
-| `GAUNTLET_PUBLIC_URL`         | —                          | Public origin. Set it in production so nothing emits a localhost link                              |
-| `ANTHROPIC_API_KEY`           | —                          | Optional, experimental adapter only. Never required                                                |
-| `GAUNTLET_MAX_CONCURRENCY`    | `3`                        | Parallel browsers. Solari's Free plan allows 3                                                     |
-| `GAUNTLET_MAX_SANDBOXES`      | `1`                        | Free plan allows 1                                                                                 |
-| `GAUNTLET_MAX_RUNS_PER_SUITE` | `50`                       | Cost ceiling                                                                                       |
-| `GAUNTLET_FIXTURE_URL`        | —                          | Point at an existing fixture instead of provisioning a sandbox                                     |
+| Variable                      | Default                    | Meaning                                                                                                                   |
+| ----------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                | `…localhost:5433/gauntlet` | Postgres, matching `docker-compose.yml`                                                                                   |
+| `SOLARI_API_KEY`              | —                          | Enables real mode. Absent ⇒ local mode                                                                                    |
+| `GAUNTLET_MODE`               | `auto`                     | `auto` \| `solari` \| `local`. `solari` without a key is a startup error, never a silent downgrade                        |
+| `GAUNTLET_RUN_TOKEN`          | —                          | Access code required to _start_ a run. Mandatory for a public deployment                                                  |
+| `GAUNTLET_PUBLIC_URL`         | —                          | Public origin. Set it in production so nothing emits a localhost link                                                     |
+| `ANTHROPIC_API_KEY`           | —                          | Optional, experimental adapter only. Never required                                                                       |
+| `GAUNTLET_MAX_CONCURRENCY`    | `3`                        | Parallel browsers. Solari's Free plan allows 3                                                                            |
+| `GAUNTLET_MAX_SANDBOXES`      | `1`                        | Free plan allows 1                                                                                                        |
+| `GAUNTLET_MAX_RUNS_PER_SUITE` | `50`                       | Cost ceiling                                                                                                              |
+| `GAUNTLET_FIXTURE_URL`        | —                          | Point at an existing fixture instead of provisioning a sandbox                                                            |
+| `GAUNTLET_CREDENTIAL_KEY`     | —                          | 32 base64 bytes. Seals a session or key a visitor lends the deployment; absent ⇒ the feature is refused, never downgraded |
 
 Every variable is validated at startup by a Zod schema; a bad `.env` produces one
 message listing every problem, not a cascade.
