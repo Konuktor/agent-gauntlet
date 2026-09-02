@@ -252,3 +252,61 @@ each fix: 0 → 0 → 0 → 4 → **7**.
 6. **Redirects were not prefixed with the mount** — links were fixed, `Location`
    headers were not, so a POST sent the browser out of the store. The agent
    added the product and then hunted for the coupon field on a 404 page.
+
+---
+
+## Bring-your-own credentials, proved live — 2026-09-02
+
+A visitor lends the deployment a browser instead of an API key, and the run
+spends their credits. Verified against the live Northflank URL, on commit
+`27b83e6`, using a deliberately dead endpoint so no real session was consumed.
+
+| Check | Result |
+|---|---|
+| Web service accepted the endpoint and sealed it | 202, `mode: "solari"` |
+| The **separate** worker opened it | `"run uses a credential the visitor brought"` |
+| Which proves the sealing key round-trips across two services | AES-256-GCM, both containers |
+| Took the borrowed code path | `browserType.connectOverCDP`, not `chromium.connect` |
+| Never released somebody else's session | `sessionId: "borrowed"`, no release call |
+| Promised no replay | `replay: not_requested` |
+| Failed as infrastructure, not as the agent | `infrastructure_error` / `browser_error` |
+| Access code bypassed for a visitor paying their own way | 202 with no token |
+| Loopback endpoint refused | 400, "points inside a private network" |
+| Non-Solari key refused | 400, "does not look like a Solari API key" |
+
+### And the bug it found
+
+The run detail API served the borrowed endpoint back, in full:
+
+```
+failureMessage: browserType.connectOverCDP: WebSocket error: getaddrinfo ENOTFOUND …
+Call log:
+  - <ws connecting> wss://live-check.invalid/cdp/x
+```
+
+The logger was clean — every occurrence in the worker's output read
+`[redacted-session-endpoint]`, and only the bare hostname survived, from the DNS
+error. But Playwright quotes the endpoint it was handed, that error is stored as
+the run's failure message, and the run page renders it. For a real borrowed
+session, that is a live credential handed to anyone who opens the URL.
+
+Three things worth recording about it:
+
+1. **The claim in the README was true and insufficient.** "Never persisted —
+   there is no column" was correct about columns and wrong about error text.
+   No column stores an endpoint; an endpoint reached the database anyway.
+2. **The local suite could not have caught it.** Without a fixture URL the run
+   dies before it dials the browser, so nothing ever quotes an endpoint. The
+   regression test now sets `GAUNTLET_HOST_FIXTURE` and `GAUNTLET_FIXTURE_URL`
+   the way production does, and refuses to pass unless the run genuinely reached
+   the connect step — otherwise it would be green and empty.
+3. **That guard immediately found a second bug.** `SolariBrowserProvider` built
+   the Solari SDK client in its constructor, which throws without a key. Every
+   call it makes is create, release or replay — none of which a borrowed session
+   does. So a deployment with no Solari account could not use a lent browser at
+   all, which is the entire point of lending one. The live deployment hid it by
+   having a key.
+
+Fixed in `15f4806`: scrubbing moved to the persistence boundary, `redactValue`
+stopped flattening non-plain objects (it was turning every logged `Date` into
+`{}`), and the SDK client is now built only when there is a key.

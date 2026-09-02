@@ -65,6 +65,16 @@
 - [x] **Repository-agent contract proved live** — separate public repo, cloned and run in a Solari
       Sandbox, 7 steps, 8/8 evaluator assertions. Then `expired_session`: FAIL at 6 steps,
       category `auth`. Details in `REAL_SOLARI_TEST.md`.
+- [x] **Bring-your-own credentials proved live** — a borrowed CDP endpoint sealed by the web
+      service, opened by the *separate* worker (so the sealing key round-trips across both),
+      driven through `connectOverCDP`, `replay: not_requested`, and failed as
+      `infrastructure_error` / `browser_error` rather than as an agent failure.
+- [!] **Credential leak found by that live run, and fixed.** The logger scrubbed the endpoint
+      everywhere; the *persisted* failure message did not, so `/api/suite-runs/:id` — and the
+      run detail page — served a live CDP endpoint verbatim. Playwright quotes the endpoint it
+      was handed inside its connect error, and that text was stored. Scrubbing now happens on
+      the way into Postgres. The local suite could not have caught it: without a fixture URL the
+      run dies before the dial, so nothing ever quotes an endpoint. Commit `15f4806`.
 - [ ] Full 8 x 2 gauntlet — not run; the small one is the meaningful proof and the rest is cost
 
 ## Submission QA (live URL, 1440x900 and 390x844)

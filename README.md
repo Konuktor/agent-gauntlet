@@ -470,8 +470,16 @@ reported separately. Blaming the agent for our outage would be dishonest.
   `file://`, SCP-style git URLs, credentials-in-URL, localhost, RFC1918 and the
   link-local metadata range are all rejected before a clone is attempted.
 - A repository agent receives a **scoped CDP endpoint**, never `SOLARI_API_KEY`.
-- CDP and WebSocket endpoints are treated as credentials: never persisted (there
-  is no column), never sent to the browser, redacted from logs.
+- CDP and WebSocket endpoints are treated as credentials: no column stores one,
+  none is sent to the browser, and both the logger and the persistence layer
+  scrub them. The second half of that was added after a live run proved the
+  first half insufficient — a Playwright connect error quotes the endpoint it
+  was given, and that text was being stored as a failure message and rendered
+  on the run page. "There is no column" is not the same as "it never reaches
+  the database".
+- A credential a visitor lends the deployment is sealed with AES-256-GCM before
+  it enters the queue, opened once in the worker, and wiped when the run ends —
+  or swept by age, since the session behind it expires within the hour.
 - Caps on install time, run time, stdout/stderr bytes, concurrent sessions,
   repetitions, runs per suite and task length.
 - `server-only` on the config module makes importing a secret into a client
