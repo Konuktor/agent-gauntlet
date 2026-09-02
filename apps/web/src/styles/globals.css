@@ -85,7 +85,10 @@ body {
     font-weight: 500;
     line-height: 1.2;
     cursor: pointer;
-    transition: background-color 120ms ease, border-color 120ms ease, opacity 120ms ease;
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease,
+      opacity 120ms ease;
   }
   .btn:disabled {
     opacity: 0.45;

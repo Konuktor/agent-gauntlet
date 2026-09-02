@@ -47,12 +47,15 @@ export const cookiePopup = define({
 export const unexpectedModal = define({
   id: "unexpected_modal",
   name: "Unexpected modal",
-  description: "A newsletter interstitial appears shortly after each page loads and blocks all clicks.",
+  description:
+    "A newsletter interstitial appears shortly after each page loads and blocks all clicks.",
   category: "ui",
   // The delay is jittered from the seed so the modal does not always land at
   // the same point in the agent's loop — that is what makes it a reliability
   // test rather than a fixed obstacle the agent can memorise.
-  fixtureConfig: (ctx) => ({ unexpectedModal: { afterMs: createRng(ctx.seed).jitter(1_200, 0.4) } }),
+  fixtureConfig: (ctx) => ({
+    unexpectedModal: { afterMs: createRng(ctx.seed).jitter(1_200, 0.4) },
+  }),
 })
 
 export const slowApi = define({
@@ -101,7 +104,8 @@ export const renamedCta = define({
 export const expiredSession = define({
   id: "expired_session",
   name: "Expired session",
-  description: "The session expires partway through checkout. The cart survives and can be resumed.",
+  description:
+    "The session expires partway through checkout. The cart survives and can be resumed.",
   category: "state",
   // Alternating the trigger stage by seed means a suite exercises both the
   // early and the late failure, instead of only ever the same one.

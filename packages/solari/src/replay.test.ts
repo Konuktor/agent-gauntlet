@@ -16,7 +16,11 @@ const fast = { attempts: 4, intervalMs: 1 }
 describe("fetchReplayWithBackoff", () => {
   it("returns the artifact on the first successful poll", async () => {
     const downloadReplay = vi.fn(async () => ndjson(3))
-    const artifact = await fetchReplayWithBackoff("sess_1", { downloadReplay, logger: nullLogger }, fast)
+    const artifact = await fetchReplayWithBackoff(
+      "sess_1",
+      { downloadReplay, logger: nullLogger },
+      fast,
+    )
     expect(artifact).toMatchObject({ source: "solari", eventCount: 3, truncated: false })
     expect(downloadReplay).toHaveBeenCalledTimes(1)
   })
@@ -29,7 +33,11 @@ describe("fetchReplayWithBackoff", () => {
       if (++calls < 3) throw new HttpError(404)
       return ndjson(5)
     })
-    const artifact = await fetchReplayWithBackoff("sess_1", { downloadReplay, logger: nullLogger }, fast)
+    const artifact = await fetchReplayWithBackoff(
+      "sess_1",
+      { downloadReplay, logger: nullLogger },
+      fast,
+    )
     expect(artifact?.eventCount).toBe(5)
     expect(downloadReplay).toHaveBeenCalledTimes(3)
   })
@@ -40,7 +48,9 @@ describe("fetchReplayWithBackoff", () => {
       if (++calls < 2) throw new Error("Request failed: 404 Not Found")
       return ndjson(2)
     })
-    expect((await fetchReplayWithBackoff("s", { downloadReplay, logger: nullLogger }, fast))?.eventCount).toBe(2)
+    expect(
+      (await fetchReplayWithBackoff("s", { downloadReplay, logger: nullLogger }, fast))?.eventCount,
+    ).toBe(2)
   })
 
   // Replay is evidence infrastructure, not a verdict: a missing recording must
@@ -49,7 +59,9 @@ describe("fetchReplayWithBackoff", () => {
     const downloadReplay = vi.fn(async () => {
       throw new HttpError(404)
     })
-    expect(await fetchReplayWithBackoff("s", { downloadReplay, logger: nullLogger }, fast)).toBeNull()
+    expect(
+      await fetchReplayWithBackoff("s", { downloadReplay, logger: nullLogger }, fast),
+    ).toBeNull()
     expect(downloadReplay).toHaveBeenCalledTimes(4)
   })
 
@@ -57,14 +69,18 @@ describe("fetchReplayWithBackoff", () => {
     const downloadReplay = vi.fn(async () => {
       throw new HttpError(500)
     })
-    expect(await fetchReplayWithBackoff("s", { downloadReplay, logger: nullLogger }, fast)).toBeNull()
+    expect(
+      await fetchReplayWithBackoff("s", { downloadReplay, logger: nullLogger }, fast),
+    ).toBeNull()
     expect(downloadReplay).toHaveBeenCalledTimes(1)
   })
 
   it("treats an empty body as not-yet-uploaded", async () => {
     let calls = 0
     const downloadReplay = vi.fn(async () => (++calls < 2 ? new Uint8Array() : ndjson(1)))
-    expect((await fetchReplayWithBackoff("s", { downloadReplay, logger: nullLogger }, fast))?.eventCount).toBe(1)
+    expect(
+      (await fetchReplayWithBackoff("s", { downloadReplay, logger: nullLogger }, fast))?.eventCount,
+    ).toBe(1)
   })
 
   it("abandons the poll when the run is cancelled", async () => {
@@ -72,7 +88,11 @@ describe("fetchReplayWithBackoff", () => {
     controller.abort()
     const downloadReplay = vi.fn(async () => ndjson(1))
     expect(
-      await fetchReplayWithBackoff("s", { downloadReplay, logger: nullLogger }, { ...fast, signal: controller.signal }),
+      await fetchReplayWithBackoff(
+        "s",
+        { downloadReplay, logger: nullLogger },
+        { ...fast, signal: controller.signal },
+      ),
     ).toBeNull()
     expect(downloadReplay).not.toHaveBeenCalled()
   })

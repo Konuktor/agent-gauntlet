@@ -25,7 +25,11 @@ export {
   type SuiteRunStatus,
 } from "./domain/run.js"
 
-export { failureCategories, FAILURE_CATEGORY_META, type FailureCategory } from "./failure/categories.js"
+export {
+  failureCategories,
+  FAILURE_CATEGORY_META,
+  type FailureCategory,
+} from "./failure/categories.js"
 export type { FailureCluster } from "./failure/classifier.js"
 
 export {

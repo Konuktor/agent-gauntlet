@@ -2,7 +2,13 @@ import { readFileSync } from "node:fs"
 import { execSync } from "node:child_process"
 import { resolve } from "node:path"
 import { describe, expect, it } from "vitest"
-import { createMemoryRecorder, createRng, nullLogger, type AgentRunContext, type TaskDefinition } from "@gauntlet/core"
+import {
+  createMemoryRecorder,
+  createRng,
+  nullLogger,
+  type AgentRunContext,
+  type TaskDefinition,
+} from "@gauntlet/core"
 import { RepositoryAgent } from "./repository-agent.js"
 
 /**
@@ -64,7 +70,13 @@ describe("repository agents never execute on this host", () => {
     const agent = new RepositoryAgent({ repository: "https://github.com/acme/agent" })
     // A sandbox but no CDP endpoint: there is nothing for the agent to drive,
     // and falling back to a local browser would defeat the isolation.
-    const sandboxes = { mode: "solari", create: async () => { throw new Error("unused") }, shutdown: async () => {} }
+    const sandboxes = {
+      mode: "solari",
+      create: async () => {
+        throw new Error("unused")
+      },
+      shutdown: async () => {},
+    }
     await expect(
       agent.run(context({ sandboxes: sandboxes as unknown as AgentRunContext["sandboxes"] })),
     ).rejects.toThrow(/browser endpoint/i)
@@ -79,7 +91,7 @@ describe("repository agents never execute on this host", () => {
     // Matches IMPORTS of the module, not the words. Prose explaining why the
     // module is absent should not trip the check that it is absent.
     const output = execSync(
-      "git grep -nE \"(from|require\\\\()\\\\s*[\\\"']node:child_process|(from|require\\\\()\\\\s*[\\\"']child_process\" -- " +
+      'git grep -nE "(from|require\\\\()\\\\s*[\\"\']node:child_process|(from|require\\\\()\\\\s*[\\"\']child_process" -- ' +
         "'packages/*/src/**/*.ts' 'apps/*/src/**/*.ts' 'apps/web/server.ts' " +
         "':!*.test.ts' ':!*/test-doubles.ts' || true",
       { cwd: repoRoot, encoding: "utf8" },
@@ -106,7 +118,10 @@ describe("repository agents never execute on this host", () => {
 
   it("never hands a Solari API key to the agent process", () => {
     const source = readFileSync(resolve(import.meta.dirname, "repository-agent.ts"), "utf8")
-    const envBlock = source.slice(source.indexOf("const env: Record<string, string>"), source.indexOf("let stdout"))
+    const envBlock = source.slice(
+      source.indexOf("const env: Record<string, string>"),
+      source.indexOf("let stdout"),
+    )
     expect(envBlock).toContain("AGENT_GAUNTLET_CDP_ENDPOINT")
     // The scoped browser endpoint is the whole point: least authority that
     // still lets the agent do its job.

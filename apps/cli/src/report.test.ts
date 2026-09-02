@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
 import { compareSuites, computeSuiteMetrics, type RunSummary } from "@gauntlet/core"
-import { evaluateThresholds, renderComparison, renderReport, type GauntletReport } from "./report.js"
+import {
+  evaluateThresholds,
+  renderComparison,
+  renderReport,
+  type GauntletReport,
+} from "./report.js"
 import { gauntletConfigSchema } from "./config.js"
 
 function metricsFor(passed: number, total: number, baselinePassed = 2, baselineTotal = 2) {
@@ -77,16 +82,29 @@ describe("evaluateThresholds", () => {
 
   it("skips a baseline threshold when the suite ran no baseline", () => {
     const metrics = computeSuiteMetrics([
-      { variant: "modal", variantName: "Modal", category: "ui", repetition: 1, status: "passed", durationMs: 1, steps: 1, failureCategory: null },
+      {
+        variant: "modal",
+        variantName: "Modal",
+        category: "ui",
+        repetition: 1,
+        status: "passed",
+        durationMs: 1,
+        steps: 1,
+        failureCategory: null,
+      },
     ])
     expect(metrics.baselineReliability).toBeNull()
-    expect(evaluateThresholds(report({ thresholds: { baseline: 1 }, metrics })).required).toHaveLength(0)
+    expect(
+      evaluateThresholds(report({ thresholds: { baseline: 1 }, metrics })).required,
+    ).toHaveLength(0)
   })
 })
 
 describe("renderReport", () => {
   it("prints per-variant rates, the headline and the verdict", () => {
-    const text = renderReport(report({ thresholds: { reliability: 0.9 }, metrics: metricsFor(6, 8, 8, 8) }))
+    const text = renderReport(
+      report({ thresholds: { reliability: 0.9 }, metrics: metricsFor(6, 8, 8, 8) }),
+    )
     expect(text).toContain("AgentGauntlet")
     expect(text).toContain("Baseline")
     expect(text).toContain("87.5%")
@@ -103,8 +121,26 @@ describe("renderReport", () => {
 
   it("surfaces infrastructure errors as excluded rather than hiding them", () => {
     const metrics = computeSuiteMetrics([
-      { variant: "baseline", variantName: "Baseline", category: "none", repetition: 1, status: "passed", durationMs: 1, steps: 1, failureCategory: null },
-      { variant: "baseline", variantName: "Baseline", category: "none", repetition: 2, status: "infrastructure_error", durationMs: null, steps: null, failureCategory: "browser_error" },
+      {
+        variant: "baseline",
+        variantName: "Baseline",
+        category: "none",
+        repetition: 1,
+        status: "passed",
+        durationMs: 1,
+        steps: 1,
+        failureCategory: null,
+      },
+      {
+        variant: "baseline",
+        variantName: "Baseline",
+        category: "none",
+        repetition: 2,
+        status: "infrastructure_error",
+        durationMs: null,
+        steps: null,
+        failureCategory: "browser_error",
+      },
     ])
     expect(renderReport(report({ metrics }))).toMatch(/excluded from the score/)
   })
@@ -114,7 +150,10 @@ describe("renderComparison", () => {
   it("reports a regression and names the variant that caused it", () => {
     const before = metricsFor(2, 2, 2, 2)
     const after = metricsFor(0, 2, 2, 2)
-    const text = renderComparison(compareSuites(before, after), { previous: "main", current: "pr-82" })
+    const text = renderComparison(compareSuites(before, after), {
+      previous: "main",
+      current: "pr-82",
+    })
     expect(text).toContain("REGRESSION DETECTED")
     expect(text).toContain("Modal")
     expect(text).toContain("-100pp")
@@ -122,9 +161,9 @@ describe("renderComparison", () => {
 
   it("reports no regression when nothing moved", () => {
     const metrics = metricsFor(2, 2)
-    expect(renderComparison(compareSuites(metrics, metrics), { previous: "a", current: "b" })).toContain(
-      "NO REGRESSION",
-    )
+    expect(
+      renderComparison(compareSuites(metrics, metrics), { previous: "a", current: "b" }),
+    ).toContain("NO REGRESSION")
   })
 })
 
@@ -149,11 +188,15 @@ describe("gauntlet.yaml schema", () => {
   })
 
   it("rejects an unknown agent type", () => {
-    expect(gauntletConfigSchema.safeParse({ ...base, agent: { type: "psychic" } }).success).toBe(false)
+    expect(gauntletConfigSchema.safeParse({ ...base, agent: { type: "psychic" } }).success).toBe(
+      false,
+    )
   })
 
   it("requires a repository for a repository agent", () => {
-    expect(gauntletConfigSchema.safeParse({ ...base, agent: { type: "repository" } }).success).toBe(false)
+    expect(gauntletConfigSchema.safeParse({ ...base, agent: { type: "repository" } }).success).toBe(
+      false,
+    )
     expect(
       gauntletConfigSchema.safeParse({
         ...base,
@@ -164,6 +207,8 @@ describe("gauntlet.yaml schema", () => {
 
   it("clamps repetitions and thresholds to sane ranges", () => {
     expect(gauntletConfigSchema.safeParse({ ...base, repetitions: 99 }).success).toBe(false)
-    expect(gauntletConfigSchema.safeParse({ ...base, thresholds: { reliability: 1.5 } }).success).toBe(false)
+    expect(
+      gauntletConfigSchema.safeParse({ ...base, thresholds: { reliability: 1.5 } }).success,
+    ).toBe(false)
   })
 })

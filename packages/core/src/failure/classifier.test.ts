@@ -40,8 +40,12 @@ const failedEval = (names: string[]): EvaluationResult => ({
 
 describe("classifyFailure", () => {
   it("maps infrastructure error codes without inference", () => {
-    expect(classifyFailure(evidence({ errorCode: "solari_concurrency" })).category).toBe("browser_error")
-    expect(classifyFailure(evidence({ errorCode: "sandbox_create_failed" })).category).toBe("sandbox_error")
+    expect(classifyFailure(evidence({ errorCode: "solari_concurrency" })).category).toBe(
+      "browser_error",
+    )
+    expect(classifyFailure(evidence({ errorCode: "sandbox_create_failed" })).category).toBe(
+      "sandbox_error",
+    )
     expect(classifyFailure(evidence({ errorCode: "evaluator_unavailable" })).category).toBe(
       "evaluator_failure",
     )
@@ -61,7 +65,9 @@ describe("classifyFailure", () => {
   })
 
   it("classifies a timeout", () => {
-    const c = classifyFailure(evidence({ agentResult: agent({ finishReason: "timeout", steps: 12 }) }))
+    const c = classifyFailure(
+      evidence({ agentResult: agent({ finishReason: "timeout", steps: 12 }) }),
+    )
     expect(c.category).toBe("timeout")
     expect(c.message).toContain("12 steps")
   })
@@ -90,7 +96,10 @@ describe("classifyFailure", () => {
 
   it("does not blame an overlay that blocked nothing", () => {
     const c = classifyFailure(
-      evidence({ overlayPresentAtEnd: true, agentResult: agent({ actions: [action({ type: "click" })] }) }),
+      evidence({
+        overlayPresentAtEnd: true,
+        agentResult: agent({ actions: [action({ type: "click" })] }),
+      }),
     )
     expect(c.category).not.toBe("unexpected_ui")
   })
@@ -203,8 +212,16 @@ describe("classifyFailure", () => {
 describe("clusterFailures", () => {
   it("groups failures that differ only in run-specific detail", () => {
     const clusters = clusterFailures([
-      { runId: "r1", category: "unexpected_ui", message: 'An overlay covered the page and 2 clicks failed.' },
-      { runId: "r2", category: "unexpected_ui", message: 'An overlay covered the page and 5 clicks failed.' },
+      {
+        runId: "r1",
+        category: "unexpected_ui",
+        message: "An overlay covered the page and 2 clicks failed.",
+      },
+      {
+        runId: "r2",
+        category: "unexpected_ui",
+        message: "An overlay covered the page and 5 clicks failed.",
+      },
       { runId: "r3", category: "auth", message: "The session expired." },
     ])
     expect(clusters).toHaveLength(2)

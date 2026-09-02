@@ -111,7 +111,11 @@ beforeEach(() => {
   respondWithSession()
   sessions.releaseAndWait.mockResolvedValue(undefined)
   connect.mockResolvedValue({ contexts: () => [contextStub], newContext, close: browserClose })
-  connectOverCDP.mockResolvedValue({ contexts: () => [contextStub], newContext, close: browserClose })
+  connectOverCDP.mockResolvedValue({
+    contexts: () => [contextStub],
+    newContext,
+    close: browserClose,
+  })
   contextStub.newPage.mockResolvedValue(pageStub)
 })
 
@@ -212,7 +216,9 @@ describe("the CDP endpoint is treated as a credential", () => {
   it("never persists the endpoint on the environment we hand upstream", async () => {
     const env = await provider().create({ recording: false, stealth: false })
     expect(env.sessionId).toBe("sess_abc")
-    expect(Object.values(env).some((v) => typeof v === "string" && v.includes("wss://"))).toBe(false)
+    expect(Object.values(env).some((v) => typeof v === "string" && v.includes("wss://"))).toBe(
+      false,
+    )
   })
 })
 
@@ -305,7 +311,12 @@ describe("retries", () => {
       .mockResolvedValueOnce({
         ok: true,
         status: 201,
-        text: async () => JSON.stringify({ sessionId: session.id, wsEndpoint: session.wsEndpoint, cdpEndpoint: session.cdpEndpoint }),
+        text: async () =>
+          JSON.stringify({
+            sessionId: session.id,
+            wsEndpoint: session.wsEndpoint,
+            cdpEndpoint: session.cdpEndpoint,
+          }),
       })
     await provider().create({ recording: false, stealth: false })
     expect(fetchMock).toHaveBeenCalledTimes(2)
@@ -316,11 +327,20 @@ describe("retries", () => {
   // suite died outright because two of three plan slots were briefly held.
   it("waits for a slot rather than failing the run outright", async () => {
     fetchMock
-      .mockResolvedValueOnce({ ok: false, status: 429, text: async () => JSON.stringify({ code: "ConcurrencyLimitExceeded" }) })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        text: async () => JSON.stringify({ code: "ConcurrencyLimitExceeded" }),
+      })
       .mockResolvedValueOnce({
         ok: true,
         status: 201,
-        text: async () => JSON.stringify({ sessionId: session.id, wsEndpoint: session.wsEndpoint, cdpEndpoint: session.cdpEndpoint }),
+        text: async () =>
+          JSON.stringify({
+            sessionId: session.id,
+            wsEndpoint: session.wsEndpoint,
+            cdpEndpoint: session.cdpEndpoint,
+          }),
       })
     await provider().create({ recording: false, stealth: false })
     expect(fetchMock).toHaveBeenCalledTimes(2)
@@ -399,7 +419,10 @@ describe("replay", () => {
   })
 
   it("mints a fresh presigned url on demand rather than persisting one", async () => {
-    sessions.getReplayUrl.mockResolvedValue({ url: "https://storage/x?sig=1", expiresInSeconds: 60 })
+    sessions.getReplayUrl.mockResolvedValue({
+      url: "https://storage/x?sig=1",
+      expiresInSeconds: 60,
+    })
     expect(await provider().mintReplayUrl("sess_abc")).toEqual({
       url: "https://storage/x?sig=1",
       expiresInSeconds: 60,

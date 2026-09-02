@@ -21,12 +21,7 @@ export const manifestSchema = z.object({
   run: commandSchema,
   /** Working directory inside the clone. */
   workdir: z.string().optional(),
-  installTimeoutMs: z
-    .number()
-    .int()
-    .positive()
-    .max(LIMITS.maxInstallTimeoutMs)
-    .default(300_000),
+  installTimeoutMs: z.number().int().positive().max(LIMITS.maxInstallTimeoutMs).default(300_000),
   timeoutMs: z.number().int().positive().max(LIMITS.maxRunTimeoutMs).default(120_000),
   /** Extra environment for the agent. Values are literal, never interpolated. */
   env: z.record(z.string()).default({}),
@@ -93,4 +88,3 @@ export function parseAgentClaim(stdout: string): AgentClaim | null {
     return null
   }
 }
-

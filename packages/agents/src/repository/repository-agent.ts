@@ -6,7 +6,12 @@ import {
   type AgentRunContext,
   type SandboxEnvironment,
 } from "@gauntlet/core"
-import { MANIFEST_FILENAME, parseAgentClaim, parseManifest, type AgentManifest } from "./manifest.js"
+import {
+  MANIFEST_FILENAME,
+  parseAgentClaim,
+  parseManifest,
+  type AgentManifest,
+} from "./manifest.js"
 import { validateRepositoryUrl } from "./repo-url.js"
 
 export interface RepositoryAgentConfig {
@@ -127,7 +132,10 @@ export class RepositoryAgent implements AgentAdapter {
       })
 
       const claim = parseAgentClaim(result.stdout || stdout)
-      context.recorder.log("agent process exited", { exitCode: result.exitCode, claimed: claim?.status })
+      context.recorder.log("agent process exited", {
+        exitCode: result.exitCode,
+        claimed: claim?.status,
+      })
 
       return {
         // Where the process ended, not whether the task succeeded — the
@@ -135,7 +143,9 @@ export class RepositoryAgent implements AgentAdapter {
         finishReason: result.exitCode === 0 ? "finished" : "error",
         steps: claim?.steps ?? 0,
         actions: [],
-        message: claim?.message ?? (result.exitCode === 0 ? "Agent exited cleanly." : `Agent exited ${result.exitCode}.`),
+        message:
+          claim?.message ??
+          (result.exitCode === 0 ? "Agent exited cleanly." : `Agent exited ${result.exitCode}.`),
         output: tail(joinStreams(result.stdout, result.stderr)),
         ...(result.exitCode === 0 ? {} : { errorCode: "nonzero_exit" }),
       }

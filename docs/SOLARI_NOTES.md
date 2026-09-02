@@ -19,11 +19,11 @@ the published types disagree, the types won and the disagreement is recorded.
 
 ## Packages used
 
-| Package | Why |
-|---|---|
-| `@solarisdk/browser` | Cloud browser sessions, recording, replay, profiles |
-| `@solarisdk/sdk` | `SolariClient` for sandboxes — it defaults `baseUrl`, the standalone client does not |
-| `patchright-core@1.62.2` | The pinned client for Solari's wire protocol. Exact version, as the docs require |
+| Package                  | Why                                                                                  |
+| ------------------------ | ------------------------------------------------------------------------------------ |
+| `@solarisdk/browser`     | Cloud browser sessions, recording, replay, profiles                                  |
+| `@solarisdk/sdk`         | `SolariClient` for sandboxes — it defaults `baseUrl`, the standalone client does not |
+| `patchright-core@1.62.2` | The pinned client for Solari's wire protocol. Exact version, as the docs require     |
 
 All of it is confined to `packages/solari`. Nothing else in the repository
 imports a Solari package, so the rest of the system is testable without one.
@@ -36,7 +36,7 @@ imports a Solari package, so the rest of the system is testable without one.
 
 `launch()` is the ergonomic path, and the endpoints on the `BrowserSession` it
 returns are documented as **"loopback-wrapped"**: they point at a proxy the SDK
-runs on *your* machine.
+runs on _your_ machine.
 
 That is invisible and harmless until you hand the endpoint to an agent running
 inside a Solari Sandbox, which cannot reach your loopback interface. The failure
@@ -46,7 +46,7 @@ looks like a Solari outage and is not one.
 
 ```ts
 const session = await solari.sessions.create({ recording: true, stealth: false })
-const browser = await chromium.connect(session.wsEndpoint)   // patchright-core
+const browser = await chromium.connect(session.wsEndpoint) // patchright-core
 // session.cdpEndpoint is the RAW endpoint a remote sandbox can reach
 ```
 
@@ -54,7 +54,7 @@ So AgentGauntlet uses `sessions.create()` for every run, connects itself, and
 releases the session explicitly. One code path, and the remote case works.
 → `packages/solari/src/browser-manager.ts`
 
-### 2. The session URL *is* the credential
+### 2. The session URL _is_ the credential
 
 > "WebSocket handshakes cannot reliably carry custom headers, so the HMAC-signed
 > composite ID in the path _is_ the capability: anyone holding the URL can drive
@@ -70,7 +70,7 @@ session id is safe to display.
 ### 3. Recording is per session, and the replay arrives late
 
 `recording: true` must be set at creation; a session created without it 404s on
-its replay endpoint *forever*. The upload then happens **asynchronously after
+its replay endpoint _forever_. The upload then happens **asynchronously after
 release**, so the first poll usually 404s even for a perfectly good recording.
 
 `getReplayUrl()` returns a **presigned** URL with an `expiresInSeconds`. Storing
@@ -154,13 +154,13 @@ sessions are where recording happens.
 
 ## Differences between the original specification and the current SDK
 
-| Spec said | Reality in 0.1.2 | What we did |
-|---|---|---|
-| `new SandboxClient({ apiKey })` | `SandboxClientOptions.baseUrl` is **required** (`baseUrl: string`), despite the package README showing it omitted | Use `SolariClient` from `@solarisdk/sdk`, which defaults it |
-| `sandbox.exec(...)` | Not on the headless `Sandbox` handle. The npm READMEs are stale; `exec` is an internal one-shot hook and a `Desktop` method | `sandbox.commands.run(cmd, { args })` |
-| Configure viewport on the session | No such option exists | Applied on the browser context |
-| `getReplayUrl()` returns a durable link | Presigned, with `expiresInSeconds` | Persist the artifact; mint URLs on demand |
-| `GET /sessions/:id` to poll a session | Documented as **"This endpoint is dead. It always 404s. Do not build on it."** | Never polled |
+| Spec said                               | Reality in 0.1.2                                                                                                            | What we did                                                 |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `new SandboxClient({ apiKey })`         | `SandboxClientOptions.baseUrl` is **required** (`baseUrl: string`), despite the package README showing it omitted           | Use `SolariClient` from `@solarisdk/sdk`, which defaults it |
+| `sandbox.exec(...)`                     | Not on the headless `Sandbox` handle. The npm READMEs are stale; `exec` is an internal one-shot hook and a `Desktop` method | `sandbox.commands.run(cmd, { args })`                       |
+| Configure viewport on the session       | No such option exists                                                                                                       | Applied on the browser context                              |
+| `getReplayUrl()` returns a durable link | Presigned, with `expiresInSeconds`                                                                                          | Persist the artifact; mint URLs on demand                   |
+| `GET /sessions/:id` to poll a session   | Documented as **"This endpoint is dead. It always 404s. Do not build on it."**                                              | Never polled                                                |
 
 ---
 
@@ -176,7 +176,7 @@ start to `DOMContentLoaded` and skipping `about:` and `blob:` documents.
 — which `tsx` and Vitest both enable — wraps named functions as
 `__name(function f(){}, "f")`. A page script authored as a real function and
 passed to `evaluate()` then dies with `ReferenceError: __name is not defined`,
-and *whether the agent can see the page depends on which bundler ran*. Every page
+and _whether the agent can see the page depends on which bundler ran_. Every page
 script is wrapped in a prelude that declares the helpers.
 
 **`rrweb@2.1`'s `exports` map publishes only `"."` and `"./dist/style.css"`.**
@@ -196,7 +196,7 @@ Not "a browser API we happened to call". The product's shape depends on four
 capabilities that are hard to get any other way:
 
 1. **Many independent, disposable, recorded Chrome sessions in parallel** — the
-   unit of measurement is a *repeated* run, so N sessions is the product.
+   unit of measurement is a _repeated_ run, so N sessions is the product.
 2. **A public URL for a server running inside an isolated VM** — the benchmark
    site has to be reachable by cloud browsers, and controlled by us.
 3. **Isolated execution of untrusted third-party repositories** — the repository
@@ -204,20 +204,19 @@ capabilities that are hard to get any other way:
 4. **DOM-level session recordings** — a failed run is debuggable rather than just
    counted.
 
-
 ## Observed on a real run (2026-09-02)
 
 First end-to-end Solari execution from the deployed worker, one baseline run:
 
-| Step | Result |
-|---|---|
-| Sandbox created, node probe | ok |
-| Gauntlet Shop uploaded | ok, ~0.5s |
-| `previewUrl` exposed and serving | ok, ~1s |
-| Browser session, agent acted | **passed**, 7 steps, 36.3s |
+| Step                               | Result                        |
+| ---------------------------------- | ----------------------------- |
+| Sandbox created, node probe        | ok                            |
+| Gauntlet Shop uploaded             | ok, ~0.5s                     |
+| `previewUrl` exposed and serving   | ok, ~1s                       |
+| Browser session, agent acted       | **passed**, 7 steps, 36.3s    |
 | Evaluator read `/__gauntlet/state` | ok, verdict from server state |
-| Replay retrieved | **no** — see below |
-| Infrastructure errors | 0 |
+| Replay retrieved                   | **no** — see below            |
+| Infrastructure errors              | 0                             |
 
 **The replay took longer than the documented "first poll usually 404s".** A
 10-attempt / 3s budget (~30s after release) was exhausted and the run recorded

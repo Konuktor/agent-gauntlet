@@ -71,7 +71,11 @@ export function snapshotScript(limits: { maxElements: number; maxTextChars: numb
       if (!(el instanceof HTMLElement)) return false
       if (el.hidden || el.closest("[hidden]")) return false
       const style = window.getComputedStyle(el)
-      if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) {
+      if (
+        style.display === "none" ||
+        style.visibility === "hidden" ||
+        Number(style.opacity) === 0
+      ) {
         return false
       }
       const rect = el.getBoundingClientRect()
@@ -165,7 +169,10 @@ export function snapshotScript(limits: { maxElements: number; maxTextChars: numb
       })
       const first = candidates[0]
       return first
-        ? { present: true, label: (first.getAttribute("aria-label") ?? first.id ?? "").slice(0, 80) || null }
+        ? {
+            present: true,
+            label: (first.getAttribute("aria-label") ?? first.id ?? "").slice(0, 80) || null,
+          }
         : { present: false, label: null }
     }
 
@@ -200,7 +207,8 @@ export function snapshotScript(limits: { maxElements: number; maxTextChars: numb
         name: accessibleName(el),
         tag: el.tagName.toLowerCase(),
       }
-      if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) entry.value = el.value
+      if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)
+        entry.value = el.value
       if ((el as HTMLButtonElement).disabled) entry.disabled = true
       if (isObscured(el)) entry.obscured = true
       elements.push(entry)

@@ -27,10 +27,25 @@ export interface DemoVariantOutcome {
 /** Measured: the Reference Agent (overlay handling, patient retries). */
 export const REFERENCE_OUTCOMES: DemoVariantOutcome[] = [
   { variant: "baseline", variantName: "Baseline", category: "none", results: ["pass", "pass"] },
-  { variant: "cookie_popup", variantName: "Cookie popup", category: "ui", results: ["pass", "pass"] },
+  {
+    variant: "cookie_popup",
+    variantName: "Cookie popup",
+    category: "ui",
+    results: ["pass", "pass"],
+  },
   { variant: "slow_api", variantName: "Slow API", category: "network", results: ["pass", "pass"] },
-  { variant: "unexpected_modal", variantName: "Unexpected modal", category: "ui", results: ["pass", "pass"] },
-  { variant: "mobile_viewport", variantName: "Mobile viewport", category: "viewport", results: ["pass", "pass"] },
+  {
+    variant: "unexpected_modal",
+    variantName: "Unexpected modal",
+    category: "ui",
+    results: ["pass", "pass"],
+  },
+  {
+    variant: "mobile_viewport",
+    variantName: "Mobile viewport",
+    category: "viewport",
+    results: ["pass", "pass"],
+  },
   { variant: "renamed_cta", variantName: "Renamed CTA", category: "ui", results: ["pass", "pass"] },
   {
     variant: "expired_session",
@@ -38,10 +53,14 @@ export const REFERENCE_OUTCOMES: DemoVariantOutcome[] = [
     category: "state",
     results: ["fail", "fail"],
     failureCategory: "auth",
-    failureMessage:
-      "The shopping session expired mid-task and the agent did not re-establish it.",
+    failureMessage: "The shopping session expired mid-task and the agent did not re-establish it.",
   },
-  { variant: "network_delay", variantName: "Network delay", category: "network", results: ["pass", "pass"] },
+  {
+    variant: "network_delay",
+    variantName: "Network delay",
+    category: "network",
+    results: ["pass", "pass"],
+  },
 ]
 
 /** Measured: the same suite after overlay handling regressed out of the agent. */

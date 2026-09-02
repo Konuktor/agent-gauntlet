@@ -85,7 +85,11 @@ export async function startFixtureServer(
 
 // ── routing ──────────────────────────────────────────────────────────────────
 
-async function route(store: FixtureStore, req: IncomingMessage, res: ServerResponse): Promise<void> {
+async function route(
+  store: FixtureStore,
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
   const url = new URL(req.url ?? "/", "http://fixture.local")
   const path = url.pathname
   const method = (req.method ?? "GET").toUpperCase()
@@ -132,7 +136,11 @@ function getRoute(state: RunState, res: ServerResponse, path: string, url: URL):
   }
 
   if (path === "/cart") {
-    return sendHtml(res, 200, cartPage(state, { couponError: url.searchParams.get("coupon") === "invalid" }))
+    return sendHtml(
+      res,
+      200,
+      cartPage(state, { couponError: url.searchParams.get("coupon") === "invalid" }),
+    )
   }
 
   if (path === "/cart/remove") {
@@ -207,7 +215,11 @@ async function controlRoute(
   method: string,
 ): Promise<void> {
   if (path === "/__gauntlet/health") {
-    return json(res, 200, { ok: true, runs: store.size(), uptimeMs: Math.round(process.uptime() * 1000) })
+    return json(res, 200, {
+      ok: true,
+      runs: store.size(),
+      uptimeMs: Math.round(process.uptime() * 1000),
+    })
   }
 
   if (path === "/__gauntlet/session" && method === "POST") {
@@ -218,7 +230,12 @@ async function controlRoute(
       config?: FixtureConfig
     } | null
     if (!body?.runId) return json(res, 400, { error: "runId is required" })
-    const state = store.register(body.runId, body.variant ?? "baseline", body.seed ?? 0, body.config ?? {})
+    const state = store.register(
+      body.runId,
+      body.variant ?? "baseline",
+      body.seed ?? 0,
+      body.config ?? {},
+    )
     return json(res, 201, { ok: true, runId: state.runId, variant: state.variant })
   }
 

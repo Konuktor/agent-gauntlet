@@ -20,7 +20,10 @@ export default defineConfig({
     colorScheme: "dark",
   },
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
+    {
+      name: "desktop",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
+    },
     {
       // A phone-shaped Chromium, not WebKit. This project exists to check that
       // the layout survives a 390px viewport — it is not a Safari

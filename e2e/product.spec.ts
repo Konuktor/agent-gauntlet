@@ -37,7 +37,9 @@ async function demoRunPair(page: Page): Promise<[string, string]> {
 test.describe("landing", () => {
   test("states the product's claim and offers both calls to action", async ({ page }) => {
     await page.goto("/")
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Crash-test your browser agent")
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      "Crash-test your browser agent",
+    )
     // Two obvious paths: exploring costs nothing, running spends credits.
     await expect(page.getByRole("link", { name: /Explore the demo/i })).toBeVisible()
     await expect(page.getByRole("link", { name: /Run a real gauntlet/i })).toBeVisible()
@@ -114,12 +116,17 @@ test.describe("result dashboard", () => {
 test.describe("individual failure", () => {
   test("shows the failing assertion, the agent's claim and the action trace", async ({ page }) => {
     await page.goto(`/runs/${await firstDemoRun(page)}`)
-    await page.getByRole("link", { name: /run \d+: Failed/ }).first().click()
+    await page
+      .getByRole("link", { name: /run \d+: Failed/ })
+      .first()
+      .click()
     await page.waitForURL(/\/individual\//)
 
     // The status chip in the page header, not the word "failed" wherever it
     // happens to appear.
-    await expect(page.locator("header, h1").locator("..").getByText("Failed", { exact: true }).first()).toBeVisible()
+    await expect(
+      page.locator("header, h1").locator("..").getByText("Failed", { exact: true }).first(),
+    ).toBeVisible()
     await expect(page.getByRole("heading", { name: "Evaluator evidence" })).toBeVisible()
 
     // The product's thesis, on screen: expected vs actual, from the site's own
@@ -134,7 +141,10 @@ test.describe("individual failure", () => {
 
   test("explains honestly when a seeded run has no replay", async ({ page }) => {
     await page.goto(`/runs/${await firstDemoRun(page)}`)
-    await page.getByRole("link", { name: /run \d+: Failed/ }).first().click()
+    await page
+      .getByRole("link", { name: /run \d+: Failed/ })
+      .first()
+      .click()
     await page.waitForURL(/\/individual\//)
     await expect(page.getByText(/Seeded demo runs carry no replay|not recorded/i)).toBeVisible()
   })
@@ -148,7 +158,9 @@ test.describe("regression comparison", () => {
     await expect(page.getByRole("heading", { name: "Regression comparison" })).toBeVisible()
     await expect(page.getByRole("heading", { name: "Regression detected" })).toBeVisible()
     await expect(page.getByText("percentage points", { exact: true })).toBeVisible()
-    await expect(page.getByRole("table", { name: /Reliability change per perturbation/i })).toBeVisible()
+    await expect(
+      page.getByRole("table", { name: /Reliability change per perturbation/i }),
+    ).toBeVisible()
   })
 })
 
@@ -163,7 +175,10 @@ test.describe("new suite", () => {
 
   test("updates the run count when variants change", async ({ page }) => {
     await page.goto("/suites/new")
-    await page.getByRole("checkbox", { name: /Baseline/i }).first().uncheck()
+    await page
+      .getByRole("checkbox", { name: /Baseline/i })
+      .first()
+      .uncheck()
     await expect(page.getByText(/7 variants × 2 repetitions = 14 browser runs/)).toBeVisible()
   })
 
@@ -192,7 +207,13 @@ test.describe("api", () => {
 
   test("rejects an invalid suite with a readable error", async ({ page }) => {
     const response = await page.request.post("/api/suites", {
-      data: { name: "", agentId: "not-a-uuid", taskDefinitionId: "x", variants: [], runsPerVariant: 0 },
+      data: {
+        name: "",
+        agentId: "not-a-uuid",
+        taskDefinitionId: "x",
+        variants: [],
+        runsPerVariant: 0,
+      },
     })
     expect(response.status()).toBe(400)
     const body = await response.json()

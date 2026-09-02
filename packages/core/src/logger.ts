@@ -2,7 +2,13 @@ import { redactValue } from "@gauntlet/config"
 
 export type LogLevel = "debug" | "info" | "warn" | "error" | "silent"
 
-const LEVEL_ORDER: Record<LogLevel, number> = { debug: 10, info: 20, warn: 30, error: 40, silent: 99 }
+const LEVEL_ORDER: Record<LogLevel, number> = {
+  debug: 10,
+  info: 20,
+  warn: 30,
+  error: 40,
+  silent: 99,
+}
 
 /** Identifiers attached to every log line so a failure is traceable end to end. */
 export interface LogContext {
@@ -38,7 +44,11 @@ export function createLogger(context: LogContext = {}, options: LoggerOptions = 
   const sink = options.sink ?? ((line: string) => process.stdout.write(line + "\n"))
   const pretty = options.pretty ?? process.env.NODE_ENV === "development"
 
-  const emit = (lvl: Exclude<LogLevel, "silent">, message: string, fields?: Record<string, unknown>) => {
+  const emit = (
+    lvl: Exclude<LogLevel, "silent">,
+    message: string,
+    fields?: Record<string, unknown>,
+  ) => {
     if (LEVEL_ORDER[lvl] < LEVEL_ORDER[level]) return
     const record = {
       ts: new Date().toISOString(),

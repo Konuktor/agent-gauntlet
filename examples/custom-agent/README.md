@@ -25,13 +25,13 @@ Solari Sandbox is in the architecture.
 
 ## Environment your agent receives
 
-| Variable | What it is |
-|---|---|
-| `AGENT_GAUNTLET_TASK` | The task, in plain English |
-| `AGENT_GAUNTLET_START_URL` | Where to begin, already scoped to this run |
-| `AGENT_GAUNTLET_CDP_ENDPOINT` | A live Chrome DevTools Protocol endpoint |
-| `AGENT_GAUNTLET_RUN_ID` | This run's id, for your own logging |
-| `AGENT_GAUNTLET_MAX_STEPS` | The step budget the task declares |
+| Variable                      | What it is                                 |
+| ----------------------------- | ------------------------------------------ |
+| `AGENT_GAUNTLET_TASK`         | The task, in plain English                 |
+| `AGENT_GAUNTLET_START_URL`    | Where to begin, already scoped to this run |
+| `AGENT_GAUNTLET_CDP_ENDPOINT` | A live Chrome DevTools Protocol endpoint   |
+| `AGENT_GAUNTLET_RUN_ID`       | This run's id, for your own logging        |
+| `AGENT_GAUNTLET_MAX_STEPS`    | The step budget the task declares          |
 
 **There is no `SOLARI_API_KEY` here, and there will not be.** The CDP endpoint
 is a capability scoped to one browser session that AgentGauntlet created and

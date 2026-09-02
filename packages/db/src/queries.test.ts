@@ -35,10 +35,7 @@ describe.skipIf(!available)("database integration", () => {
     await truncateAll(handle)
     const db = handle.db
 
-    const [project] = await db
-      .insert(projects)
-      .values({ name: "Demo", slug: "demo" })
-      .returning()
+    const [project] = await db.insert(projects).values({ name: "Demo", slug: "demo" }).returning()
     const [agent] = await db
       .insert(agents)
       .values({ projectId: project!.id, name: "Reference Agent", type: "reference" })
@@ -175,7 +172,9 @@ describe.skipIf(!available)("database integration", () => {
       const run = await enqueue()
       await transitionSuiteRun(handle.db, run.id, "preparing")
       await transitionSuiteRun(handle.db, run.id, "running")
-      await expect(transitionSuiteRun(handle.db, run.id, "queued")).rejects.toThrow(/Invalid suite run/)
+      await expect(transitionSuiteRun(handle.db, run.id, "queued")).rejects.toThrow(
+        /Invalid suite run/,
+      )
     })
 
     it("treats re-entering the same state as a no-op", async () => {
@@ -216,9 +215,20 @@ describe.skipIf(!available)("database integration", () => {
     it("is idempotent when an evaluation is written twice", async () => {
       const run = await enqueue()
       const runId = (await listIndividualRuns(handle.db, run.id))[0]!.id
-      await saveEvaluation(handle.db, runId, { success: false, score: 0.5, assertions: [], evidence: {} })
-      await saveEvaluation(handle.db, runId, { success: true, score: 1, assertions: [], evidence: {} })
-      const rows = await handle.sql`SELECT success, score FROM evaluation_results WHERE individual_run_id = ${runId}`
+      await saveEvaluation(handle.db, runId, {
+        success: false,
+        score: 0.5,
+        assertions: [],
+        evidence: {},
+      })
+      await saveEvaluation(handle.db, runId, {
+        success: true,
+        score: 1,
+        assertions: [],
+        evidence: {},
+      })
+      const rows =
+        await handle.sql`SELECT success, score FROM evaluation_results WHERE individual_run_id = ${runId}`
       expect(rows).toHaveLength(1)
       expect(rows[0]!.success).toBe(true)
     })
@@ -231,7 +241,10 @@ describe.skipIf(!available)("database integration", () => {
       await transitionIndividualRun(handle.db, runs[0]!.id, "preparing_environment")
       await transitionIndividualRun(handle.db, runs[0]!.id, "running_agent")
       await transitionIndividualRun(handle.db, runs[0]!.id, "evaluating")
-      await transitionIndividualRun(handle.db, runs[0]!.id, "passed", { durationMs: 5_000, steps: 7 })
+      await transitionIndividualRun(handle.db, runs[0]!.id, "passed", {
+        durationMs: 5_000,
+        steps: 7,
+      })
 
       await transitionIndividualRun(handle.db, runs[2]!.id, "preparing_environment")
       await transitionIndividualRun(handle.db, runs[2]!.id, "running_agent")
@@ -249,7 +262,8 @@ describe.skipIf(!available)("database integration", () => {
         { category: "unexpected_ui", count: 1, share: 1 },
       ])
 
-      const rows = await handle.sql`SELECT reliability, passed_runs FROM suite_runs WHERE id = ${run.id}`
+      const rows =
+        await handle.sql`SELECT reliability, passed_runs FROM suite_runs WHERE id = ${run.id}`
       expect(Number(rows[0]!.reliability)).toBe(0.5)
       expect(rows[0]!.passed_runs).toBe(1)
     })

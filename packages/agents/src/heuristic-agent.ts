@@ -172,7 +172,11 @@ class HeuristicPlanner implements Planner {
     // says nothing interesting about its reasoning.
     if (this.capabilities.waitForLateElements && this.attempts > 0 && this.attempts % 2 === 1) {
       this.attempts += 1
-      return { type: "wait", ms: RETRY_WAIT_MS, reason: `waiting for "${directive.describe}" to appear` }
+      return {
+        type: "wait",
+        ms: RETRY_WAIT_MS,
+        reason: `waiting for "${directive.describe}" to appear`,
+      }
     }
     this.attempts += 1
 

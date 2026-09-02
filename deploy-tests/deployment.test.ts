@@ -36,7 +36,10 @@ function loadEnvFile(): void {
     if (eq === -1) continue
     const key = line.slice(0, eq).trim()
     if (key in process.env) continue
-    process.env[key] = line.slice(eq + 1).trim().replace(/^["']|["']$/g, "")
+    process.env[key] = line
+      .slice(eq + 1)
+      .trim()
+      .replace(/^["']|["']$/g, "")
   }
 }
 loadEnvFile()
@@ -134,7 +137,10 @@ async function waitForIdle(timeoutMs = 120_000): Promise<void> {
   throw new Error("a suite was still active after waiting for the deployment to go idle")
 }
 
-async function stop(child: ChildProcessWithoutNullStreams | undefined, signal: NodeJS.Signals = "SIGKILL") {
+async function stop(
+  child: ChildProcessWithoutNullStreams | undefined,
+  signal: NodeJS.Signals = "SIGKILL",
+) {
   if (!child || child.exitCode !== null) return
   child.kill(signal)
   await new Promise((r) => setTimeout(r, signal === "SIGKILL" ? 300 : 100))
@@ -554,7 +560,9 @@ describe.skipIf(!built)("Deployment contract", () => {
       const child = server!
       const started = Date.now()
 
-      const exited = new Promise<number | null>((resolve) => child.once("exit", (code) => resolve(code)))
+      const exited = new Promise<number | null>((resolve) =>
+        child.once("exit", (code) => resolve(code)),
+      )
       child.kill("SIGTERM")
       const code = await Promise.race([
         exited,
@@ -612,7 +620,9 @@ describe("northflank template", () => {
   // Developer Sandbox: 2 services, 2 jobs, 1 addon. Exceeding any of them turns
   // a free deployment into a billing prompt, which is a hard stop for us.
   it("fits the free Developer Sandbox allowance", () => {
-    expect(byKind("CombinedService").length + byKind("DeploymentService").length).toBeLessThanOrEqual(2)
+    expect(
+      byKind("CombinedService").length + byKind("DeploymentService").length,
+    ).toBeLessThanOrEqual(2)
     expect(byKind("ManualJob").length + byKind("CronJob").length).toBeLessThanOrEqual(2)
     expect(byKind("Addon").length).toBeLessThanOrEqual(1)
   })
@@ -634,7 +644,11 @@ describe("northflank template", () => {
 
   it("gives each service its own Dockerfile target from the one build", () => {
     const targets = steps()
-      .map((s) => (s.spec.buildConfiguration as { dockerfileTarget?: string } | undefined)?.dockerfileTarget)
+      .map(
+        (s) =>
+          (s.spec.buildConfiguration as { dockerfileTarget?: string } | undefined)
+            ?.dockerfileTarget,
+      )
       .filter(Boolean)
     expect(new Set(targets)).toEqual(new Set(["web", "worker", "migrate"]))
   })

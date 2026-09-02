@@ -44,7 +44,15 @@ export interface RunPatch {
  */
 export interface RunStore {
   listPlannedRuns(): Promise<PlannedRun[]>
-  setSuiteStatus(status: SuiteRunStatus, patch?: { errorCode?: string; errorMessage?: string; fixtureSandboxId?: string; completedAt?: Date }): Promise<void>
+  setSuiteStatus(
+    status: SuiteRunStatus,
+    patch?: {
+      errorCode?: string
+      errorMessage?: string
+      fixtureSandboxId?: string
+      completedAt?: Date
+    },
+  ): Promise<void>
   updateRun(runId: string, patch: RunPatch): Promise<void>
   appendEvents(runId: string, events: RunEventInput[]): Promise<void>
   saveEvaluation(runId: string, result: EvaluationResult): Promise<void>

@@ -3,7 +3,9 @@ import { redactSecrets, redactValue } from "./redact.js"
 
 describe("redactSecrets", () => {
   it("redacts Solari and model API keys", () => {
-    expect(redactSecrets("SOLARI_API_KEY=slr_live_EXAMPLENOTAREALKEY")).toBe("SOLARI_API_KEY=slr_live_[redacted]")
+    expect(redactSecrets("SOLARI_API_KEY=slr_live_EXAMPLENOTAREALKEY")).toBe(
+      "SOLARI_API_KEY=slr_live_[redacted]",
+    )
     expect(redactSecrets("sk-ant-EXAMPLENOTAREALKEY")).toBe("sk-ant-[redacted]")
     expect(redactSecrets("sk-EXAMPLENOTAREALKEYAAAAA")).toBe("sk-[redacted]")
   })
@@ -15,18 +17,24 @@ describe("redactSecrets", () => {
       "connect [redacted-session-endpoint] now",
     )
     expect(redactSecrets("wss://api.getsolari.com/ws/abc.def")).toBe("[redacted-session-endpoint]")
-    expect(redactSecrets("wss://api.getsolari.com/control/abc.def")).toBe("[redacted-session-endpoint]")
+    expect(redactSecrets("wss://api.getsolari.com/control/abc.def")).toBe(
+      "[redacted-session-endpoint]",
+    )
   })
 
   it("redacts presigned URL signatures but keeps the path readable", () => {
-    const out = redactSecrets("https://storage.getsolari.com/org/replay.ndjson?X-Amz-Signature=deadbeef&x=1")
+    const out = redactSecrets(
+      "https://storage.getsolari.com/org/replay.ndjson?X-Amz-Signature=deadbeef&x=1",
+    )
     expect(out).toContain("replay.ndjson")
     expect(out).toContain("X-Amz-Signature=[redacted]")
     expect(out).not.toContain("deadbeef")
   })
 
   it("redacts database credentials", () => {
-    expect(redactSecrets("postgres://user:hunter2@db:5432/x")).toBe("postgres://[redacted]@db:5432/x")
+    expect(redactSecrets("postgres://user:hunter2@db:5432/x")).toBe(
+      "postgres://[redacted]@db:5432/x",
+    )
   })
 
   it("leaves innocuous text alone", () => {
@@ -36,9 +44,11 @@ describe("redactSecrets", () => {
 
 describe("redactValue", () => {
   it("redacts by key name as well as by content", () => {
-    expect(
-      redactValue({ apiKey: "anything", cdpEndpoint: "wss://x/cdp/y", runId: "r1" }),
-    ).toEqual({ apiKey: "[redacted]", cdpEndpoint: "[redacted]", runId: "r1" })
+    expect(redactValue({ apiKey: "anything", cdpEndpoint: "wss://x/cdp/y", runId: "r1" })).toEqual({
+      apiKey: "[redacted]",
+      cdpEndpoint: "[redacted]",
+      runId: "r1",
+    })
   })
 
   it("recurses into nested objects and arrays", () => {

@@ -3,7 +3,11 @@
 import { useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Check, ExternalLink, PlayCircle, X } from "lucide-react"
-import { BORROWED_SESSION_ID, FAILURE_CATEGORY_META, type FailureCategory } from "@gauntlet/core/shared"
+import {
+  BORROWED_SESSION_ID,
+  FAILURE_CATEGORY_META,
+  type FailureCategory,
+} from "@gauntlet/core/shared"
 import type { RunDetailView } from "@/lib/queries"
 import { duration, percent, shortId } from "@/lib/format"
 import { EmptyState, ModeBadge, Panel, StatTile, StatusPill } from "./primitives"
@@ -32,12 +36,15 @@ export function RunDetail({ detail, suiteRunId }: { detail: RunDetailView; suite
   // A repository agent's own stdout/stderr — the only account of why somebody
   // else's code failed, and worth a panel of its own when there is one.
   const agentOutput = events
-    .filter((e) => e.type === "log" && (e.payload as { message?: string })?.message === "agent output")
+    .filter(
+      (e) => e.type === "log" && (e.payload as { message?: string })?.message === "agent output",
+    )
     .map((e) => (e.payload as { output?: string }).output)
     .filter(Boolean)
     .join("\n")
-  const agentClaim = (evaluation?.evidence as { agentClaim?: { finishReason?: string; message?: string } } | undefined)
-    ?.agentClaim
+  const agentClaim = (
+    evaluation?.evidence as { agentClaim?: { finishReason?: string; message?: string } } | undefined
+  )?.agentClaim
 
   return (
     <div className="space-y-6">
@@ -72,7 +79,8 @@ export function RunDetail({ detail, suiteRunId }: { detail: RunDetailView; suite
           ) : null}
           {failureMeta?.blame === "infrastructure" ? (
             <p className="mt-1 text-xs text-[var(--color-ink-3)]">
-              This was our infrastructure failing, not the agent. It is excluded from the reliability score.
+              This was our infrastructure failing, not the agent. It is excluded from the
+              reliability score.
             </p>
           ) : null}
         </div>
@@ -84,7 +92,13 @@ export function RunDetail({ detail, suiteRunId }: { detail: RunDetailView; suite
         <StatTile
           label="Evaluator score"
           value={evaluation ? percent(evaluation.score) : "—"}
-          sub={evaluation ? (evaluation.success ? "all assertions passed" : "partial credit") : "not evaluated"}
+          sub={
+            evaluation
+              ? evaluation.success
+                ? "all assertions passed"
+                : "partial credit"
+              : "not evaluated"
+          }
           tone={evaluation?.success ? "good" : evaluation ? "critical" : "default"}
         />
         <StatTile
@@ -102,7 +116,12 @@ export function RunDetail({ detail, suiteRunId }: { detail: RunDetailView; suite
         />
       </div>
 
-      <ReplayPanel runId={run.id} replayStatus={run.replayStatus} mode={run.mode} sessionId={run.sessionId} />
+      <ReplayPanel
+        runId={run.id}
+        replayStatus={run.replayStatus}
+        mode={run.mode}
+        sessionId={run.sessionId}
+      />
 
       {evaluation ? (
         <Panel
@@ -113,10 +132,18 @@ export function RunDetail({ detail, suiteRunId }: { detail: RunDetailView; suite
             <caption className="sr-only">Assertions checked for this run</caption>
             <thead>
               <tr className="text-left text-xs text-[var(--color-ink-3)]">
-                <th scope="col" className="pb-2 font-medium">Assertion</th>
-                <th scope="col" className="pb-2 font-medium">Expected</th>
-                <th scope="col" className="pb-2 font-medium">Actual</th>
-                <th scope="col" className="pb-2 text-right font-medium">Result</th>
+                <th scope="col" className="pb-2 font-medium">
+                  Assertion
+                </th>
+                <th scope="col" className="pb-2 font-medium">
+                  Expected
+                </th>
+                <th scope="col" className="pb-2 font-medium">
+                  Actual
+                </th>
+                <th scope="col" className="pb-2 text-right font-medium">
+                  Result
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -124,19 +151,34 @@ export function RunDetail({ detail, suiteRunId }: { detail: RunDetailView; suite
                 <tr key={assertion.name} className="border-t border-[var(--color-line)]">
                   <td className="py-2 pr-3">
                     <div>{assertion.description}</div>
-                    <div className="font-mono text-[11px] text-[var(--color-ink-3)]">{assertion.name}</div>
+                    <div className="font-mono text-[11px] text-[var(--color-ink-3)]">
+                      {assertion.name}
+                    </div>
                   </td>
-                  <td className="py-2 pr-3 font-mono text-xs text-[var(--color-ink-2)]">{render(assertion.expected)}</td>
-                  <td className="py-2 pr-3 font-mono text-xs" style={{ color: assertion.passed ? "var(--color-ink-2)" : "var(--color-critical)" }}>
+                  <td className="py-2 pr-3 font-mono text-xs text-[var(--color-ink-2)]">
+                    {render(assertion.expected)}
+                  </td>
+                  <td
+                    className="py-2 pr-3 font-mono text-xs"
+                    style={{
+                      color: assertion.passed ? "var(--color-ink-2)" : "var(--color-critical)",
+                    }}
+                  >
                     {render(assertion.actual)}
                   </td>
                   <td className="py-2 text-right">
                     {/* Glyph + text, never colour alone. */}
                     <span
                       className="inline-flex items-center gap-1 text-xs font-medium"
-                      style={{ color: assertion.passed ? "var(--color-good)" : "var(--color-critical)" }}
+                      style={{
+                        color: assertion.passed ? "var(--color-good)" : "var(--color-critical)",
+                      }}
                     >
-                      {assertion.passed ? <Check size={13} aria-hidden /> : <X size={13} aria-hidden />}
+                      {assertion.passed ? (
+                        <Check size={13} aria-hidden />
+                      ) : (
+                        <X size={13} aria-hidden />
+                      )}
                       {assertion.passed ? "pass" : "fail"}
                     </span>
                   </td>
@@ -171,7 +213,14 @@ export function RunDetail({ detail, suiteRunId }: { detail: RunDetailView; suite
                   step?: number
                   ok?: boolean
                   detail?: string
-                  action?: { type?: string; text?: string; label?: string; ms?: number; url?: string; reason?: string }
+                  action?: {
+                    type?: string
+                    text?: string
+                    label?: string
+                    ms?: number
+                    url?: string
+                    reason?: string
+                  }
                 }
                 const action = payload.action ?? {}
                 return (
@@ -181,19 +230,30 @@ export function RunDetail({ detail, suiteRunId }: { detail: RunDetailView; suite
                     </span>
                     <span
                       className="mt-0.5 shrink-0"
-                      style={{ color: payload.ok === false ? "var(--color-critical)" : "var(--color-good)" }}
+                      style={{
+                        color: payload.ok === false ? "var(--color-critical)" : "var(--color-good)",
+                      }}
                       aria-hidden
                     >
                       {payload.ok === false ? <X size={13} /> : <Check size={13} />}
                     </span>
                     <span className="min-w-0 break-words">
-                      <span className="font-mono text-xs text-[var(--color-ink)]">{action.type}</span>{" "}
+                      <span className="font-mono text-xs text-[var(--color-ink)]">
+                        {action.type}
+                      </span>{" "}
                       <span className="text-[var(--color-ink-2)]">
-                        {action.text ?? action.label ?? action.url ?? (action.ms ? `${action.ms}ms` : "")}
+                        {action.text ??
+                          action.label ??
+                          action.url ??
+                          (action.ms ? `${action.ms}ms` : "")}
                       </span>
-                      <span className="sr-only">{payload.ok === false ? " failed" : " succeeded"}</span>
+                      <span className="sr-only">
+                        {payload.ok === false ? " failed" : " succeeded"}
+                      </span>
                       {payload.detail ? (
-                        <span className="block text-xs text-[var(--color-ink-3)]">{payload.detail}</span>
+                        <span className="block text-xs text-[var(--color-ink-3)]">
+                          {payload.detail}
+                        </span>
                       ) : null}
                     </span>
                   </li>
@@ -204,10 +264,7 @@ export function RunDetail({ detail, suiteRunId }: { detail: RunDetailView; suite
         </Panel>
 
         {agentOutput ? (
-          <Panel
-            title="Agent output"
-            description="Exactly what the agent's own process printed."
-          >
+          <Panel title="Agent output" description="Exactly what the agent's own process printed.">
             <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words rounded bg-[var(--color-plane)] p-3 font-mono text-xs text-[var(--color-ink-2)]">
               {agentOutput}
             </pre>
@@ -217,15 +274,21 @@ export function RunDetail({ detail, suiteRunId }: { detail: RunDetailView; suite
         <Panel title="Timeline" description="Every lifecycle beat, in order.">
           <ol className="space-y-1 font-mono text-xs">
             {events
-              .filter((e) => e.type === "lifecycle" || e.type === "navigation" || e.type === "evaluator")
+              .filter(
+                (e) => e.type === "lifecycle" || e.type === "navigation" || e.type === "evaluator",
+              )
               .map((event, index) => (
                 <li key={index} className="flex min-w-0 gap-3">
                   <span className="w-16 shrink-0 text-[var(--color-ink-3)] tnum">
                     {new Date(event.timestamp).toISOString().slice(14, 23)}
                   </span>
-                  <span className="w-20 shrink-0 text-[var(--color-ink-3)]">{EVENT_LABELS[event.type] ?? event.type}</span>
+                  <span className="w-20 shrink-0 text-[var(--color-ink-3)]">
+                    {EVENT_LABELS[event.type] ?? event.type}
+                  </span>
                   <span className="min-w-0 truncate text-[var(--color-ink-2)]">
-                    {String(event.payload.phase ?? event.payload.url ?? JSON.stringify(event.payload))}
+                    {String(
+                      event.payload.phase ?? event.payload.url ?? JSON.stringify(event.payload),
+                    )}
                   </span>
                 </li>
               ))}
@@ -268,7 +331,9 @@ export function RunDetail({ detail, suiteRunId }: { detail: RunDetailView; suite
               <ul className="space-y-1.5 font-mono text-xs">
                 {networkEvents.map((event, index) => (
                   <li key={index} className="text-[var(--color-ink-2)]">
-                    <span style={{ color: "var(--color-critical)" }}>{String(event.payload.failure)}</span>{" "}
+                    <span style={{ color: "var(--color-critical)" }}>
+                      {String(event.payload.failure)}
+                    </span>{" "}
                     {String(event.payload.url)}
                   </li>
                 ))}
@@ -323,7 +388,11 @@ function ReplayPanel({
       actions={
         replayStatus === "ready" ? (
           <div className="flex gap-2">
-            <a className="btn btn-secondary" href={`/api/individual-runs/${runId}/replay`} download={`${runId}.ndjson`}>
+            <a
+              className="btn btn-secondary"
+              href={`/api/individual-runs/${runId}/replay`}
+              download={`${runId}.ndjson`}
+            >
               Download NDJSON
             </a>
             {mode === "solari" && sessionId ? (

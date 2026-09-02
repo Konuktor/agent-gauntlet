@@ -9,8 +9,15 @@ import { createMemoryRecorder, type RunRecorder } from "../domain/events.js"
 import type { AgentExecutionResult } from "../domain/agent.js"
 import type { EvaluationResult } from "../domain/evaluation.js"
 import type { TaskDefinition } from "../domain/task.js"
-import type { BrowserPerturbationOptions, FixturePerturbationConfig } from "../domain/perturbation.js"
-import { classifyFailure, type Classification, type FailureEvidence } from "../failure/classifier.js"
+import type {
+  BrowserPerturbationOptions,
+  FixturePerturbationConfig,
+} from "../domain/perturbation.js"
+import {
+  classifyFailure,
+  type Classification,
+  type FailureEvidence,
+} from "../failure/classifier.js"
 import { GauntletError } from "../errors.js"
 import { createRng } from "../random.js"
 import { sleep, withTimeout, type Semaphore } from "../concurrency.js"
@@ -80,9 +87,11 @@ export async function executeRun(
   ): Promise<RunOutcome> => {
     const durationMs = Date.now() - startedAt
     recorder.lifecycle("cleanup_complete")
-    await deps.store.appendEvents(run.id, recorder.drain()).catch((error: unknown) =>
-      logger.warn("could not persist run events", { error: describe(error) }),
-    )
+    await deps.store
+      .appendEvents(run.id, recorder.drain())
+      .catch((error: unknown) =>
+        logger.warn("could not persist run events", { error: describe(error) }),
+      )
     await deps.store.updateRun(run.id, {
       status,
       completedAt: new Date(),
@@ -121,7 +130,10 @@ export async function executeRun(
         }),
       signal,
     )
-    recorder.lifecycle("session_created", { sessionId: environment.sessionId, mode: environment.mode })
+    recorder.lifecycle("session_created", {
+      sessionId: environment.sessionId,
+      mode: environment.mode,
+    })
     await deps.store.updateRun(run.id, { sessionId: environment.sessionId })
 
     wireSignals(environment, recorder, { urlHistory, consoleErrors, pageErrors, networkErrors })
@@ -151,8 +163,7 @@ export async function executeRun(
             rng: createRng(run.seed),
           }),
         deps.task.timeoutMs,
-        () =>
-          new GauntletError({ code: "agent_timeout", message: "The agent ran out of time." }),
+        () => new GauntletError({ code: "agent_timeout", message: "The agent ran out of time." }),
         signal,
       )
     } catch (error) {
@@ -225,9 +236,11 @@ export async function executeRun(
     // Release the browser BEFORE fetching the replay: the recording upload only
     // begins once the session is released.
     if (environment) {
-      await environment.dispose().catch((error: unknown) =>
-        logger.warn("browser dispose failed", { error: describe(error) }),
-      )
+      await environment
+        .dispose()
+        .catch((error: unknown) =>
+          logger.warn("browser dispose failed", { error: describe(error) }),
+        )
       recorder.lifecycle("browser_released")
     }
     await deps.fixture.unregisterRun(run.id).catch(() => {})
@@ -239,7 +252,16 @@ export async function executeRun(
   // slander it, so it is recorded separately and excluded from reliability.
   if (!evaluation) {
     const classification = classifyFailure(
-      buildEvidence(agentResult, null, errorCode, consoleErrors, pageErrors, networkErrors, urlHistory, overlayPresentAtEnd),
+      buildEvidence(
+        agentResult,
+        null,
+        errorCode,
+        consoleErrors,
+        pageErrors,
+        networkErrors,
+        urlHistory,
+        overlayPresentAtEnd,
+      ),
     )
     return finishAs("infrastructure_error", {
       errorCode: errorCode ?? "internal",
@@ -255,11 +277,25 @@ export async function executeRun(
   const replay = beginReplay(environment)
 
   if (evaluation.success) {
-    return finishAs("passed", { ...replay, errorCode: null, failureCategory: null, failureMessage: null })
+    return finishAs("passed", {
+      ...replay,
+      errorCode: null,
+      failureCategory: null,
+      failureMessage: null,
+    })
   }
 
   const classification: Classification = classifyFailure(
-    buildEvidence(agentResult, evaluation, null, consoleErrors, pageErrors, networkErrors, urlHistory, overlayPresentAtEnd),
+    buildEvidence(
+      agentResult,
+      evaluation,
+      null,
+      consoleErrors,
+      pageErrors,
+      networkErrors,
+      urlHistory,
+      overlayPresentAtEnd,
+    ),
   )
   logger.info("run failed", { category: classification.category, rule: classification.rule })
   return finishAs("failed", {
@@ -343,7 +379,8 @@ function buildEvidence(
   const sessionExpired =
     evaluation?.evidence &&
     typeof evaluation.evidence === "object" &&
-    (evaluation.evidence as { observed?: { sessionExpired?: boolean } }).observed?.sessionExpired === true
+    (evaluation.evidence as { observed?: { sessionExpired?: boolean } }).observed
+      ?.sessionExpired === true
 
   return {
     agentResult,

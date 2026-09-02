@@ -86,7 +86,11 @@ export class SolariSandboxProvider implements SandboxProvider {
             ...(options.memMb ? { memMb: options.memMb } : {}),
             ...(options.envs ? { envs: options.envs } : {}),
             ...(options.fromSnapshot ? { fromSnapshot: options.fromSnapshot } : {}),
-            metadata: { app: "agent-gauntlet", ...(this.options.metadata ?? {}), ...(options.metadata ?? {}) },
+            metadata: {
+              app: "agent-gauntlet",
+              ...(this.options.metadata ?? {}),
+              ...(options.metadata ?? {}),
+            },
           }),
         {
           attempts: 3,

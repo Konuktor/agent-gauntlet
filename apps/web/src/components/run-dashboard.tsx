@@ -59,7 +59,8 @@ export function RunDashboard({ initial }: { initial: SuiteRunView }) {
   )
 
   const { metrics } = view
-  const progress = metrics.totalRuns === 0 ? 0 : (metrics.totalRuns - metrics.pendingRuns) / metrics.totalRuns
+  const progress =
+    metrics.totalRuns === 0 ? 0 : (metrics.totalRuns - metrics.pendingRuns) / metrics.totalRuns
   const failures = view.runs.filter((r) => r.status === "failed")
 
   return (
@@ -106,7 +107,11 @@ export function RunDashboard({ initial }: { initial: SuiteRunView }) {
         />
       ) : null}
       {streamError ? (
-        <ErrorPanel title="Live updates stopped" message={streamError} hint="The run itself is unaffected." />
+        <ErrorPanel
+          title="Live updates stopped"
+          message={streamError}
+          hint="The run itself is unaffected."
+        />
       ) : null}
 
       {live ? (
@@ -145,10 +150,22 @@ export function RunDashboard({ initial }: { initial: SuiteRunView }) {
           label="Failed"
           value={metrics.failedRuns}
           tone={metrics.failedRuns > 0 ? "critical" : "default"}
-          sub={metrics.infrastructureErrors > 0 ? `${metrics.infrastructureErrors} infra errors (unscored)` : "no infra errors"}
+          sub={
+            metrics.infrastructureErrors > 0
+              ? `${metrics.infrastructureErrors} infra errors (unscored)`
+              : "no infra errors"
+          }
         />
-        <StatTile label="p95 duration" value={duration(metrics.p95DurationMs)} sub={`p50 ${duration(metrics.p50DurationMs)}`} />
-        <StatTile label="Avg steps" value={metrics.avgSteps || "—"} sub={`avg ${duration(metrics.avgDurationMs)}`} />
+        <StatTile
+          label="p95 duration"
+          value={duration(metrics.p95DurationMs)}
+          sub={`p50 ${duration(metrics.p50DurationMs)}`}
+        />
+        <StatTile
+          label="Avg steps"
+          value={metrics.avgSteps || "—"}
+          sub={`avg ${duration(metrics.avgDurationMs)}`}
+        />
         <StatTile
           label="Run-to-run flips"
           value={percent(metrics.meanFlipRate)}
@@ -168,7 +185,10 @@ export function RunDashboard({ initial }: { initial: SuiteRunView }) {
           <Panel title="Reliability by category">
             <ReliabilityByCategory categories={metrics.byCategory} />
           </Panel>
-          <Panel title="Failure distribution" description="Only scored failures. Infrastructure errors are excluded.">
+          <Panel
+            title="Failure distribution"
+            description="Only scored failures. Infrastructure errors are excluded."
+          >
             <FailureDistribution distribution={metrics.failureDistribution} />
           </Panel>
         </div>
@@ -188,10 +208,16 @@ export function RunDashboard({ initial }: { initial: SuiteRunView }) {
         >
           <ul className="space-y-2">
             {view.clusters.map((cluster, index) => (
-              <li key={index} className="flex items-start gap-3 rounded border border-[var(--color-line)] px-3 py-2">
+              <li
+                key={index}
+                className="flex items-start gap-3 rounded border border-[var(--color-line)] px-3 py-2"
+              >
                 <span
                   className="chip mt-0.5"
-                  style={{ color: "var(--color-serious)", borderColor: "color-mix(in oklab, var(--color-serious) 45%, transparent)" }}
+                  style={{
+                    color: "var(--color-serious)",
+                    borderColor: "color-mix(in oklab, var(--color-serious) 45%, transparent)",
+                  }}
                 >
                   {FAILURE_CATEGORY_META[cluster.category as FailureCategory].label}
                 </span>
@@ -202,7 +228,10 @@ export function RunDashboard({ initial }: { initial: SuiteRunView }) {
                     {cluster.runIds.slice(0, 4).map((id, i) => (
                       <span key={id}>
                         {i > 0 ? ", " : ""}
-                        <Link className="hover:text-[var(--color-ink)]" href={`/runs/${view.id}/individual/${id}`}>
+                        <Link
+                          className="hover:text-[var(--color-ink)]"
+                          href={`/runs/${view.id}/individual/${id}`}
+                        >
                           {shortId(id)}
                         </Link>
                       </span>
@@ -216,7 +245,10 @@ export function RunDashboard({ initial }: { initial: SuiteRunView }) {
         </Panel>
       ) : null}
 
-      <Panel title="Individual failures" description="Open one to see the assertion that failed and the trace that led there.">
+      <Panel
+        title="Individual failures"
+        description="Open one to see the assertion that failed and the trace that led there."
+      >
         {failures.length === 0 ? (
           <EmptyState title="No failures in this run.">
             Every scored run satisfied the task&apos;s assertions.
@@ -234,7 +266,9 @@ export function RunDashboard({ initial }: { initial: SuiteRunView }) {
                     <div className="text-sm font-medium">
                       {run.variantName} · run {run.repetition}
                     </div>
-                    <div className="truncate text-xs text-[var(--color-ink-3)]">{run.failureMessage}</div>
+                    <div className="truncate text-xs text-[var(--color-ink-3)]">
+                      {run.failureMessage}
+                    </div>
                   </div>
                   <span className="chip">{run.failureCategory ?? "unknown"}</span>
                   <span className="hidden w-16 text-right text-xs text-[var(--color-ink-3)] tnum sm:block">

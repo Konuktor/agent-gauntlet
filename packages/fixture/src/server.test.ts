@@ -219,8 +219,12 @@ describe("perturbations change the environment", () => {
     const normal = (await get("p-normal", "/cart")).html
 
     const posIn = (html: string, needle: string) => html.indexOf(needle)
-    expect(posIn(reordered, 'data-testid="to-checkout"')).toBeLessThan(posIn(reordered, 'data-testid="cart-table"'))
-    expect(posIn(normal, 'data-testid="to-checkout"')).toBeGreaterThan(posIn(normal, 'data-testid="cart-table"'))
+    expect(posIn(reordered, 'data-testid="to-checkout"')).toBeLessThan(
+      posIn(reordered, 'data-testid="cart-table"'),
+    )
+    expect(posIn(normal, 'data-testid="to-checkout"')).toBeGreaterThan(
+      posIn(normal, 'data-testid="cart-table"'),
+    )
   })
 
   it("locale_variant translates the UI while keeping the state semantics", async () => {

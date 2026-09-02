@@ -27,7 +27,7 @@ export function createRng(seed: number): Rng {
   return {
     next,
     int: (min, max) => min + Math.floor(next() * (max - min + 1)),
-    pick: <T,>(items: readonly T[]): T => {
+    pick: <T>(items: readonly T[]): T => {
       if (items.length === 0) throw new Error("cannot pick from an empty list")
       return items[Math.floor(next() * items.length)] as T
     },

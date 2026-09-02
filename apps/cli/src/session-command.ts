@@ -42,7 +42,12 @@ export async function runSessionCommand(options: { json: boolean }): Promise<num
       detail: text.slice(0, 300),
     })
   }
-  const data = JSON.parse(text) as { sessionId: string; wsEndpoint: string; cdpEndpoint?: string; expiresAt?: string }
+  const data = JSON.parse(text) as {
+    sessionId: string
+    wsEndpoint: string
+    cdpEndpoint?: string
+    expiresAt?: string
+  }
   const cdp = data.cdpEndpoint ?? data.wsEndpoint.replace("/ws/", "/cdp/")
 
   const release = async () => {

@@ -105,7 +105,9 @@ export function computeSuiteMetrics(runs: readonly RunSummary[]): SuiteMetrics {
     reliability: ratio(passed.length, scorable.length),
     interval: wilsonInterval(passed.length, scorable.length),
 
-    baselineReliability: baselineRuns.length ? ratio(countPass(baselineRuns), baselineRuns.length) : null,
+    baselineReliability: baselineRuns.length
+      ? ratio(countPass(baselineRuns), baselineRuns.length)
+      : null,
     baselineInterval: baselineRuns.length
       ? wilsonInterval(countPass(baselineRuns), baselineRuns.length)
       : null,
@@ -124,7 +126,10 @@ export function computeSuiteMetrics(runs: readonly RunSummary[]): SuiteMetrics {
     p50DurationMs: Math.round(percentile(durations, 0.5)),
     p95DurationMs: Math.round(percentile(durations, 0.95)),
     avgSteps: round(mean(steps), 2),
-    reliabilityStdDev: round(stdDev(byVariant.filter((v) => v.total > 0).map((v) => v.reliability)), 4),
+    reliabilityStdDev: round(
+      stdDev(byVariant.filter((v) => v.total > 0).map((v) => v.reliability)),
+      4,
+    ),
     meanFlipRate: round(mean(byVariant.filter((v) => v.total > 1).map((v) => v.flipRate)), 4),
   }
 }
@@ -172,7 +177,10 @@ function groupVariants(runs: readonly RunSummary[]): VariantMetrics[] {
         avgSteps: round(mean(steps), 2),
       }
     })
-    .sort((a, b) => orderVariant(a.variant) - orderVariant(b.variant) || a.variant.localeCompare(b.variant))
+    .sort(
+      (a, b) =>
+        orderVariant(a.variant) - orderVariant(b.variant) || a.variant.localeCompare(b.variant),
+    )
 }
 
 /** Baseline always reads first: the whole story is "baseline vs the rest". */
@@ -212,7 +220,11 @@ function distributeFailures(
   }
   const total = [...counts.values()].reduce((sum, n) => sum + n, 0)
   return [...counts.entries()]
-    .map(([category, count]) => ({ category, count, share: total === 0 ? 0 : round(count / total, 4) }))
+    .map(([category, count]) => ({
+      category,
+      count,
+      share: total === 0 ? 0 : round(count / total, 4),
+    }))
     .sort((a, b) => b.count - a.count)
 }
 

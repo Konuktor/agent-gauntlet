@@ -1,6 +1,13 @@
 import type { ReactNode } from "react"
 import { clsx } from "clsx"
-import { AlertTriangle, CheckCircle2, CircleDashed, CircleSlash, Loader2, XCircle } from "lucide-react"
+import {
+  AlertTriangle,
+  CheckCircle2,
+  CircleDashed,
+  CircleSlash,
+  Loader2,
+  XCircle,
+} from "lucide-react"
 
 export type RunStatus =
   | "queued"
@@ -25,10 +32,34 @@ export const STATUS_META: Record<
   { label: string; short: string; color: string; Icon: typeof CheckCircle2; spin?: boolean }
 > = {
   queued: { label: "Queued", short: "·", color: "var(--color-ink-3)", Icon: CircleDashed },
-  preparing_environment: { label: "Preparing", short: "…", color: "var(--color-accent)", Icon: Loader2, spin: true },
-  running_agent: { label: "Running", short: "…", color: "var(--color-accent)", Icon: Loader2, spin: true },
-  evaluating: { label: "Evaluating", short: "…", color: "var(--color-accent)", Icon: Loader2, spin: true },
-  collecting_replay: { label: "Replay", short: "…", color: "var(--color-accent)", Icon: Loader2, spin: true },
+  preparing_environment: {
+    label: "Preparing",
+    short: "…",
+    color: "var(--color-accent)",
+    Icon: Loader2,
+    spin: true,
+  },
+  running_agent: {
+    label: "Running",
+    short: "…",
+    color: "var(--color-accent)",
+    Icon: Loader2,
+    spin: true,
+  },
+  evaluating: {
+    label: "Evaluating",
+    short: "…",
+    color: "var(--color-accent)",
+    Icon: Loader2,
+    spin: true,
+  },
+  collecting_replay: {
+    label: "Replay",
+    short: "…",
+    color: "var(--color-accent)",
+    Icon: Loader2,
+    spin: true,
+  },
   passed: { label: "Passed", short: "✓", color: "var(--color-good)", Icon: CheckCircle2 },
   failed: { label: "Failed", short: "✗", color: "var(--color-critical)", Icon: XCircle },
   infrastructure_error: {
@@ -45,7 +76,10 @@ export function StatusPill({ status, className }: { status: RunStatus; className
   return (
     <span
       className={clsx("chip", className)}
-      style={{ color: meta.color, borderColor: `color-mix(in oklab, ${meta.color} 45%, transparent)` }}
+      style={{
+        color: meta.color,
+        borderColor: `color-mix(in oklab, ${meta.color} 45%, transparent)`,
+      }}
     >
       <meta.Icon size={12} aria-hidden className={meta.spin ? "animate-spin" : undefined} />
       {meta.label}
@@ -66,7 +100,8 @@ export function ModeBadge({ mode, className }: { mode: string; className?: strin
     },
     local: {
       label: "LOCAL DEMO",
-      title: "Real browsers running on this machine. Everything works; it is simply not a Solari run.",
+      title:
+        "Real browsers running on this machine. Everything works; it is simply not a Solari run.",
       color: "var(--color-accent)",
     },
     demo: {
@@ -81,7 +116,10 @@ export function ModeBadge({ mode, className }: { mode: string; className?: strin
     <span
       className={clsx("chip", className)}
       title={meta.title}
-      style={{ color: meta.color, borderColor: `color-mix(in oklab, ${meta.color} 45%, transparent)` }}
+      style={{
+        color: meta.color,
+        borderColor: `color-mix(in oklab, ${meta.color} 45%, transparent)`,
+      }}
     >
       {meta.label}
     </span>
@@ -100,7 +138,11 @@ export function StatTile({
   tone?: "default" | "good" | "critical"
 }) {
   const color =
-    tone === "good" ? "var(--color-good)" : tone === "critical" ? "var(--color-critical)" : "var(--color-ink)"
+    tone === "good"
+      ? "var(--color-good)"
+      : tone === "critical"
+        ? "var(--color-critical)"
+        : "var(--color-ink)"
   return (
     <div className="card px-4 py-3">
       <div className="section-title">{label}</div>
@@ -171,7 +213,12 @@ export function ErrorPanel({
   return (
     <div className="card border-[color-mix(in_oklab,var(--color-critical)_35%,transparent)] p-4">
       <div className="flex items-start gap-3">
-        <AlertTriangle size={18} className="mt-0.5 shrink-0" style={{ color: "var(--color-critical)" }} aria-hidden />
+        <AlertTriangle
+          size={18}
+          className="mt-0.5 shrink-0"
+          style={{ color: "var(--color-critical)" }}
+          aria-hidden
+        />
         <div className="min-w-0">
           <h3 className="text-sm font-semibold">{title}</h3>
           <p className="mt-1 text-sm text-[var(--color-ink-2)]">{message}</p>

@@ -79,7 +79,11 @@ function note(state: RunState, event: string, detail?: string): void {
   state.timeline.push({ at: Date.now(), event, ...(detail ? { detail } : {}) })
 }
 
-export function addToCart(state: RunState, sku: string, quantity = 1): { ok: boolean; error?: string } {
+export function addToCart(
+  state: RunState,
+  sku: string,
+  quantity = 1,
+): { ok: boolean; error?: string } {
   const product = findProduct(sku)
   if (!product) return { ok: false, error: "unknown_sku" }
 
@@ -169,7 +173,8 @@ export function totals(state: RunState): {
     (sum, line) => sum + line.unitPriceCents * line.quantity,
     0,
   )
-  const percent = state.discountApplied && state.coupon ? (COUPONS[state.coupon]?.percentOff ?? 0) : 0
+  const percent =
+    state.discountApplied && state.coupon ? (COUPONS[state.coupon]?.percentOff ?? 0) : 0
   const discountCents = Math.round((subtotalCents * percent) / 100)
   return { subtotalCents, discountCents, totalCents: subtotalCents - discountCents }
 }

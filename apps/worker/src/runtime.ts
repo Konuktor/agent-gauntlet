@@ -20,7 +20,11 @@ import {
   type AgentCapabilities,
 } from "@gauntlet/agents"
 import { createEvaluator } from "@gauntlet/evaluators"
-import { SolariBrowserProvider, SolariFixtureProvider, SolariSandboxProvider } from "@gauntlet/solari"
+import {
+  SolariBrowserProvider,
+  SolariFixtureProvider,
+  SolariSandboxProvider,
+} from "@gauntlet/solari"
 
 // Type-only: erased at compile time, so naming the module here does not load it.
 import type * as LocalRuntimeModule from "@gauntlet/local-runtime"
@@ -122,7 +126,8 @@ export async function createRuntime(
     }
   }
 
-  const { ExternalFixtureProvider, LocalBrowserProvider, LocalFixtureProvider } = await localRuntime()
+  const { ExternalFixtureProvider, LocalBrowserProvider, LocalFixtureProvider } =
+    await localRuntime()
   const browsers = new LocalBrowserProvider({
     headless: true,
     recording: true,

@@ -292,7 +292,10 @@ export const projectsRelations = relations(projects, ({ many }) => ({
 export const suitesRelations = relations(suites, ({ one, many }) => ({
   project: one(projects, { fields: [suites.projectId], references: [projects.id] }),
   agent: one(agents, { fields: [suites.agentId], references: [agents.id] }),
-  task: one(taskDefinitions, { fields: [suites.taskDefinitionId], references: [taskDefinitions.id] }),
+  task: one(taskDefinitions, {
+    fields: [suites.taskDefinitionId],
+    references: [taskDefinitions.id],
+  }),
   variants: many(suiteVariants),
   runs: many(suiteRuns),
 }))

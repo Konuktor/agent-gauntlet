@@ -33,7 +33,11 @@ const runSchema = z.object({
   byoSession: z.string().min(1).max(2_000).optional(),
   byoKey: z.string().min(1).max(500).optional(),
   git: z
-    .object({ repo: z.string().optional(), branch: z.string().optional(), sha: z.string().optional() })
+    .object({
+      repo: z.string().optional(),
+      branch: z.string().optional(),
+      sha: z.string().optional(),
+    })
     .optional(),
 })
 
@@ -58,7 +62,9 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
 
     // Money is spent past this line. Everything above it — browsing the seeded
     // demo, inspecting a failure, comparing two runs — stays public.
-    const auth = byo ? { authorized: true as const, reason: "byo" as const } : await checkRunAuthorization()
+    const auth = byo
+      ? { authorized: true as const, reason: "byo" as const }
+      : await checkRunAuthorization()
     if (!auth.authorized) {
       return ok(
         {
@@ -87,7 +93,8 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
           error: {
             code: "busy",
             title: "A gauntlet is already running",
-            message: "This deployment runs one suite at a time so it cannot outrun its Solari quota.",
+            message:
+              "This deployment runs one suite at a time so it cannot outrun its Solari quota.",
             hint: "Wait for the current run to finish, then try again.",
           },
         },
@@ -99,7 +106,17 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     // because it happens inside a Solari Sandbox — but it still costs sandbox
     // credits, so it is never available anonymously.
     if (suite.agent.type === "repository" && auth.reason === "ungated" && cfg.runsAreGated) {
-      return ok({ error: { code: "unauthorized", title: "Not permitted", message: "Repository agents require authorization.", hint: "" } }, { status: 401 })
+      return ok(
+        {
+          error: {
+            code: "unauthorized",
+            title: "Not permitted",
+            message: "Repository agents require authorization.",
+            hint: "",
+          },
+        },
+        { status: 401 },
+      )
     }
     // Both of the next two gates ask "can THIS deployment pay for a run?".
     // A visitor who brought a session or a key is not asking it to.
@@ -159,7 +176,6 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   }
 }
 
-
 /**
  * Seal what the visitor brought, or return undefined when they brought nothing.
  *
@@ -181,7 +197,8 @@ async function sealBorrowedCredential(
     throw new GauntletError({
       code: "config_invalid",
       message: "This deployment cannot accept your own key or session.",
-      detail: "GAUNTLET_CREDENTIAL_KEY is not configured, so a borrowed credential has nowhere safe to live.",
+      detail:
+        "GAUNTLET_CREDENTIAL_KEY is not configured, so a borrowed credential has nowhere safe to live.",
     })
   }
 

@@ -73,9 +73,7 @@
                       "keys": [
                         {
                           "keyName": "POSTGRES_URI",
-                          "aliases": [
-                            "DATABASE_URL"
-                          ]
+                          "aliases": ["DATABASE_URL"]
                         }
                       ]
                     }

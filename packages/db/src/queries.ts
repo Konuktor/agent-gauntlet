@@ -45,7 +45,11 @@ export async function listProjects(db: Database): Promise<Project[]> {
 }
 
 export async function listAgents(db: Database, projectId: string): Promise<Agent[]> {
-  return db.select().from(agents).where(eq(agents.projectId, projectId)).orderBy(asc(agents.createdAt))
+  return db
+    .select()
+    .from(agents)
+    .where(eq(agents.projectId, projectId))
+    .orderBy(asc(agents.createdAt))
 }
 
 export async function listTasks(db: Database, projectId: string): Promise<TaskDefinitionRow[]> {
@@ -120,7 +124,10 @@ export async function getSuiteRunContext(
   return row ?? null
 }
 
-export async function listIndividualRuns(db: Database, suiteRunId: string): Promise<IndividualRun[]> {
+export async function listIndividualRuns(
+  db: Database,
+  suiteRunId: string,
+): Promise<IndividualRun[]> {
   return db
     .select()
     .from(individualRuns)
@@ -182,7 +189,12 @@ export async function listSuiteRuns(
     .orderBy(desc(suiteRuns.createdAt))
     .limit(options.limit ?? 25)
 
-  return rows.map((r) => ({ ...r.run, suiteName: r.suiteName, agentName: r.agentName, taskName: r.taskName }))
+  return rows.map((r) => ({
+    ...r.run,
+    suiteName: r.suiteName,
+    agentName: r.agentName,
+    taskName: r.taskName,
+  }))
 }
 
 // ── writes ───────────────────────────────────────────────────────────────────
@@ -203,7 +215,10 @@ export interface EnqueueSuiteRunInput {
  * whole grid exists or none of it does — a half-created suite would report a
  * reliability computed over a denominator that never existed.
  */
-export async function enqueueSuiteRun(db: Database, input: EnqueueSuiteRunInput): Promise<SuiteRun> {
+export async function enqueueSuiteRun(
+  db: Database,
+  input: EnqueueSuiteRunInput,
+): Promise<SuiteRun> {
   const total = input.variants.length * input.runsPerVariant
   return db.transaction(async (tx) => {
     const [run] = await tx

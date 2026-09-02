@@ -105,7 +105,7 @@ export function fakePage(url = "https://shop.test/"): PageDriver {
     goto: async (next) => {
       current = next
     },
-    evaluate: async <T,>() => false as T,
+    evaluate: async <T>() => false as T,
     clickSelector: async () => {},
     fillSelector: async () => {},
     press: async () => {},
@@ -224,7 +224,9 @@ export class FakeAgent implements AgentAdapter {
   readonly seen: string[] = []
 
   constructor(
-    private readonly behaviour: (context: AgentRunContext) => Promise<AgentExecutionResult> = async () => ({
+    private readonly behaviour: (
+      context: AgentRunContext,
+    ) => Promise<AgentExecutionResult> = async () => ({
       finishReason: "finished",
       steps: 5,
       actions: [],
@@ -243,7 +245,9 @@ export class FakeEvaluator implements Evaluator {
   calls = 0
 
   constructor(
-    private readonly behaviour: (context: EvaluationContext) => Promise<EvaluationResult> = async () => ({
+    private readonly behaviour: (
+      context: EvaluationContext,
+    ) => Promise<EvaluationResult> = async () => ({
       success: true,
       score: 1,
       assertions: [],

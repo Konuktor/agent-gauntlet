@@ -8,7 +8,10 @@ import type { BrowserProvider } from "../ports/browser.js"
 import type { Evaluator } from "../ports/evaluator.js"
 import type { FixtureHost, FixtureProvider } from "../ports/fixture.js"
 import type { SandboxProvider } from "../ports/sandbox.js"
-import type { BrowserPerturbationOptions, FixturePerturbationConfig } from "../domain/perturbation.js"
+import type {
+  BrowserPerturbationOptions,
+  FixturePerturbationConfig,
+} from "../domain/perturbation.js"
 import type { TaskDefinition } from "../domain/task.js"
 import { executeRun, type RunOutcome } from "./run-pipeline.js"
 import type { PlannedRun, RunStore } from "./store.js"
@@ -120,7 +123,9 @@ export class GauntletRunner {
             browserDefaults: {
               recording: this.options.browserDefaults?.recording ?? true,
               stealth: this.options.browserDefaults?.stealth ?? false,
-              ...(this.options.browserDefaults?.proxy ? { proxy: this.options.browserDefaults.proxy } : {}),
+              ...(this.options.browserDefaults?.proxy
+                ? { proxy: this.options.browserDefaults.proxy }
+                : {}),
               ...(this.options.browserDefaults?.captcha ? { captcha: true } : {}),
             },
           },

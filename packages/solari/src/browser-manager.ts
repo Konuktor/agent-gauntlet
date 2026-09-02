@@ -260,7 +260,9 @@ export class SolariBrowserProvider implements BrowserProvider {
     )
   }
 
-  async mintReplayUrl(sessionId: string): Promise<{ url: string; expiresInSeconds: number } | null> {
+  async mintReplayUrl(
+    sessionId: string,
+  ): Promise<{ url: string; expiresInSeconds: number } | null> {
     try {
       const { url, expiresInSeconds } = await this.sdk().sessions.getReplayUrl(sessionId)
       return { url, expiresInSeconds }
@@ -465,7 +467,10 @@ export class SolariBrowserProvider implements BrowserProvider {
     }
   }
 
-  private async dispose(browser: Browser | undefined, sessionId: string | undefined): Promise<void> {
+  private async dispose(
+    browser: Browser | undefined,
+    sessionId: string | undefined,
+  ): Promise<void> {
     if (browser) {
       try {
         await browser.close()

@@ -34,7 +34,8 @@ export function parseSealingKey(raw: string | undefined): Buffer | undefined {
     throw new GauntletError({
       code: "config_invalid",
       message: `GAUNTLET_CREDENTIAL_KEY must be ${KEY_BYTES} base64-encoded bytes; got ${key.length}.`,
-      detail: "Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\"",
+      detail:
+        "Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\"",
     })
   }
   return key

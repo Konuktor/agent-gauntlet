@@ -23,7 +23,11 @@ describe("Semaphore", () => {
 
   it("returns the slot even when the task throws", async () => {
     const sem = new Semaphore(1)
-    await expect(sem.run(async () => { throw new Error("boom") })).rejects.toThrow("boom")
+    await expect(
+      sem.run(async () => {
+        throw new Error("boom")
+      }),
+    ).rejects.toThrow("boom")
     expect(sem.inUse).toBe(0)
     await expect(sem.run(async () => "ok")).resolves.toBe("ok")
   })
@@ -79,7 +83,11 @@ describe("Semaphore", () => {
 
 describe("withTimeout", () => {
   it("resolves when the work finishes in time", async () => {
-    const value = await withTimeout(async () => "done", 1_000, () => new GauntletError({ code: "agent_timeout", message: "late" }))
+    const value = await withTimeout(
+      async () => "done",
+      1_000,
+      () => new GauntletError({ code: "agent_timeout", message: "late" }),
+    )
     expect(value).toBe("done")
   })
 
@@ -121,7 +129,9 @@ describe("withTimeout", () => {
 describe("retry", () => {
   it("returns the first success without sleeping", async () => {
     const fn = vi.fn(async () => "ok")
-    await expect(retry(fn, { attempts: 3, baseDelayMs: 1, shouldRetry: () => true })).resolves.toBe("ok")
+    await expect(retry(fn, { attempts: 3, baseDelayMs: 1, shouldRetry: () => true })).resolves.toBe(
+      "ok",
+    )
     expect(fn).toHaveBeenCalledTimes(1)
   })
 
@@ -179,12 +189,16 @@ describe("mapWithConcurrency", () => {
   it("respects the concurrency limit", async () => {
     let active = 0
     let peak = 0
-    await mapWithConcurrency(Array.from({ length: 12 }, (_, i) => i), 4, async () => {
-      active++
-      peak = Math.max(peak, active)
-      await sleep(3)
-      active--
-    })
+    await mapWithConcurrency(
+      Array.from({ length: 12 }, (_, i) => i),
+      4,
+      async () => {
+        active++
+        peak = Math.max(peak, active)
+        await sleep(3)
+        active--
+      },
+    )
     expect(peak).toBe(4)
   })
 

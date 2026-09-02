@@ -48,7 +48,10 @@ interface HarnessOverrides {
 }
 
 function harness(overrides: HarnessOverrides = {}) {
-  const runs = plannedRuns(overrides.variants ?? ["baseline", "cookie_popup"], overrides.repetitions ?? 2)
+  const runs = plannedRuns(
+    overrides.variants ?? ["baseline", "cookie_popup"],
+    overrides.repetitions ?? 2,
+  )
   const store = new MemoryRunStore(runs)
   const browsers = overrides.browsers ?? new FakeBrowserProvider()
   const fixtures = overrides.fixtures ?? new FakeFixtureProvider()
@@ -233,7 +236,12 @@ describe("replay is evidence, never a verdict", () => {
   it("marks a recorded run for later enrichment and does not fetch", async () => {
     const browsers = new FakeBrowserProvider({
       recording: true,
-      replay: { source: "solari", bytes: new TextEncoder().encode("{}\n{}"), eventCount: 2, truncated: false },
+      replay: {
+        source: "solari",
+        bytes: new TextEncoder().encode("{}\n{}"),
+        eventCount: 2,
+        truncated: false,
+      },
     })
     const h = harness({ variants: ["baseline"], repetitions: 1, recording: true, browsers })
     await run(h)
@@ -376,8 +384,12 @@ describe("guards", () => {
 describe("buildStartUrl", () => {
   it("joins the fixture base with the task path and the run id", () => {
     expect(buildStartUrl("https://fixture.test", "/", "r1")).toBe("https://fixture.test/?run=r1")
-    expect(buildStartUrl("https://fixture.test/", "cart", "r1")).toBe("https://fixture.test/cart?run=r1")
-    expect(buildStartUrl("https://fixture.test", "/cart?x=1", "r1")).toBe("https://fixture.test/cart?x=1&run=r1")
+    expect(buildStartUrl("https://fixture.test/", "cart", "r1")).toBe(
+      "https://fixture.test/cart?run=r1",
+    )
+    expect(buildStartUrl("https://fixture.test", "/cart?x=1", "r1")).toBe(
+      "https://fixture.test/cart?x=1&run=r1",
+    )
   })
 
   it("passes an absolute URL through untouched, for authorised external targets", () => {
@@ -387,6 +399,8 @@ describe("buildStartUrl", () => {
   })
 
   it("escapes the run id", () => {
-    expect(buildStartUrl("https://fixture.test", "/", "a b&c")).toBe("https://fixture.test/?run=a%20b%26c")
+    expect(buildStartUrl("https://fixture.test", "/", "a b&c")).toBe(
+      "https://fixture.test/?run=a%20b%26c",
+    )
   })
 })

@@ -58,7 +58,11 @@ const RUN_TRANSITIONS: Record<IndividualRunStatus, readonly IndividualRunStatus[
  */
 export const BORROWED_SESSION_ID = "borrowed"
 
-export const TERMINAL_SUITE_STATUSES: readonly SuiteRunStatus[] = ["completed", "failed", "cancelled"]
+export const TERMINAL_SUITE_STATUSES: readonly SuiteRunStatus[] = [
+  "completed",
+  "failed",
+  "cancelled",
+]
 export const TERMINAL_RUN_STATUSES: readonly IndividualRunStatus[] = [
   "passed",
   "failed",

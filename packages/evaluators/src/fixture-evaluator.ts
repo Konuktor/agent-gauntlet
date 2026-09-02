@@ -67,7 +67,9 @@ export class FixtureStateEvaluator implements Evaluator {
       }),
       assert({
         name: "coupon_applied",
-        description: expected.coupon ? `coupon ${expected.coupon} is applied` : "no coupon is applied",
+        description: expected.coupon
+          ? `coupon ${expected.coupon} is applied`
+          : "no coupon is applied",
         expected: expected.coupon,
         actual: state.coupon,
       }),

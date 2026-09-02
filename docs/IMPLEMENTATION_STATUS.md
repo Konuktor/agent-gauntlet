@@ -5,6 +5,7 @@
 Verification commands and their real output are recorded in the final report.
 
 ## Core product
+
 - [x] **Phase 1** — pnpm + Turborepo monorepo, strict TypeScript, ESLint 9, Prettier, Zod env schema, secret redaction
 - [x] **Phase 2** — Drizzle schema (9 tables), migrations, DB-backed queue (`FOR UPDATE SKIP LOCKED` + heartbeat reclaim), state-machine-guarded transitions
 - [x] **Phase 3** — Gauntlet Shop fixture: zero-dependency, per-run isolation, server-authoritative state endpoint, single-file bundle verified standalone
@@ -23,18 +24,19 @@ Verification commands and their real output are recorded in the final report.
 
 ## Final verification (all green)
 
-| Command | Result |
-|---|---|
-| `pnpm install` | ok |
-| `pnpm typecheck` | 13/13 packages |
-| `pnpm lint` | 12/12 packages |
-| `pnpm test` | **309 passed**, 21 files |
-| `pnpm build` | 4/4 apps |
-| `pnpm test:e2e` | **34 passed** (desktop + phone viewport) |
-| `pnpm test:solari` | skipped, with an explanatory message (no credential) |
-| `pnpm gauntlet demo` | **87.5%**, exits `1` against its 90% threshold |
+| Command              | Result                                               |
+| -------------------- | ---------------------------------------------------- |
+| `pnpm install`       | ok                                                   |
+| `pnpm typecheck`     | 13/13 packages                                       |
+| `pnpm lint`          | 12/12 packages                                       |
+| `pnpm test`          | **309 passed**, 21 files                             |
+| `pnpm build`         | 4/4 apps                                             |
+| `pnpm test:e2e`      | **34 passed** (desktop + phone viewport)             |
+| `pnpm test:solari`   | skipped, with an explanatory message (no credential) |
+| `pnpm gauntlet demo` | **87.5%**, exits `1` against its 90% threshold       |
 
 ## Verified end to end
+
 - [x] 16-run gauntlet executed in local mode: **87.5%**, 14/16, 0 infrastructure errors, 16 rrweb replays captured
 - [x] Failure classification correct on real runs (`session_expired` → auth, `blocked_by_overlay` → unexpected_ui)
 - [x] CLI exit codes: `0` when thresholds are met, `1` when missed
@@ -42,11 +44,13 @@ Verification commands and their real output are recorded in the final report.
 - [x] Capability ladder measured: Naive 75.0% · Reference 87.5% · Resilient 100%
 
 ## Not executed
+
 - [!] **Real Solari acceptance test** — no `SOLARI_API_KEY` was available. The test
   is written and skips with an explanatory message; see `docs/REAL_SOLARI_TEST.md`
   for exactly what it does and how to run it.
 
 ## Stretch features
+
 - [x] Automatic failure clustering
 - [x] Agent comparison (three built-in capability presets on the same suite)
 - [x] Git provenance on a suite run (repo / branch / sha)

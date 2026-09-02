@@ -31,7 +31,8 @@ export function mapSolariError(error: unknown, fallback: ErrorCode): GauntletErr
       case "PlanLimitExceeded":
         return new GauntletError({
           code: "solari_plan",
-          message: "Your Solari plan does not allow this. Stealth, proxies and captcha need a paid plan.",
+          message:
+            "Your Solari plan does not allow this. Stealth, proxies and captcha need a paid plan.",
           detail,
           cause: error,
         })
@@ -88,9 +89,7 @@ export function mapSolariError(error: unknown, fallback: ErrorCode): GauntletErr
     return new GauntletError({
       code: error.status >= 500 ? "solari_unavailable" : fallback,
       message:
-        error.status >= 500
-          ? "Solari returned a server error."
-          : "Solari rejected the request.",
+        error.status >= 500 ? "Solari returned a server error." : "Solari rejected the request.",
       detail: `HTTP ${error.status}${error.code ? ` ${error.code}` : ""}: ${detail}`,
       retryable,
       cause: error,

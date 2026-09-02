@@ -59,7 +59,12 @@ export class DrizzleRunStore implements RunStore {
 
   async setSuiteStatus(
     status: SuiteRunStatus,
-    patch: { errorCode?: string; errorMessage?: string; fixtureSandboxId?: string; completedAt?: Date } = {},
+    patch: {
+      errorCode?: string
+      errorMessage?: string
+      fixtureSandboxId?: string
+      completedAt?: Date
+    } = {},
   ): Promise<void> {
     await transitionSuiteRun(this.db, this.suiteRunId, status, {
       ...(patch.errorCode ? { errorCode: patch.errorCode } : {}),

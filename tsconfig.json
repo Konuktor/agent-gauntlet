@@ -1,18 +1,8 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "types": [
-      "node"
-    ],
-    "lib": [
-      "ES2023",
-      "DOM",
-      "DOM.Iterable"
-    ]
+    "types": ["node"],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
   },
-  "include": [
-    "scripts/**/*.ts",
-    "e2e/**/*.ts",
-    "*.ts"
-  ]
+  "include": ["scripts/**/*.ts", "e2e/**/*.ts", "*.ts"]
 }
