@@ -23,6 +23,12 @@ on:
 permissions:
   contents: read
 
+# One reliability run per ref. Without this, pushing three times in a row leaves
+# three 16-run gauntlets competing for the same runner and all of them get slower.
+concurrency:
+  group: gauntlet-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   gauntlet:
     name: Reliability
