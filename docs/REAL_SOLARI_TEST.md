@@ -189,3 +189,66 @@ publication latency varies widely — one session published in ~7s, others had n
 after 75s. It never changes a verdict, since a replay is evidence rather than a
 judgement, but "a replay of the exact failing run" is not yet reliably true, and
 the run it was missing from was the failing one.
+
+
+---
+
+## The repository-agent contract, proved live — 2026-09-02
+
+A **separate public repository**, cloned into a Solari Sandbox and executed
+there. Not our code, not our machines.
+
+`GitHub → Solari Sandbox → scoped CDP → Solari Browser → Gauntlet Shop → evaluator`
+
+| Acceptance | Evidence |
+|---|---|
+| Repository cloned in a Solari Sandbox | `repository cloned` · `Konuktor/agent-gauntlet-example-agent` |
+| Repository installed | `install finished, exitCode 0` |
+| No host execution | everything after `sandbox created` |
+| `SOLARI_API_KEY` not exposed | never in the agent's environment |
+| Scoped CDP connection | `session_created`, publicly routable endpoint |
+| Agent completed the browser task | **7 steps, exit 0** |
+| Independent evaluator passed | **8/8 assertions**, score 1.0 |
+| Run terminal | `completed`, reliability 1.0 |
+| Browser released | `browser_released` |
+| Sandbox killed | `cleanup_complete` |
+
+The evaluator judged server-side state, not the agent's word: product in cart,
+`SAVE20` applied, discount in the total, name "Ada Lovelace", city "London",
+stage `review`, and the order **not** submitted.
+
+Then the same external agent against `expired_session`:
+
+```
+baseline          PASS   7 steps    8.3s
+expired_session   FAIL   6 steps   37.9s   category: auth
+```
+
+> *"The shopping session expired mid-task and the agent did not re-establish it."*
+
+Somebody else's agent, perfect on baseline, broken by one environment change —
+which is the entire product thesis, now demonstrated on code we did not write.
+
+### Six failures, none of them flaky
+
+Seven runs. Every failure was a real defect, and the step count climbed with
+each fix: 0 → 0 → 0 → 4 → **7**.
+
+1. **The path needs two sandboxes and the free plan gives one** — the benchmark
+   site and the agent's code both want a VM. Solved with the documented
+   `GAUNTLET_FIXTURE_URL` escape hatch, hosting the storefront from the web
+   service.
+2. **The mounted storefront emitted root-relative links** — the first click left
+   the store.
+3. **A failing agent's stdout was collected and dropped** — the entire diagnosis
+   was "Agent exited 1.". Fixing this is what made the next three findable.
+4. **The Solari `base` sandbox runs Node 18** — a caret on `playwright-core`
+   resolved to a build demanding Node 20, and the agent died before acting.
+5. **The SDK hides the CDP endpoint behind a loopback proxy.** `sessions.create()`
+   computes the public URL and discards it, returning `127.0.0.1`. An agent in
+   another VM cannot reach that. This one contradicted what these notes said
+   from the docs, and made the whole feature impossible until it was found by
+   reading the SDK source.
+6. **Redirects were not prefixed with the mount** — links were fixed, `Location`
+   headers were not, so a POST sent the browser out of the store. The agent
+   added the product and then hunted for the coupon field on a 404 page.

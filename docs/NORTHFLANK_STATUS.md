@@ -60,6 +60,9 @@
       reliability 0.75, baseline 1.00, perturbed 0.667, 95% CI 30–95%.
       `expired_session` failed and was clustered as `auth`; `unexpected_modal` passed at
       19 steps instead of 7. Details in `REAL_SOLARI_TEST.md`.
+- [x] **Repository-agent contract proved live** — separate public repo, cloned and run in a Solari
+      Sandbox, 7 steps, 8/8 evaluator assertions. Then `expired_session`: FAIL at 6 steps,
+      category `auth`. Details in `REAL_SOLARI_TEST.md`.
 - [ ] Full 8 x 2 gauntlet — not run; the small one is the meaningful proof and the rest is cost
 
 ## Submission QA (live URL, 1440x900 and 390x844)
