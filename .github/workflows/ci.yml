@@ -1,14 +1,28 @@
+# Pull-request and default-branch verification.
+#
+# Everything here runs on free infrastructure: local Chromium, a Postgres
+# service container, and no Solari credentials. Nothing in this workflow can
+# spend a browser credit, which is what makes it safe to run on every PR.
 name: CI
 
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [master]
+
+# Least privilege: this workflow reads code and writes nothing.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
+    name: Verify
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     services:
       postgres:
@@ -35,11 +49,22 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
+      - run: pnpm format:check
       - run: pnpm db:migrate
       - run: pnpm --filter @gauntlet/local-runtime exec playwright install --with-deps chromium
       - run: pnpm test
       - run: pnpm build
       - run: pnpm db:seed
       - run: pnpm test:e2e
-      # The real-credential Solari acceptance test is never part of CI: it
-      # spends credits. Run it deliberately with SOLARI_E2E=1 pnpm test:solari.
+
+      # Boots the real production artifacts as two separate processes and
+      # asserts the promises the platform depends on.
+      - run: pnpm test:deploy
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
