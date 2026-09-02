@@ -44,23 +44,27 @@
       **web 153 MiB, worker 110 MiB** — comfortably inside a 0.5 GB plan · SIGTERM → exit 0 in ≤1s
 - [x] Secret audit: working tree and history clean (the only match is the fake string in `redact.test.ts`)
 
-## 14–22 · Deployment
-- [x] CLI authenticated (context `autologin-konuktors-team-…`)
-- [x] Template `agent-gauntlet` created and validated by Northflank's own API
-- [x] Project `agent-gauntlet` created (free, no payment needed)
-- [x] Secret group `agent-gauntlet-runtime` created (free, no payment needed)
-- [!] **Postgres addon refused: HTTP 409, "Please complete your account by adding a default payment method."**
-      Northflank requires a card on file before any account may create compute or storage, on every plan
-      including the free Sandbox — for identity verification, not for billing. The Sandbox itself is free.
-      Adding it is the account owner's action; the deployment stops here until it is done.
-- [ ] Services and migration job — not reached; they run after the addon
-- [ ] Public HTTPS URL reachable
-- [ ] Real Solari smoke test (needs `SOLARI_API_KEY`)
+## 14–22 · Deployment — LIVE
+- [x] CLI authenticated; template `agent-gauntlet` created and run
+- [x] Project, Postgres addon, secret group, web service, worker service, migration job — all created
+- [x] **Public URL: https://http--agent-gauntlet-web--hjwypxsqnrjv.code.run** — HTTPS, health `ok`, always-on
+- [x] Worker running as its own service, no port, claiming from Postgres
+- [x] Demo dataset seeded; landing page shows **DEMO DATA**
+- [x] Production QA at 1440×900 and 390×844: 6 pages, all 200 in <1s,
+      no horizontal overflow, no localhost links, no console errors
+- [x] Unauthenticated run refused with 401; run token absent from `/api/capabilities`
+- [ ] Real Solari smoke test — **needs `SOLARI_API_KEY`**
+- [ ] Small 4-run gauntlet — needs the same
 
-### Resuming
-The template is idempotent (`updateMode: put` on every node). Once a payment
-method exists, one command finishes the deployment:
-
-```
-npx --yes @northflank/cli run template --templateId agent-gauntlet -f <args.json>
-```
+### Things that only deploying could find
+1. `${refs.database.id}` is undefined — node responses nest under `data`. It does
+   not fail: the dependency silently vanishes and the services start with no
+   `DATABASE_URL`.
+2. `healthChecks[].successThreshold` is required for a readinessProbe.
+3. `billing.buildPlan` is a separate plan class; a deployment-only id gives
+   `404 Build plan not found`.
+4. `context.projectId` resolves before the Project node runs.
+5. The addon's non-admin user cannot run DDL, so migrations need one admin
+   `GRANT CREATE ON DATABASE`.
+6. A build is triggered with `{"commitSha": "..."}`, and only one build may be
+   active per free object.
