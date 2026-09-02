@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
-    "build": "tsup && node -e \"require('node:fs').cpSync('../../packages/db/drizzle','dist/drizzle',{recursive:true})\"",
+    "build": "tsup && node -e \"require('node:fs').cpSync('../../packages/db/drizzle','dist/drizzle',{recursive:true})\" && node -e \"require('node:fs').cpSync('../../packages/fixture/dist/gauntlet-shop.mjs','dist/gauntlet-shop.mjs')\"",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src"
   },

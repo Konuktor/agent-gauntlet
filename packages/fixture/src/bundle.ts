@@ -5,8 +5,27 @@ import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..")
-const bundlePath = join(packageRoot, "dist", "gauntlet-shop.mjs")
 const sourceDir = join(packageRoot, "src")
+
+/**
+ * Where the prebuilt bundle might be.
+ *
+ * `packageRoot` is derived from `import.meta.url`, which is only this package
+ * when the module is loaded from its own directory. tsup inlines every
+ * `@gauntlet/*` package into the worker binary, so at runtime this file lives
+ * in `apps/worker/dist` and `packageRoot` is the worker — which has no `src`
+ * to rebuild from. The build copies the bundle next to the binary for exactly
+ * that case, so look beside us first.
+ */
+const bundleCandidates = [
+  join(packageRoot, "dist", "gauntlet-shop.mjs"),
+  join(dirname(fileURLToPath(import.meta.url)), "gauntlet-shop.mjs"),
+]
+const bundlePath = bundleCandidates[0]!
+
+function findPrebuilt(): string | undefined {
+  return bundleCandidates.find((candidate) => existsSync(candidate))
+}
 
 export interface FixtureBundle {
   /** The complete, dependency-free server as one ES module. */
@@ -31,9 +50,19 @@ let cached: FixtureBundle | undefined
  */
 export async function getFixtureBundle(): Promise<FixtureBundle> {
   if (cached) return cached
-  if (existsSync(bundlePath) && !(await isStale())) {
-    cached = describe(readFileSync(bundlePath, "utf8"))
+  const prebuilt = findPrebuilt()
+  if (prebuilt && !(await isStale(prebuilt))) {
+    cached = describe(readFileSync(prebuilt, "utf8"))
     return cached
+  }
+  if (!existsSync(sourceDir)) {
+    // A production image ships no sources, so there is nothing to rebuild
+    // from. Say what is actually wrong instead of failing inside esbuild with
+    // a path that means nothing to the reader.
+    throw new Error(
+      "The Gauntlet Shop bundle is missing from this deployment. It is built at image build " +
+        `time and copied next to the binary; looked in:\n  ${bundleCandidates.join("\n  ")}`,
+    )
   }
   cached = await buildFixtureBundle()
   return cached
@@ -77,9 +106,11 @@ function describe(code: string): FixtureBundle {
   }
 }
 
-async function isStale(): Promise<boolean> {
+/** Only meaningful where sources exist; a built deployment has none. */
+async function isStale(builtBundle: string): Promise<boolean> {
+  if (!existsSync(sourceDir)) return false
   try {
-    const builtAt = statSync(bundlePath).mtimeMs
+    const builtAt = statSync(builtBundle).mtimeMs
     const files = await readdir(sourceDir)
     return files
       .filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"))

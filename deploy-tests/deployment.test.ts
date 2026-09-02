@@ -509,6 +509,17 @@ describe("production images", () => {
     expect(dockerfile).toMatch(/ENV GAUNTLET_LOCAL_BROWSER=false/)
   })
 
+  // The Gauntlet Shop is uploaded into a Solari sandbox at run time. tsup
+  // inlines @gauntlet/fixture into the worker binary, so the package can no
+  // longer find its own sources to rebuild from — the prebuilt bundle has to
+  // travel beside the binary. Without it a real Solari run dies with
+  // "fixture_unavailable" after the sandbox is already paid for.
+  it("ships the fixture bundle beside the worker binary", () => {
+    const built = resolve(import.meta.dirname, "../apps/worker/dist/gauntlet-shop.mjs")
+    expect(existsSync(built), "run `pnpm build` first").toBe(true)
+    expect(readFileSync(built, "utf8")).toContain("Gauntlet Shop")
+  })
+
   it("runs as an unprivileged user", () => {
     expect(dockerfile).toMatch(/^USER node$/m)
   })
