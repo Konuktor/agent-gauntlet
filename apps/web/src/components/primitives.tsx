@@ -126,7 +126,10 @@ export function Panel({
   className?: string
 }) {
   return (
-    <section className={clsx("card", className)}>
+    // min-w-0: a grid or flex child defaults to min-width:auto and refuses to
+    // shrink below its content, so one long URL inside a panel pushed the whole
+    // page sideways at 390px. This is the single place that has to know.
+    <section className={clsx("card min-w-0", className)}>
       <header className="flex items-start justify-between gap-4 border-b border-[var(--color-line)] px-4 py-3">
         <div>
           <h2 className="text-sm font-semibold">{title}</h2>
