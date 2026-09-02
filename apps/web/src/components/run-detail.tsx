@@ -303,7 +303,7 @@ function ReplayPanel({
       title="Session replay"
       description="A DOM-level rrweb recording of exactly what the browser did."
       actions={
-        replayStatus === "available" ? (
+        replayStatus === "ready" ? (
           <div className="flex gap-2">
             <a className="btn btn-secondary" href={`/api/individual-runs/${runId}/replay`} download={`${runId}.ndjson`}>
               Download NDJSON
@@ -319,16 +319,22 @@ function ReplayPanel({
         ) : null
       }
     >
-      {replayStatus === "available" ? (
+      {replayStatus === "ready" ? (
         <p className="text-sm text-[var(--color-ink-2)]">
           {mode === "solari"
             ? "Recorded by Solari during the session and stored here as an artifact. The Solari link is minted fresh on demand, because presigned URLs expire while the recording does not."
             : "Captured locally with rrweb during the run. This is a local capture, not a Solari session replay."}
         </p>
-      ) : replayStatus === "failed" ? (
-        <EmptyState title="The replay never finished uploading.">
-          Recordings upload asynchronously after a session is released. This does not affect the
-          run&apos;s result — a replay is evidence, not a verdict.
+      ) : replayStatus === "processing" ? (
+        <EmptyState title="Replay processing…">
+          Solari publishes a recording after the session is released, which can take minutes. The
+          run&apos;s result is already final — this only adds evidence, so nothing waits for it.
+          Refresh to check again.
+        </EmptyState>
+      ) : replayStatus === "unavailable" ? (
+        <EmptyState title="Replay unavailable.">
+          The recording never finished publishing. This says nothing about the agent: the verdict
+          came from server-side state, and a replay is evidence rather than a judgement.
         </EmptyState>
       ) : mode === "demo" ? (
         <EmptyState title="Seeded demo runs carry no replay.">

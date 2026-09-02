@@ -54,6 +54,14 @@ export interface BrowserProvider {
    */
   fetchReplay(environment: BrowserEnvironment, signal?: AbortSignal): Promise<ReplayArtifact | null>
   /**
+   * One attempt at a released session's replay, by id.
+   *
+   * The delayed-artefact sweeper owns the schedule, so this must NOT retry
+   * internally. It creates no session and costs no browser time — it is a
+   * download against a recording that already exists, or does not yet.
+   */
+  fetchReplayForSession?(sessionId: string, signal?: AbortSignal): Promise<ReplayArtifact | null>
+  /**
    * The RAW, publicly routable CDP endpoint for an environment, when the
    * provider can expose one.
    *

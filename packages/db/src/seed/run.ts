@@ -205,7 +205,7 @@ async function insertSuiteRun(input: {
         seed: run.seed,
         status: run.status,
         sessionId: run.sessionId,
-        replayStatus: "none",
+        replayStatus: "not_requested",
         startedAt: runStartedAt,
         completedAt: new Date(runStartedAt.getTime() + run.durationMs),
         durationMs: run.durationMs,

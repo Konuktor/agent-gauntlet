@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm"
+import { and, asc, count, desc, eq, inArray, isNotNull, lte, sql } from "drizzle-orm"
 import {
   assertRunTransition,
   assertSuiteTransition,
@@ -494,4 +494,81 @@ export async function pingDatabase(db: Database): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+/** A run waiting for its replay to be published. */
+export interface DueReplay {
+  id: string
+  suiteRunId: string
+  sessionId: string
+  attempts: number
+}
+
+/**
+ * Runs whose replay is due another attempt.
+ *
+ * Deliberately not a claim: fetching a replay is idempotent and costs nothing
+ * but an HTTP call, so a duplicate attempt is harmless where a stuck claim
+ * would not be.
+ */
+export async function listDueReplays(db: Database, limit = 10): Promise<DueReplay[]> {
+  const rows = await db
+    .select({
+      id: individualRuns.id,
+      suiteRunId: individualRuns.suiteRunId,
+      sessionId: individualRuns.sessionId,
+      attempts: individualRuns.replayAttempts,
+    })
+    .from(individualRuns)
+    .where(
+      and(
+        eq(individualRuns.replayStatus, "processing"),
+        isNotNull(individualRuns.sessionId),
+        lte(individualRuns.replayNextAttemptAt, new Date()),
+      ),
+    )
+    .orderBy(individualRuns.replayNextAttemptAt)
+    .limit(limit)
+  return rows.filter((r): r is DueReplay => Boolean(r.sessionId))
+}
+
+/** Record a replay that arrived. */
+export async function markReplayReady(
+  db: Database,
+  runId: string,
+  artifact: { eventCount: number; bytes: number; path: string },
+): Promise<void> {
+  await db
+    .update(individualRuns)
+    .set({
+      replayStatus: "ready",
+      replayEventCount: artifact.eventCount,
+      replayBytes: artifact.bytes,
+      replayArtifactPath: artifact.path,
+      replayNextAttemptAt: null,
+    })
+    .where(eq(individualRuns.id, runId))
+}
+
+/**
+ * Schedule the next attempt, or give up.
+ *
+ * Giving up is `unavailable`, never a run failure: the verdict was decided by
+ * the evaluator long before, and a missing recording says nothing about the
+ * agent.
+ */
+export async function scheduleReplayRetry(
+  db: Database,
+  runId: string,
+  attempts: number,
+  nextAttemptAt: Date | null,
+): Promise<void> {
+  await db
+    .update(individualRuns)
+    .set({
+      replayAttempts: attempts,
+      replayStatus: nextAttemptAt ? "processing" : "unavailable",
+      replayNextAttemptAt: nextAttemptAt,
+    })
+    .where(eq(individualRuns.id, runId))
 }

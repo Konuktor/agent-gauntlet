@@ -1,3 +1,4 @@
+import type { ReplayStatus } from "../domain/run.js"
 import type { EvaluationResult } from "../domain/evaluation.js"
 import type { RunEventInput } from "../domain/events.js"
 import type { IndividualRunStatus, SuiteRunStatus } from "../domain/run.js"
@@ -24,7 +25,9 @@ export interface RunPatch {
   errorCode?: string | null
   failureCategory?: string | null
   failureMessage?: string | null
-  replayStatus?: string
+  replayStatus?: ReplayStatus
+  replayAttempts?: number
+  replayNextAttemptAt?: Date | null
   replayEventCount?: number | null
   replayBytes?: number | null
   replayArtifactPath?: string | null

@@ -185,6 +185,21 @@ export class SolariBrowserProvider implements BrowserProvider {
    * than persisted, because the URL expires (`expiresInSeconds`) while the
    * recording behind it does not.
    */
+  async fetchReplayForSession(
+    sessionId: string,
+    signal?: AbortSignal,
+  ): Promise<ReplayArtifact | null> {
+    return fetchReplayWithBackoff(
+      sessionId,
+      {
+        downloadReplay: (id) => this.client.sessions.downloadReplay(id),
+        logger: this.logger.child({ sessionId }),
+      },
+      // One attempt: the sweeper decides when to come back.
+      { attempts: 1, intervalMs: 0, ...(signal ? { signal } : {}) },
+    )
+  }
+
   async mintReplayUrl(sessionId: string): Promise<{ url: string; expiresInSeconds: number } | null> {
     try {
       const { url, expiresInSeconds } = await this.client.sessions.getReplayUrl(sessionId)

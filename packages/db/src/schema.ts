@@ -181,7 +181,11 @@ export const individualRuns = pgTable(
     sandboxId: text("sandbox_id"),
     geo: text("geo"),
 
-    replayStatus: text("replay_status").notNull().default("none"),
+    /** not_requested | processing | ready | unavailable */
+    replayStatus: text("replay_status").notNull().default("not_requested"),
+    /** Delayed-artefact bookkeeping: the sweeper polls when this falls due. */
+    replayAttempts: integer("replay_attempts").notNull().default(0),
+    replayNextAttemptAt: timestamp("replay_next_attempt_at", { withTimezone: true }),
     replayEventCount: integer("replay_event_count"),
     replayBytes: integer("replay_bytes"),
     replayArtifactPath: text("replay_artifact_path"),

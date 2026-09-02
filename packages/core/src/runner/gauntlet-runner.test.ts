@@ -227,52 +227,43 @@ describe("infrastructure failures are not agent failures", () => {
 })
 
 describe("replay is evidence, never a verdict", () => {
-  it("stores the artifact when one arrives", async () => {
-    const h = harness({
-      variants: ["baseline"],
-      repetitions: 1,
+  // The pipeline no longer downloads anything: publication is asynchronous and
+  // waiting for it delayed a verdict a replay cannot change. It hands the run
+  // off to the sweeper instead.
+  it("marks a recorded run for later enrichment and does not fetch", async () => {
+    const browsers = new FakeBrowserProvider({
       recording: true,
-      browsers: new FakeBrowserProvider({
-        recording: true,
-        replay: { source: "solari", bytes: new TextEncoder().encode("{}\n{}"), eventCount: 2, truncated: false },
-      }),
+      replay: { source: "solari", bytes: new TextEncoder().encode("{}\n{}"), eventCount: 2, truncated: false },
     })
+    const h = harness({ variants: ["baseline"], repetitions: 1, recording: true, browsers })
     await run(h)
     const stored = h.store.runs.get("baseline-1")!
-    expect(stored.replayStatus).toBe("available")
-    expect(stored.replayEventCount).toBe(2)
-    expect(h.store.replays.has("baseline-1")).toBe(true)
+    expect(stored.replayStatus).toBe("processing")
+    expect(stored.replayAttempts).toBe(0)
+    expect(stored.replayNextAttemptAt).toBeInstanceOf(Date)
+    // Nothing was downloaded, and nothing was stored, inside the run.
+    expect(h.store.replays.has("baseline-1")).toBe(false)
   })
 
-  it("still passes the run when the replay never uploads", async () => {
+  it("reaches a terminal verdict without waiting for any replay", async () => {
     const h = harness({
       variants: ["baseline"],
       repetitions: 1,
       recording: true,
-      browsers: new FakeBrowserProvider({ recording: true, replay: null }),
+      // A provider that would hang forever if the pipeline still waited on it.
+      browsers: new FakeBrowserProvider({ recording: true, replayThrows: true }),
     })
     const report = await run(h)
     expect(h.store.statusOf("baseline-1")).toBe("passed")
-    expect(h.store.runs.get("baseline-1")!.replayStatus).toBe("failed")
     expect(report.metrics.reliability).toBe(1)
+    expect(h.store.runs.get("baseline-1")!.replayStatus).toBe("processing")
   })
 
-  it("still passes the run when the replay service throws", async () => {
-    const h = harness({
-      variants: ["baseline"],
-      repetitions: 1,
-      recording: true,
-      browsers: new FakeBrowserProvider({ recording: true, replayThrows: true }),
-    })
-    await run(h)
-    expect(h.store.statusOf("baseline-1")).toBe("passed")
-    expect(h.store.runs.get("baseline-1")!.replayStatus).toBe("failed")
-  })
-
-  it("does not look for a replay when recording was off", async () => {
+  it("does not queue a replay when recording was off", async () => {
     const h = harness({ variants: ["baseline"], repetitions: 1 })
-    await run(h)
-    expect(h.store.runs.get("baseline-1")!.replayStatus).toBe("none")
+    const stored = (await run(h), h.store.runs.get("baseline-1")!)
+    expect(stored.replayStatus).toBe("not_requested")
+    expect(stored.replayNextAttemptAt).toBeUndefined()
   })
 })
 

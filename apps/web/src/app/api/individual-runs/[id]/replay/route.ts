@@ -44,7 +44,7 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
       return ok(minted ?? { url: null, reason: "Solari has no replay for this session." })
     }
 
-    const stored = run.replayStatus === "available" ? await getReplayArtifact(database, id) : null
+    const stored = run.replayStatus === "ready" ? await getReplayArtifact(database, id) : null
 
     if (!stored) {
       const suiteRun = await getSuiteRun(database, run.suiteRunId)
@@ -54,11 +54,13 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
           replayStatus: run.replayStatus,
           mode: suiteRun?.mode ?? "demo",
           reason:
-            run.replayStatus === "none"
+            run.replayStatus === "not_requested"
               ? "This run was not recorded."
-              : run.replayStatus === "available"
-                ? "The recording is no longer stored. Open the Solari replay instead."
-                : "The replay never finished uploading. That does not affect the run's result.",
+              : run.replayStatus === "processing"
+                ? "Replay processing. Solari publishes recordings after the session is released; the run's result is already final."
+                : run.replayStatus === "ready"
+                  ? "The recording is no longer stored. Open the Solari replay instead."
+                  : "Replay unavailable: the recording never finished publishing. That does not affect the run's result.",
         },
         { status: 200 },
       )

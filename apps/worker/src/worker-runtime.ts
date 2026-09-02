@@ -3,14 +3,19 @@ import type { GauntletConfig } from "@gauntlet/config"
 import {
   GauntletError,
   GauntletRunner,
+  REPLAY_BACKOFF_MS,
   sleep,
   taskDefinitionSchema,
+  type BrowserProvider,
   type Logger,
   type PlannedRun,
   type TaskDefinition,
 } from "@gauntlet/core"
 import {
   cancelOpenRuns,
+  listDueReplays,
+  markReplayReady,
+  scheduleReplayRetry,
   claimNextSuiteRun,
   createDb,
   getSuite,
@@ -29,6 +34,9 @@ const POLL_INTERVAL_MS = 1_500
 
 /** How often to sweep for suites abandoned by a dead or wedged claim. */
 const RECLAIM_SWEEP_MS = 60_000
+
+/** How often to look for replays that have come due. */
+const REPLAY_SWEEP_MS = 15_000
 
 /** A sandbox of ours older than this, with no suite running, is abandoned. */
 const ORPHAN_SANDBOX_AGE_MS = 5 * 60_000
@@ -76,6 +84,8 @@ export function createWorkerRuntime(options: WorkerRuntimeOptions): WorkerRuntim
   let shuttingDown = false
   let activeSuiteRunId: string | undefined
   let activeController: AbortController | undefined
+  let replayBrowsers: BrowserProvider | undefined
+  let replayRuntimeShutdown: (() => Promise<void>) | undefined
   let loop: Promise<void> | undefined
 
   /** Runs until {@link shutdown}. Callers launch it (`void start()`) rather
@@ -94,6 +104,7 @@ export function createWorkerRuntime(options: WorkerRuntimeOptions): WorkerRuntim
 
     loop = (async () => {
       let sinceLastSweep = 0
+      let sinceReplaySweep = 0
 
       while (!shuttingDown) {
         // Reclaiming only at boot is not enough: a suite abandoned while this
@@ -107,6 +118,14 @@ export function createWorkerRuntime(options: WorkerRuntimeOptions): WorkerRuntim
             return 0
           })
           if (requeued > 0) logger.warn("requeued abandoned suite runs", { count: requeued })
+        }
+
+        sinceReplaySweep += pollIntervalMs
+        if (sinceReplaySweep >= REPLAY_SWEEP_MS) {
+          sinceReplaySweep = 0
+          await sweepReplays().catch((error: unknown) =>
+            logger.warn("replay sweep failed", { error: describe(error) }),
+          )
         }
 
         const claimed = await claimNextSuiteRun(handle!.db, workerId).catch((error: unknown) => {
@@ -134,6 +153,9 @@ export function createWorkerRuntime(options: WorkerRuntimeOptions): WorkerRuntim
   }
 
   async function shutdown(graceMs = 15_000): Promise<void> {
+    await replayRuntimeShutdown?.().catch((error: unknown) =>
+      logger.warn("replay client shutdown failed", { error: describe(error) }),
+    )
     if (shuttingDown) return
     shuttingDown = true
     logger.info("worker draining", { activeSuiteRunId })
@@ -171,6 +193,72 @@ export function createWorkerRuntime(options: WorkerRuntimeOptions): WorkerRuntim
       logger.info("marked in-flight runs cancelled", { cancelled })
     } catch (error) {
       logger.warn("could not mark the interrupted suite cancelled", { error: describe(error) })
+    }
+  }
+
+  /**
+   * A browser client used ONLY to download replays.
+   *
+   * Created once and kept, because building one per sweep would churn a client
+   * that holds a loopback proxy. It never calls `create()`, so it never opens a
+   * session or spends anything.
+   */
+  async function replayProvider(): Promise<BrowserProvider | undefined> {
+    if (config.resolvedMode !== "solari") return undefined
+    if (!replayBrowsers) {
+      const runtime = await createRuntime(config, logger.child({ component: "replay" }))
+      replayBrowsers = runtime.browsers
+      replayRuntimeShutdown = runtime.shutdown
+    }
+    return replayBrowsers.fetchReplayForSession ? replayBrowsers : undefined
+  }
+
+  /**
+   * Enrich finished runs with their replays.
+   *
+   * Runs are already terminal and their metrics already published — a replay
+   * only ever adds evidence. Nothing here creates a browser session or a
+   * sandbox: it is a download of a recording Solari may or may not have
+   * finished publishing.
+   */
+  async function sweepReplays(): Promise<void> {
+    const db = handle!.db
+    const due = await listDueReplays(db, 5)
+    if (due.length === 0) return
+
+    const provider = await replayProvider()
+    if (!provider) return
+
+    for (const item of due) {
+      const attempts = item.attempts + 1
+      const runLogger = logger.child({ individualRunId: item.id, attempt: attempts })
+      try {
+        const artifact = await provider.fetchReplayForSession!(item.sessionId)
+        if (artifact) {
+          const store = new DrizzleRunStore(db, item.suiteRunId, workerId, config.resolvedMode)
+          const path = await store.saveReplay(item.id, artifact.bytes)
+          await markReplayReady(db, item.id, {
+            eventCount: artifact.eventCount,
+            bytes: artifact.bytes.length,
+            path,
+          })
+          runLogger.info("replay ready", { events: artifact.eventCount })
+          continue
+        }
+      } catch (error) {
+        runLogger.warn("replay attempt failed", { error: describe(error) })
+      }
+      const nextDelay = REPLAY_BACKOFF_MS[attempts]
+      await scheduleReplayRetry(
+        db,
+        item.id,
+        attempts,
+        nextDelay === undefined ? null : new Date(Date.now() + nextDelay),
+      )
+      if (nextDelay === undefined) {
+        // Bounded, and explicitly not a verdict on the agent.
+        runLogger.info("replay never published; marking unavailable", { attempts })
+      }
     }
   }
 

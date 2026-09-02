@@ -1,4 +1,5 @@
 import { LIMITS } from "@gauntlet/config"
+import { REPLAY_BACKOFF_MS } from "../domain/run.js"
 import type { AgentAdapter } from "../ports/agent.js"
 import type { BrowserEnvironment, BrowserProvider } from "../ports/browser.js"
 import type { Evaluator } from "../ports/evaluator.js"
@@ -241,7 +242,10 @@ export async function executeRun(
   }
 
   // ── replay ───────────────────────────────────────────────────────────────
-  const replay = await collectReplay(deps, run, environment, recorder, logger, signal)
+  // Handed off, not waited for. The upload starts when the session is released
+  // and lands anywhere from seconds to minutes later; blocking here delayed a
+  // verdict that a replay can never change.
+  const replay = beginReplay(environment)
 
   if (evaluation.success) {
     return finishAs("passed", { ...replay, errorCode: null, failureCategory: null, failureMessage: null })
@@ -258,38 +262,20 @@ export async function executeRun(
   })
 }
 
-async function collectReplay(
-  deps: RunPipelineDeps,
-  run: PlannedRun,
-  environment: BrowserEnvironment | undefined,
-  recorder: RunRecorder,
-  logger: Logger,
-  signal: AbortSignal,
-): Promise<RunPatch> {
-  if (!environment?.recordingEnabled) return { replayStatus: "none" }
-
-  await deps.store.updateRun(run.id, { status: "collecting_replay" })
-  recorder.lifecycle("replay_pending")
-  try {
-    const artifact = await deps.browsers.fetchReplay(environment, signal)
-    if (!artifact) {
-      recorder.lifecycle("replay_failed")
-      // Explicitly NOT a run failure. A replay is evidence infrastructure, and
-      // its absence says nothing about whether the agent did the task (§34).
-      return { replayStatus: "failed" }
-    }
-    const path = await deps.store.saveReplay(run.id, artifact.bytes)
-    recorder.lifecycle("replay_available", { eventCount: artifact.eventCount })
-    return {
-      replayStatus: "available",
-      replayEventCount: artifact.eventCount,
-      replayBytes: artifact.bytes.length,
-      replayArtifactPath: path,
-    }
-  } catch (error) {
-    logger.warn("replay collection failed", { error: describe(error) })
-    recorder.lifecycle("replay_failed")
-    return { replayStatus: "failed" }
+/**
+ * Mark the replay as something to fetch later.
+ *
+ * Nothing is downloaded here: the sweeper owns the schedule. A run that was
+ * never recorded says so, rather than pretending a fetch is pending.
+ */
+function beginReplay(environment: BrowserEnvironment | undefined): RunPatch {
+  if (!environment?.recordingEnabled || !environment.sessionId) {
+    return { replayStatus: "not_requested" }
+  }
+  return {
+    replayStatus: "processing",
+    replayAttempts: 0,
+    replayNextAttemptAt: new Date(Date.now() + REPLAY_BACKOFF_MS[0]!),
   }
 }
 

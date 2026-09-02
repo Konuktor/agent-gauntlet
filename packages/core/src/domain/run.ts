@@ -95,3 +95,24 @@ export function isScorable(status: IndividualRunStatus): boolean {
 export function isPass(status: IndividualRunStatus): boolean {
   return status === "passed"
 }
+
+/**
+ * How far a replay has got, independently of the run's verdict.
+ *
+ * A replay is evidence, not a judgement, and Solari publishes it
+ * asynchronously after the session is released — observed anywhere from ~7s to
+ * beyond 75s. Blocking a run on it made a passing run look unfinished and,
+ * worse, made the metrics wait on an artefact that changes nothing. So the run
+ * goes terminal immediately and the replay is enriched afterwards.
+ */
+export const replayStatuses = ["not_requested", "processing", "ready", "unavailable"] as const
+export type ReplayStatus = (typeof replayStatuses)[number]
+
+/**
+ * Delays before each replay fetch attempt, in order.
+ *
+ * Five bounded tries over ~7.5 minutes: long enough for the slow publications
+ * measured on real sessions, short enough that a run is never left
+ * "processing" forever.
+ */
+export const REPLAY_BACKOFF_MS = [15_000, 30_000, 60_000, 120_000, 240_000] as const

@@ -15,6 +15,13 @@
       "when": 1788284933057,
       "tag": "0001_sudden_victor_mancha",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788284933058,
+      "tag": "0002_async_replay",
+      "breakpoints": true
     }
   ]
 }
