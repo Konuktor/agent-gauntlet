@@ -30,6 +30,9 @@ const POLL_INTERVAL_MS = 1_500
 /** How often to sweep for suites abandoned by a dead or wedged claim. */
 const RECLAIM_SWEEP_MS = 60_000
 
+/** A sandbox of ours older than this, with no suite running, is abandoned. */
+const ORPHAN_SANDBOX_AGE_MS = 5 * 60_000
+
 export interface WorkerRuntimeOptions {
   config: GauntletConfig
   /** Reuse an existing pool. The single-service deployment shares one with the
@@ -196,6 +199,24 @@ export function createWorkerRuntime(options: WorkerRuntimeOptions): WorkerRuntim
       }
 
       runtime = await createRuntime(config, runLogger)
+
+      // The free Solari plan allows one sandbox. A worker killed mid-suite
+      // cannot release its own, so a single orphan blocks every later suite
+      // for the half hour until it expires — observed twice. This worker runs
+      // one suite at a time, so anything of ours still running here has been
+      // abandoned. The age floor keeps it from touching a sibling's sandbox.
+      if (runtime.sandboxes && "killOrphans" in runtime.sandboxes) {
+        const swept = await (
+          runtime.sandboxes as { killOrphans(olderThanMs: number): Promise<number> }
+        )
+          .killOrphans(ORPHAN_SANDBOX_AGE_MS)
+          .catch((error: unknown) => {
+            runLogger.warn("orphan sweep failed", { error: describe(error) })
+            return 0
+          })
+        if (swept > 0) runLogger.warn("killed abandoned sandboxes before starting", { swept })
+      }
+
       const task = toTaskDefinition(suite.task)
       const agent = await createAgent(
         {

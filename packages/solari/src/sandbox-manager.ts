@@ -41,6 +41,14 @@ const DEFAULT_IDLE_MS = 15 * 60_000
  *   billing until its idle timeout. `kill()` is what actually destroys it, and
  *   it is called from a `finally` without exception.
  */
+function readCreatedAt(view: unknown): number | undefined {
+  if (typeof view !== "object" || view === null) return undefined
+  const raw = (view as { createdAt?: unknown }).createdAt
+  if (typeof raw !== "string") return undefined
+  const parsed = Date.parse(raw)
+  return Number.isNaN(parsed) ? undefined : parsed
+}
+
 export class SolariSandboxProvider implements SandboxProvider {
   readonly mode = "solari" as const
 
@@ -127,6 +135,46 @@ export class SolariSandboxProvider implements SandboxProvider {
       }
     }
     return found
+  }
+
+  /**
+   * Kill sandboxes this app left running.
+   *
+   * A graceful drain releases them; a hard kill cannot, and the free plan
+   * allows exactly one sandbox — so a single orphan blocks every future suite
+   * for the 30 minutes until it expires. That happened, twice, and cost more
+   * time than the runs themselves.
+   *
+   * `olderThanMs` keeps this from murdering a sibling worker's sandbox that is
+   * legitimately in use: only something that has outlived any plausible suite
+   * is treated as abandoned.
+   */
+  async killOrphans(olderThanMs: number): Promise<number> {
+    const cutoff = Date.now() - olderThanMs
+    let killed = 0
+    for await (const view of this.client.sandboxes.listAll({ state: "running" })) {
+      if (view.metadata?.app !== "agent-gauntlet") continue
+      if (this.live.has(view.sandboxId)) continue
+      // The API returns createdAt; the SDK's SandboxView type does not declare
+      // it. Read it defensively rather than casting the whole view, and treat
+      // an absent timestamp as "too new to touch".
+      const createdAt = readCreatedAt(view)
+      if (createdAt === undefined || createdAt > cutoff) continue
+      try {
+        await this.client.sandboxes.kill(view.sandboxId)
+        killed++
+        this.logger.warn("killed an orphaned sandbox", {
+          sandboxId: view.sandboxId,
+          createdAt: new Date(createdAt).toISOString(),
+        })
+      } catch (error) {
+        this.logger.warn("could not kill an orphaned sandbox", {
+          sandboxId: view.sandboxId,
+          error: error instanceof Error ? error.message : String(error),
+        })
+      }
+    }
+    return killed
   }
 
   async shutdown(): Promise<void> {
