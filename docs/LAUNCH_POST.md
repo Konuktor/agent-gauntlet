@@ -1,87 +1,93 @@
-# Launch post
+# Launch posts
 
-Two drafts. The first is the main one; the second is a shorter variant for X.
-
----
-
-## LinkedIn / X — long form
-
-> Browser agents demo beautifully.
->
-> The problem is they don't fail consistently.
->
-> The same task works on Monday and breaks on Tuesday because a cookie banner
-> appeared, an API got slower, someone renamed a button, or the session expired
-> halfway through checkout. None of that shows up in a benchmark score, because a
-> benchmark asks whether the agent can do it *once*.
->
-> So I built AgentGauntlet.
->
-> It runs the same task many times, across changing UI, network, session and
-> browser conditions, and judges completion from the site's own server-side
-> state — never from what the agent says about itself. An agent can print
-> "status: completed". The dashboard records that as a claim and shows it next to
-> what actually happened.
->
-> The result isn't a score. It's a reliability rate with a confidence interval,
-> a breakdown by perturbation, and a replay of the exact run that broke.
->
-> The clearest thing it produced: three agents differing by one capability each,
-> same task, same sixteen runs.
->
-> · no overlay handling, no patience → 75.0%
-> · dismisses overlays, waits for late elements → 87.5%
-> · also recovers an interrupted session → 100%
->
-> Overlay handling is worth 12.5 points. Session recovery is worth another 12.5.
-> That's measured, not asserted — and it's the kind of thing you can only learn
-> by running the same task over and over in conditions you control.
->
-> It's built on Solari, and not incidentally. The product needs many independent
-> recorded cloud browsers running in parallel, a controlled benchmark site hosted
-> in an isolated VM on a public URL, and somewhere safe to execute agent
-> repositories I didn't write. Solari Browser and Solari Sandbox are exactly that
-> shape. Third-party agent code never touches my machine, and it gets a scoped
-> CDP endpoint rather than an API key.
->
-> Reliability belongs in CI. `gauntlet run` exits non-zero when the rate drops
-> below your threshold, so a pull request that makes the agent worse fails like
-> any other regression.
->
-> Repo: [link]
-> 60-second demo: [link]
->
-> Built for the @Solari / Pinetree Research challenge. Feedback very welcome —
-> particularly on which perturbations you'd add.
+Both are written to be posted as-is. Numbers are the real ones from the live
+deployment; do not round them up.
 
 ---
 
-## X — short form
+## LinkedIn
 
-> Browser agents don't fail consistently. The same task works, then breaks —
-> a cookie banner, a slow API, a renamed button, an expired session.
->
-> AgentGauntlet runs the task 16 times across changing conditions and reports a
-> reliability rate instead of a score.
->
-> Three agents, one capability apart:
-> 75% → 87.5% → 100%
->
-> Completion is judged from the site's server-side state, never from the agent's
-> own report. Built on @Solari: parallel recorded cloud browsers, and sandboxes
-> to run agent repos I didn't write.
->
-> [link]
+**Your browser agent passes its benchmark. That tells you almost nothing.**
+
+A benchmark asks: can the agent do the task once, on a good day, on a page that
+never changes?
+
+Production asks something else. A cookie banner appears. A modal steals focus.
+The session expires. The CTA gets renamed by a marketing team that never heard
+of your agent.
+
+So I built AgentGauntlet: it runs the same task repeatedly across changing UI,
+network and session conditions, on real cloud browsers, and judges completion
+from the site's **server-side state** — never from what the agent says about
+itself.
+
+Here is a real run, on real infrastructure:
+
+```
+baseline           PASS    7 steps
+cookie_popup       PASS    7 steps
+unexpected_modal   PASS   19 steps
+expired_session    FAIL    7 steps
+
+Reliability 75%   Baseline 100%   Perturbed 66.7%
+```
+
+Look at the third line before the fourth.
+
+`unexpected_modal` **passed** — and took **19 steps instead of 7**. Unexpected UI
+did not break the agent. It nearly tripled its trajectory. A pass/fail benchmark
+shows you a green tick there. In production that is a timeout, a cost overrun, a
+rate limit, a support ticket.
+
+The failure it did find, classified from evidence:
+
+> "The shopping session expired mid-task and the agent did not re-establish it."
+
+Two things I want to be honest about. Four runs is a demonstration, not a
+benchmark — the confidence interval on that 75% is 30–95%, and the product shows
+it rather than hiding it. And the agent under test is my own reference
+implementation; the more interesting result will be the first time someone
+points it at theirs.
+
+It is agent-agnostic on purpose. Bring your own from a git repository: it is
+cloned into an isolated sandbox, handed a browser session scoped to that run,
+and never given my API keys.
+
+Built on Solari for cloud browsers and sandboxes. Live, free, no signup to look
+around:
+
+🔗 https://http--agent-gauntlet-web--hjwypxsqnrjv.code.run
+💻 https://github.com/Konuktor/agent-gauntlet
 
 ---
 
-## Notes for posting
+## X
 
-- Replace `[link]` with the repository and the demo video.
-- The three reliability figures are real, measured against the bundled
-  benchmark storefront — `pnpm gauntlet demo` reproduces them. Do not round them
-  into something rosier.
-- Good first comment: the run-detail screenshot showing expected vs actual next
-  to the agent's own claim. It makes the "never trust the self-report" point
-  faster than any sentence does.
-- Tag Solari / Pinetree Research. Mention the challenge; don't lead with it.
+**Your agent passed its benchmark. Congratulations — that measured almost nothing.**
+
+I ran one agent through the same checkout task under changing conditions, on
+real cloud browsers:
+
+```
+baseline           PASS    7 steps
+cookie_popup       PASS    7 steps
+unexpected_modal   PASS   19 steps  ←
+expired_session    FAIL    7 steps
+```
+
+The interesting line isn't the failure.
+
+`unexpected_modal` **passed** — in 19 steps instead of 7. It survived and paid
+nearly 3×. Your pass/fail benchmark prints a green tick. Production prints a
+timeout.
+
+Verdicts come from server-side state, not the agent's self-report. It can claim
+success all it likes; the store knows what actually happened.
+
+75% reliability on 4 runs — CI 30–95%, which the tool shows you, because 4 runs
+is a demo and not a benchmark.
+
+Bring your own agent from a git repo. It runs in an isolated sandbox with a
+browser scoped to that run, and never sees my keys.
+
+Live 👉 https://http--agent-gauntlet-web--hjwypxsqnrjv.code.run

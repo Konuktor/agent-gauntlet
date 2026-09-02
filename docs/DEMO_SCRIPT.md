@@ -1,123 +1,84 @@
-# Demo script — 60 seconds
+# 60-second demo
 
-The point to land: **a browser agent that works once has told you nothing.**
+Everything below is on the live deployment. Nothing is staged, and every number
+is one AgentGauntlet actually measured.
 
-Setup before recording:
-
-```bash
-docker compose up -d && pnpm db:migrate && pnpm db:seed && pnpm dev
-```
-
-Browser at 1440×900, dark theme, `http://localhost:3000`.
+**https://http--agent-gauntlet-web--hjwypxsqnrjv.code.run**
 
 ---
 
-### 0:00 – 0:06 · The question
+### 0:00 – 0:07 · The claim
 
-**Landing page.**
+Land on the home page.
 
-> "Your browser agent worked once. Would you deploy it?"
+> "Benchmarks tell you whether your agent is smart. AgentGauntlet tells you
+> whether it survives production."
 
-Let the headline sit for a beat: *Crash-test your browser agent before
-production does.*
+Point at the badge in the header: **SOLARI LIVE**. Real cloud browsers, not a
+simulation.
 
-### 0:06 – 0:14 · Configure
+### 0:07 – 0:15 · The real run
 
-Click **Run the Gauntlet**.
+Open **Runs → the four-run Solari suite**. The matrix, four real browser
+sessions:
 
-> "Pick an agent. Pick a task. Pick the ways the world can change underneath it."
+```
+baseline           PASS    7 steps
+cookie_popup       PASS    7 steps
+unexpected_modal   PASS   19 steps
+expired_session    FAIL    7 steps
+```
 
-Scroll the variants: cookie popup, unexpected modal, slow API, renamed CTA,
-mobile viewport, expired session. Point at the sidebar:
+### 0:15 – 0:25 · What the numbers say
 
-> "Eight variants, two repetitions — sixteen browser runs. It tells you the cost
-> before it spends anything, and nothing starts until you press the button."
+Reliability **75%**, baseline **100%**, perturbed **66.7%**, **0** infrastructure
+errors.
 
-Press **Run the Gauntlet**.
+> "Perfect when nothing moves. Two thirds when the environment does."
 
-### 0:14 – 0:26 · Watch it run
+Do not hide the interval: on four runs it is 30–95%. This is a demonstration of
+the measurement, not a benchmark result.
 
-The live dashboard. Cells fill in as runs complete.
+### 0:25 – 0:35 · The failure, proved
 
-> "Sixteen browsers, three at a time. Each one gets a different environment,
-> deterministic from a seed — so re-running this reproduces exactly these
-> conditions."
+Click the red cell — `expired_session`.
 
-Cells land green. Two land red.
+> "The shopping session expired mid-task and the agent did not re-establish it."
 
-### 0:26 – 0:36 · The number
+Show that the verdict came from the **benchmark site's server-side state**, not
+from the agent's own report. The agent's claim is displayed next to what
+actually happened; when they disagree, the state wins.
 
-Settle on the result.
+### 0:35 – 0:43 · The failure nobody else reports
 
-> "Eighty-seven and a half percent. Baseline is a hundred — it always works on a
-> clean page. Perturbed is eighty-six."
+Click `unexpected_modal`. It **passed** — in **19 steps against a baseline of 7**.
 
-Point at the confidence interval.
+> "It survived, and paid nearly triple. A pass/fail benchmark shows you a green
+> tick here. In production this is a timeout, a cost overrun, a rate limit."
 
-> "Sixteen runs, so the interval is wide, and it says so. It won't pretend three
-> runs is proof."
+This is the single most persuasive screen in the product.
 
-Scroll to the run matrix.
+### 0:43 – 0:50 · Evidence
 
-> "Every cell is one run. Expired session failed both times — that's not
-> flakiness, that's a missing capability."
+Open the replay panel. If it is ready, play the rrweb recording of exactly what
+the browser did. If it still says **Replay processing…**, say so plainly:
 
-### 0:36 – 0:48 · Why it failed
+> "Recordings publish asynchronously, so they arrive after the verdict. The
+> result never waits on evidence — and a missing recording never changes a
+> pass into a fail."
 
-Click the failed **Expired session** cell.
+### 0:50 – 0:57 · Somebody else's agent
 
-> "Here's the evidence. Cart correct. Coupon applied. Checkout name: expected Ada
-> Lovelace, got null. Stage: expected review, got checkout."
+Open the repository-agent run.
 
-Point at the agent's own claim.
+> "This one is not our agent. It is a separate public repository, cloned into a
+> Solari Sandbox, installed there, and given a CDP endpoint scoped to one
+> browser session. It never runs on our machines and never sees our Solari key."
 
-> "And here's what the agent said about itself. The verdict doesn't come from
-> that — it comes from the site's server-side state, which the agent can only
-> change by actually doing the work."
-
-Scroll to the action trace.
-
-> "It hit the expired-session page, couldn't find the name field, tried three
-> more times, and gave up. And there's the session replay."
-
-### 0:48 – 0:57 · The regression
-
-Back to **Runs** → **Compare**.
-
-> "Same suite, two commits. Main was eighty-seven point five. This PR is
-> seventy-five. Unexpected modal went from a hundred percent to zero."
-
-Point at REGRESSION DETECTED.
-
-> "That's a CI gate. `gauntlet run` exits non-zero and the pull request fails."
+```
+GitHub → Solari Sandbox → scoped CDP → Solari Browser → Gauntlet Shop → evaluator
+```
 
 ### 0:57 – 1:00 · Close
 
-Back to the landing page.
-
-> "AgentGauntlet. Crash-test your browser agent before production does."
-
----
-
-## If you have another twenty seconds
-
-The capability ladder is the strongest single argument in the product:
-
-| Agent | Reliability |
-|---|---|
-| Naive — no overlay handling, no patience | **75.0%** |
-| Reference — dismisses overlays, waits for late elements | **87.5%** |
-| Resilient — also recovers interrupted sessions | **100%** |
-
-> "Same task, same sixteen runs, three agents differing by one capability each.
-> Overlay handling is worth twelve and a half points. Session recovery is worth
-> another twelve and a half. That's not a guess — you can measure it."
-
-## Terminal shot, if you want one
-
-```bash
-pnpm gauntlet demo
-```
-
-It prints the matrix, the reliability, the threshold, and exits non-zero when the
-gate fails.
+> "Crash-test your browser agent before production does."
