@@ -36,7 +36,7 @@ export interface LocalBrowserProviderOptions {
 export class LocalBrowserProvider implements BrowserProvider {
   readonly mode = "local" as const
 
-  private browser: Browser | undefined
+  private browserPromise: Promise<Browser> | undefined
   private readonly replays = new Map<string, ReplayArtifact>()
   private readonly logger: Logger
 
@@ -139,28 +139,53 @@ export class LocalBrowserProvider implements BrowserProvider {
 
   async shutdown(): Promise<void> {
     this.replays.clear()
-    const browser = this.browser
-    this.browser = undefined
+    const pending = this.browserPromise
+    this.browserPromise = undefined
+    if (!pending) return
+    const browser = await pending.catch(() => undefined)
     if (browser) await closeQuietly(() => browser.close(), this.logger, "local browser close")
   }
 
-  private async ensureBrowser(): Promise<Browser> {
-    if (this.browser?.isConnected()) return this.browser
-    try {
-      this.browser = await chromium.launch({
+  /**
+   * One Chromium, however many runs ask for it at once.
+   *
+   * The memoised value is the *promise*, not the browser. Memoising the browser
+   * looks equivalent and is not: with concurrency N, all N runs reach this
+   * method before the first launch resolves, every one of them sees no browser,
+   * and every one launches its own. The last assignment wins the field and the
+   * rest are orphaned — never closed, and holding the process open long after
+   * the gauntlet has printed its verdict. That is why the CLI would finish a
+   * suite, print the result, and then hang until something killed it.
+   */
+  private ensureBrowser(): Promise<Browser> {
+    const pending = this.browserPromise
+    if (pending) {
+      return pending.then((browser) => {
+        if (browser.isConnected()) return browser
+        // Crashed between runs: drop it and launch a replacement, once.
+        if (this.browserPromise === pending) this.browserPromise = undefined
+        return this.ensureBrowser()
+      })
+    }
+
+    const launch = chromium
+      .launch({
         headless: this.options.headless ?? true,
         ...(this.options.slowMoMs ? { slowMo: this.options.slowMoMs } : {}),
       })
-      return this.browser
-    } catch (error) {
-      throw new GauntletError({
-        code: "browser_launch_failed",
-        message:
-          "Could not launch a local Chromium. Run `pnpm exec playwright install chromium` and try again.",
-        detail: error instanceof Error ? error.message : String(error),
-        cause: error,
+      .catch((error: unknown) => {
+        // A failed launch must not be cached, or every later run inherits it.
+        if (this.browserPromise === launch) this.browserPromise = undefined
+        throw new GauntletError({
+          code: "browser_launch_failed",
+          message:
+            "Could not launch a local Chromium. Run `pnpm exec playwright install chromium` and try again.",
+          detail: error instanceof Error ? error.message : String(error),
+          cause: error,
+        })
       })
-    }
+    this.browserPromise = launch
+    return launch
   }
 }
 

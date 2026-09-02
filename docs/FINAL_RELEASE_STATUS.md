@@ -101,6 +101,53 @@ real key trains people to wave scanner alerts through.
 Both were purged from all commits on this unmerged branch rather than only from
 the tip, so the pull request scans clean. `master` was not rewritten.
 
+### 7. The reliability gate has never completed a run — RELEASE BLOCKER
+
+The `AgentGauntlet` workflow is the product's own reliability gate, and it has
+never once finished. Every run in the repository's history is `cancelled`,
+including by the 25-minute job timeout. It was invisible before this pass
+because the workflow targeted a branch that does not exist, so it had never run
+at all.
+
+Reproduced locally. `pnpm gauntlet demo` prints a correct verdict — 87.5%,
+14/16, and a deliberate `FAIL` against the demo's 90% threshold — and is then
+killed at exactly the timeout.
+
+What is measured so far:
+
+| Shape                                             | Result                         |
+| ------------------------------------------------- | ------------------------------ |
+| One `baseline` run                                | 2.1s, clean exit               |
+| Each of the seven perturbations, one process each | ~52s total, all exit cleanly   |
+| Eight variants in **one** process                 | killed at the 600s timeout     |
+| Sixteen runs (`demo`)                             | verdict printed, killed at 25m |
+
+So no single perturbation hangs, and the perturbation config is correctly scoped
+per `runId` — concurrent runs do not contaminate each other, and the numbers the
+product reports are sound. The pathology is specific to many runs inside one
+process, which is exactly what both the demo and the CI gate do.
+
+**Root cause: an async race in lazy initialisation.** `LocalBrowserProvider`
+memoised the _browser_ rather than the promise:
+
+```ts
+if (this.browser?.isConnected()) return this.browser
+this.browser = await chromium.launch(...)
+```
+
+With concurrency N, all N runs reach that check before the first launch
+resolves, so every one of them launches its own Chromium. The last assignment
+wins the field and the rest are orphaned — never closed, and holding the
+process open. One run was always fine; that is why nothing ever caught it.
+
+Memoising the promise fixes it. Eight variants in one process went from _killed
+at the 600s timeout_ to **28.8 seconds, clean exit**.
+
+The regression test counts launches rather than inspecting the result, because
+asserting on the returned environments passes against the broken version too.
+Verified by restoring the racy implementation: `expected "spy" to be called 1
+times, but got 4 times`.
+
 ## Secret audit
 
 | Scope                       | Result                                                                                                                                                                                                 |
