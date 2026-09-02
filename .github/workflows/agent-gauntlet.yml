@@ -2,13 +2,26 @@
 #
 # Runs the same gauntlet a developer runs locally and fails the PR when the
 # agent's reliability drops below the threshold in gauntlet.yaml.
+#
+# On a PR or a push this runs in LOCAL mode and costs nothing. Running it on
+# real Solari browsers is a manual dispatch with an explicit opt-in, because
+# that spends credits and a scheduled job quietly draining a quota is a bad
+# way to find out.
 name: AgentGauntlet
 
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [master]
   workflow_dispatch:
+    inputs:
+      solari:
+        description: "Run on real Solari browsers (SPENDS CREDITS)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
 
 jobs:
   gauntlet:
@@ -37,9 +50,11 @@ jobs:
       - name: Run the gauntlet
         id: gauntlet
         env:
-          # Optional. Without it the suite runs locally against the bundled
-          # benchmark storefront — still a real measurement, just not on Solari.
-          SOLARI_API_KEY: ${{ secrets.SOLARI_API_KEY }}
+          # Deliberately empty on every automatic trigger, so a push or a PR can
+          # never spend a browser credit. The suite then runs locally against
+          # the bundled benchmark storefront — still a real measurement, just
+          # not on Solari. Real browsers are opt-in, one dispatch at a time.
+          SOLARI_API_KEY: ${{ (github.event_name == 'workflow_dispatch' && inputs.solari) && secrets.SOLARI_API_KEY || '' }}
           # Keep well under the plan's concurrent-session cap: a 429 is not
           # retryable and would fail the job for the wrong reason.
           GAUNTLET_MAX_CONCURRENCY: 3
