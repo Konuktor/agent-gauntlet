@@ -72,6 +72,14 @@
       that navigated straight out of the store on the first click
 - [x] Found and fixed: a repository agent's stdout/stderr was collected and then dropped, leaving
       "Agent exited 1." as the entire diagnosis for somebody else's failing code
+- [x] Re-run after the fixes: **7 pages x 2 viewports, all 200, zero overflow, zero localhost
+      links, zero console errors**
+
+### The mobile overflow was not where it looked
+`min-w-0` on the offending row changed nothing. The panel containing it is a **grid child**, and
+grid children default to `min-width: auto` — they refuse to shrink below their content, so one
+long Solari preview URL pushed the page 3228px wide. The fix belongs in `Panel`, once, rather than
+in every page that lays panels out.
 
 ### Things that only deploying could find
 1. `${refs.database.id}` is undefined — node responses nest under `data`. It does
