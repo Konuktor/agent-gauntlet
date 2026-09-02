@@ -95,6 +95,16 @@ export class SolariBrowserProvider implements BrowserProvider {
       }
 
       const sessionId = session.id
+      // Logged at info, before anything can go wrong with the run: the SDK
+      // offers no way to enumerate sessions, only `release(id)`. When a worker
+      // died mid-suite its three live sessions became unreleasable — they held
+      // the whole free-plan concurrency budget until they expired on their own,
+      // and the id was the one thing that would have let us hand them back.
+      this.logger.info("browser session open", {
+        sessionId,
+        expiresAt: session.expiresAt,
+        recording: options.recording,
+      })
       const cdpEndpoint = session.cdpEndpoint
       const scopedBrowser = browser
       let disposed = false
