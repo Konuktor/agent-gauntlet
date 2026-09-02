@@ -591,7 +591,7 @@ The full write-up, including the ones that were merely embarrassing, is in
 
 ## Project status
 
-**v1.0.0 — challenge release.** Built for the Pinetree Research / Solari SWE
+**v1.0.1 — challenge release.** Built for the Pinetree Research / Solari SWE
 challenge and deployed publicly. It is a working system with real measurements
 behind it, not a production service with an SLA: the demo runs on a free plan,
 replay storage is ephemeral, and the public run controls are protected by a
