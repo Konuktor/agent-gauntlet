@@ -29,8 +29,17 @@ export const LIMITS = {
   maxReplayBytes: 8 * 1024 * 1024,
   /** Events persisted per run. */
   maxEventsPerRun: 2_000,
-  /** Attempts when polling for an async replay upload (~3s apart). */
-  replayPollAttempts: 10,
+  /**
+   * Attempts when polling for an async replay upload (~3s apart).
+   *
+   * The docs suggest the first poll 404s for a second or two. A real 36s
+   * session on Solari took longer than the old 10-attempt (~30s) budget and
+   * the replay was recorded as `failed` on an otherwise perfect run. Waiting
+   * costs nothing that matters: the browser session is already released, so
+   * no credits accrue, and a replay is evidence rather than a verdict — if it
+   * never arrives the run's pass/fail is untouched.
+   */
+  replayPollAttempts: 25,
   replayPollIntervalMs: 3_000,
 } as const
 

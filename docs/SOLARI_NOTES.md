@@ -203,3 +203,23 @@ capabilities that are hard to get any other way:
    agent contract is only safe because the code never touches our host.
 4. **DOM-level session recordings** — a failed run is debuggable rather than just
    counted.
+
+
+## Observed on a real run (2026-09-02)
+
+First end-to-end Solari execution from the deployed worker, one baseline run:
+
+| Step | Result |
+|---|---|
+| Sandbox created, node probe | ok |
+| Gauntlet Shop uploaded | ok, ~0.5s |
+| `previewUrl` exposed and serving | ok, ~1s |
+| Browser session, agent acted | **passed**, 7 steps, 36.3s |
+| Evaluator read `/__gauntlet/state` | ok, verdict from server state |
+| Replay retrieved | **no** — see below |
+| Infrastructure errors | 0 |
+
+**The replay took longer than the documented "first poll usually 404s".** A
+10-attempt / 3s budget (~30s after release) was exhausted and the run recorded
+`replay_status = failed` despite passing. Raised to 25 attempts (~75s). This is
+a timing fact the docs do not state, and only a real session shows it.
