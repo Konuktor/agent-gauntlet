@@ -107,11 +107,11 @@ real key trains people to wave scanner alerts through.
 Both were purged from all commits on this unmerged branch rather than only from
 the tip, so the pull request scans clean. `master` was not rewritten.
 
-### 7. The reliability gate has never completed a run — RELEASE BLOCKER
+### 7. The reliability gate had never completed a run — found and fixed
 
-The `AgentGauntlet` workflow is the product's own reliability gate, and it has
-never once finished. Every run in the repository's history is `cancelled`,
-including by the 25-minute job timeout. It was invisible before this pass
+The `AgentGauntlet` workflow is the product's own reliability gate, and until
+this pass it had never once finished. Every earlier run in the repository's
+history is `cancelled`, most of them by the 25-minute job timeout. It was invisible before this pass
 because the workflow targeted a branch that does not exist, so it had never run
 at all.
 
@@ -119,7 +119,7 @@ Reproduced locally. `pnpm gauntlet demo` prints a correct verdict — 87.5%,
 14/16, and a deliberate `FAIL` against the demo's 90% threshold — and is then
 killed at exactly the timeout.
 
-What is measured so far:
+What was measured, before the fix:
 
 | Shape                                             | Result                         |
 | ------------------------------------------------- | ------------------------------ |
