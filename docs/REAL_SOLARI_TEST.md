@@ -117,6 +117,26 @@ for spending the credits.
 4. **A terminal suite left its runs alive.** A suite that failed with
    `solari_concurrency` showed four individual runs stuck in `running_agent`
    forever. They are now cancelled — confirmed on the deployment.
+5. **The session id was logged too late to be useful.** The SDK can
+   `release(id)` but cannot enumerate sessions, so a stranded session is
+   unrecoverable without its id — and the id was only logged for sessions that
+   finished cleanly, which are exactly the ones that never need it.
+6. **A 429 failed the suite instead of waiting.** The design called for waiting
+   on a freed slot with jittered backoff; only the "do not hammer the wall"
+   half was built. A four-variant suite died outright because two of three
+   plan slots were briefly held, when it could have run narrower and finished.
+   Creation now waits, bounded, and still surfaces the real error when the plan
+   is genuinely exhausted.
+7. **One abandoned sandbox blocked the entire plan.** The free plan allows a
+   single sandbox, and a worker killed mid-suite cannot release its own — so
+   one orphan blocked every later suite for the 30 minutes until it expired.
+   `listOrphans()` already existed and its comment promised a sweeper; only the
+   acceptance test called it. The worker now sweeps at the start of a suite,
+   with an age floor so a sibling's live sandbox is never touched.
+
+Three of these compound, which is why none of them is reachable from a laptop:
+a hard kill strands the sandbox (3), the orphan holds the plan's only slot (7),
+and the symptom presents as a browser concurrency error (6).
 
 ### Facts worth knowing
 
