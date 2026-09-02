@@ -75,6 +75,32 @@ contributing instructions hit a red check on code they had not touched. Fixed as
 an isolated mechanical commit — reflow only, verified by diffing with whitespace
 ignored — and `format:check` now runs in CI so it cannot drift again.
 
+### 6. A secret scanner caught what my own audit missed
+
+GitGuardian runs on this repository's pull requests and failed the release PR
+twice.
+
+The first was real and mine. The scrub-migration test fixture reused the actual
+HMAC signature suffix and the actual internal hostname from the production
+response it was copied from — a fragment of a live capability, committed into a
+test _about_ credential leaks. Not exploitable: that session had expired hours
+earlier, and the signature covers a composite id the fixture had already
+altered, so it authorised nothing. It still had no business in a public
+repository.
+
+My own history scan missed it because I searched for API-key shapes and complete
+endpoints, not for a signature fragment I had introduced myself minutes earlier.
+That is a good argument for having a scanner that does not share your
+assumptions.
+
+The second was a false positive worth fixing anyway: the redaction module's own
+test used `slr_live_`-shaped fixtures, which a redactor cannot be tested without.
+They are now low-entropy and self-describing, because a fixture that looks like a
+real key trains people to wave scanner alerts through.
+
+Both were purged from all commits on this unmerged branch rather than only from
+the tip, so the pull request scans clean. `master` was not rewritten.
+
 ## Secret audit
 
 | Scope                       | Result                                                                                                                                                                                                 |
