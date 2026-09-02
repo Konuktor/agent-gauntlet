@@ -4,10 +4,14 @@
 
 ### Crash-test your browser agent before production does.
 
-*Benchmarks tell you whether your agent is smart.
-AgentGauntlet tells you whether it survives production.*
+_Benchmarks tell you whether your agent is smart.
+AgentGauntlet tells you whether it survives production._
 
 **[Live demo →](https://http--agent-gauntlet-web--hjwypxsqnrjv.code.run)**
+
+[![CI](https://github.com/Konuktor/agent-gauntlet/actions/workflows/ci.yml/badge.svg)](https://github.com/Konuktor/agent-gauntlet/actions/workflows/ci.yml)
+[![Reliability](https://github.com/Konuktor/agent-gauntlet/actions/workflows/agent-gauntlet.yml/badge.svg)](https://github.com/Konuktor/agent-gauntlet/actions/workflows/agent-gauntlet.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 </div>
 
@@ -75,11 +79,11 @@ overrun or a rate limit in production.
 
 The failure, classified from evidence rather than from the agent's own account:
 
-> *"The shopping session expired mid-task and the agent did not re-establish it."*
+> _"The shopping session expired mid-task and the agent did not re-establish it."_
 
 **On the 75%.** Four runs is a demonstration, not a benchmark. The Wilson
 interval on that sample is **30.1% – 95.4%** — the product reports it, and this
-README will not pretend otherwise. What four runs *do* establish is that the
+README will not pretend otherwise. What four runs _do_ establish is that the
 whole path works end to end and that the measurement distinguishes a survivable
 perturbation from a fatal one.
 
@@ -103,7 +107,7 @@ and not the eighth has a reliability of 87.5%, not "it works".
 
 Three ideas do the work:
 
-**Repetition.** One success is an anecdote. AgentGauntlet reports a *rate*, with
+**Repetition.** One success is an anecdote. AgentGauntlet reports a _rate_, with
 a Wilson confidence interval, and tells you how often identical repetitions
 disagreed with each other — because an agent that passes 3 and fails 3 of the
 same run is not "50% good", it is unpredictable, and that is worse.
@@ -116,7 +120,7 @@ runs is attributable to the agent.
 **Independent evaluation.** The verdict comes from the benchmark site's own
 server-side state, read by the worker over HTTP, with no involvement from the
 agent or its browser. An agent can print `{"status":"completed"}`; the dashboard
-records that as a *claim* and shows it next to what actually happened.
+records that as a _claim_ and shows it next to what actually happened.
 
 ---
 
@@ -151,15 +155,15 @@ a `try/finally`; a single failed run never takes the suite down.
 
 ## Where Solari is used, and why it is not interchangeable
 
-| Capability | What AgentGauntlet does with it |
-|---|---|
-| **Browser sessions** | One recorded session per run. Reliability is a *repeated* measurement, so N parallel disposable browsers is the product, not a convenience. |
-| **Session recording + replay** | Every run is recorded; a failure is watchable, not just counted. |
-| **Sandbox + preview URL** | The benchmark storefront runs inside an isolated VM and is exposed on a public URL that cloud browsers can reach — a controlled site we own, hosted where the browsers are. |
-| **Sandbox isolation** | Third-party agent repositories are cloned and executed **only** inside a sandbox. This feature is not safe to build any other way. |
-| **Raw CDP endpoint** | A repository agent inside a sandbox drives its own browser over CDP — without ever receiving a Solari API key. |
-| **Snapshots** | Install a repository's dependencies once, then boot each repetition from the snapshot. |
-| **Profiles / proxies / stealth** | Available behind opt-in config for authorised targets. The demo needs none of them. |
+| Capability                       | What AgentGauntlet does with it                                                                                                                                             |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Browser sessions**             | One recorded session per run. Reliability is a _repeated_ measurement, so N parallel disposable browsers is the product, not a convenience.                                 |
+| **Session recording + replay**   | Every run is recorded; a failure is watchable, not just counted.                                                                                                            |
+| **Sandbox + preview URL**        | The benchmark storefront runs inside an isolated VM and is exposed on a public URL that cloud browsers can reach — a controlled site we own, hosted where the browsers are. |
+| **Sandbox isolation**            | Third-party agent repositories are cloned and executed **only** inside a sandbox. This feature is not safe to build any other way.                                          |
+| **Raw CDP endpoint**             | A repository agent inside a sandbox drives its own browser over CDP — without ever receiving a Solari API key.                                                              |
+| **Snapshots**                    | Install a repository's dependencies once, then boot each repetition from the snapshot.                                                                                      |
+| **Profiles / proxies / stealth** | Available behind opt-in config for authorised targets. The demo needs none of them.                                                                                         |
 
 The integration details — including the ones that cost real debugging time — are
 in **[docs/SOLARI_NOTES.md](docs/SOLARI_NOTES.md)**.
@@ -187,18 +191,18 @@ so. Add `SOLARI_API_KEY` to `.env` and the same suites run on Solari.
 
 ### Environment
 
-| Variable | Default | Meaning |
-|---|---|---|
-| `DATABASE_URL` | `…localhost:5433/gauntlet` | Postgres, matching `docker-compose.yml` |
-| `SOLARI_API_KEY` | — | Enables real mode. Absent ⇒ local mode |
-| `GAUNTLET_MODE` | `auto` | `auto` \| `solari` \| `local`. `solari` without a key is a startup error, never a silent downgrade |
-| `GAUNTLET_RUN_TOKEN` | — | Access code required to *start* a run. Mandatory for a public deployment |
-| `GAUNTLET_PUBLIC_URL` | — | Public origin. Set it in production so nothing emits a localhost link |
-| `ANTHROPIC_API_KEY` | — | Optional, experimental adapter only. Never required |
-| `GAUNTLET_MAX_CONCURRENCY` | `3` | Parallel browsers. Solari's Free plan allows 3 |
-| `GAUNTLET_MAX_SANDBOXES` | `1` | Free plan allows 1 |
-| `GAUNTLET_MAX_RUNS_PER_SUITE` | `50` | Cost ceiling |
-| `GAUNTLET_FIXTURE_URL` | — | Point at an existing fixture instead of provisioning a sandbox |
+| Variable                      | Default                    | Meaning                                                                                            |
+| ----------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                | `…localhost:5433/gauntlet` | Postgres, matching `docker-compose.yml`                                                            |
+| `SOLARI_API_KEY`              | —                          | Enables real mode. Absent ⇒ local mode                                                             |
+| `GAUNTLET_MODE`               | `auto`                     | `auto` \| `solari` \| `local`. `solari` without a key is a startup error, never a silent downgrade |
+| `GAUNTLET_RUN_TOKEN`          | —                          | Access code required to _start_ a run. Mandatory for a public deployment                           |
+| `GAUNTLET_PUBLIC_URL`         | —                          | Public origin. Set it in production so nothing emits a localhost link                              |
+| `ANTHROPIC_API_KEY`           | —                          | Optional, experimental adapter only. Never required                                                |
+| `GAUNTLET_MAX_CONCURRENCY`    | `3`                        | Parallel browsers. Solari's Free plan allows 3                                                     |
+| `GAUNTLET_MAX_SANDBOXES`      | `1`                        | Free plan allows 1                                                                                 |
+| `GAUNTLET_MAX_RUNS_PER_SUITE` | `50`                       | Cost ceiling                                                                                       |
+| `GAUNTLET_FIXTURE_URL`        | —                          | Point at an existing fixture instead of provisioning a sandbox                                     |
 
 Every variable is validated at startup by a Zod schema; a bad `.env` produces one
 message listing every problem, not a cascade.
@@ -211,7 +215,7 @@ Never ambiguous, always badged on screen:
 
 - **`SOLARI`** — real Solari browsers and sandboxes. Costs credits.
 - **`LOCAL`** — real Playwright Chromium here, real agent, real evaluation, real
-  rrweb capture. Costs nothing. Labelled *"not a Solari run"* wherever it appears.
+  rrweb capture. Costs nothing. Labelled _"not a Solari run"_ wherever it appears.
 - **`DEMO DATA`** — the seeded dataset. Outcomes were measured against the real
   fixture; timings and traces are generated. Never presented as a live run.
 
@@ -229,11 +233,11 @@ parses the task description into intents and targets controls by accessible
 name, so results are reproducible rather than sampled. Ships in three capability
 presets, which is the point:
 
-| Preset | Handles overlays | Waits for late elements | Recovers sessions | Measured |
-|---|:--:|:--:|:--:|---|
-| Naive | — | — | — | **75.0%** |
-| Reference | ✓ | ✓ | — | **87.5%** |
-| Resilient | ✓ | ✓ | ✓ | **100%** |
+| Preset    | Handles overlays | Waits for late elements | Recovers sessions | Measured  |
+| --------- | :--------------: | :---------------------: | :---------------: | --------- |
+| Naive     |        —         |            —            |         —         | **75.0%** |
+| Reference |        ✓         |            ✓            |         —         | **87.5%** |
+| Resilient |        ✓         |            ✓            |         ✓         | **100%**  |
 
 Same task, same fixture, same 16 runs. That table is the product's argument in
 miniature: each capability is worth exactly 12.5 points, and you can measure it.
@@ -249,7 +253,7 @@ Stagehand, or something you wrote yourself — the harness is indifferent. See
 [`agent-gauntlet-example-agent`](https://github.com/Konuktor/agent-gauntlet-example-agent) —
 which is what the live external-agent run actually clones.
 
-**LLM Agent** *(optional, experimental)*. A small provider-neutral planning loop
+**LLM Agent** _(optional, experimental)_. A small provider-neutral planning loop
 with an Anthropic implementation, included to show the adapter seam. It is never
 on the default path and its credential is never required.
 
@@ -257,19 +261,19 @@ on the default path and its credential is never required.
 
 ## Perturbations
 
-| Variant | Category | What changes |
-|---|---|---|
-| `baseline` | — | Nothing. The control |
-| `cookie_popup` | UI | A consent banner covers the lower page until dismissed |
-| `unexpected_modal` | UI | An interstitial appears on a jittered timer and blocks clicks |
-| `renamed_cta` | UI | "Add to cart" → "Add"; "Proceed to checkout" → "Continue" |
-| `reordered_layout` | UI | The cart's controls move |
-| `delayed_element` | UI | The add-to-cart control hydrates late |
-| `slow_api` | Network | Every state change takes ~1.5 s, and still succeeds |
-| `network_delay` | Network | Responses delayed in the browser |
-| `mobile_viewport` | Viewport | 390×844, touch, mobile UA |
-| `expired_session` | State | The session expires mid-checkout. The cart survives |
-| `locale_variant` | Locale | The storefront renders in German |
+| Variant            | Category | What changes                                                  |
+| ------------------ | -------- | ------------------------------------------------------------- |
+| `baseline`         | —        | Nothing. The control                                          |
+| `cookie_popup`     | UI       | A consent banner covers the lower page until dismissed        |
+| `unexpected_modal` | UI       | An interstitial appears on a jittered timer and blocks clicks |
+| `renamed_cta`      | UI       | "Add to cart" → "Add"; "Proceed to checkout" → "Continue"     |
+| `reordered_layout` | UI       | The cart's controls move                                      |
+| `delayed_element`  | UI       | The add-to-cart control hydrates late                         |
+| `slow_api`         | Network  | Every state change takes ~1.5 s, and still succeeds           |
+| `network_delay`    | Network  | Responses delayed in the browser                              |
+| `mobile_viewport`  | Viewport | 390×844, touch, mobile UA                                     |
+| `expired_session`  | State    | The session expires mid-checkout. The cart survives           |
+| `locale_variant`   | Locale   | The storefront renders in German                              |
 
 Every one is **recoverable by a capable agent** — banners have Accept, modals
 have a labelled Close, slow endpoints do respond, the expired session offers a
@@ -337,15 +341,15 @@ click is as fast as the tenth. It runs the seeded dataset, which is labelled
 ## Whose credits
 
 Every real run is a cloud browser somebody pays for, so the first question a
-public deployment has to answer is *whose*. The demo answers it in four tiers,
+public deployment has to answer is _whose_. The demo answers it in four tiers,
 and says which one you are in on the page itself.
 
-| You bring | You get | Why it is safe |
-|---|---|---|
-| Nothing | The full seeded dataset — every run, every failure, every replay | Nothing executes |
-| **Your own session** — a CDP endpoint from `gauntlet session` | A real gauntlet on a browser **you** created | Your API key never leaves your machine. We drive one browser you own and never release it — closing the command does |
-| **Your own key** — `slr_…` | A real gauntlet including repository agents, which need a sandbox | Sealed with AES-256-GCM before it touches the queue, used for that one run, wiped when it ends |
-| **The access code** | The operator's Solari account | That code exists to protect one balance, and nothing else |
+| You bring                                                     | You get                                                           | Why it is safe                                                                                                       |
+| ------------------------------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Nothing                                                       | The full seeded dataset — every run, every failure, every replay  | Nothing executes                                                                                                     |
+| **Your own session** — a CDP endpoint from `gauntlet session` | A real gauntlet on a browser **you** created                      | Your API key never leaves your machine. We drive one browser you own and never release it — closing the command does |
+| **Your own key** — `slr_…`                                    | A real gauntlet including repository agents, which need a sandbox | Sealed with AES-256-GCM before it touches the queue, used for that one run, wiped when it ends                       |
+| **The access code**                                           | The operator's Solari account                                     | That code exists to protect one balance, and nothing else                                                            |
 
 The middle row is the one worth noticing. The cheapest credential that makes a
 run possible is not an API key — it is a WebSocket URL scoped to a single
@@ -393,7 +397,7 @@ a long suite starves the UI. They share nothing but Postgres — the queue is
 `FOR UPDATE SKIP LOCKED` with heartbeats, so a restarted worker reclaims what
 its predecessor abandoned.
 
-**Why Solari?** Because the product needs many disposable, *recorded* cloud
+**Why Solari?** Because the product needs many disposable, _recorded_ cloud
 browsers in parallel, an isolated VM to host the benchmark site on a public
 URL, and another isolated VM to execute untrusted third-party agent
 repositories. Northflank is the orchestrator; it never runs a browser and never
@@ -528,8 +532,10 @@ rather than a chaos-engineering exercise.
 
 ## Testing
 
-**306 unit and integration tests, plus 34 product E2E tests** across desktop and
-a phone viewport. The ones worth knowing about:
+**363 unit and integration tests, 36 product E2E tests across desktop and a
+phone viewport, and 46 deployment-contract tests.** All of them run on free
+infrastructure — no test in CI can spend a Solari credit. The ones worth knowing
+about:
 
 - **Wilson intervals** verified against independently computed reference values
   (the first draft's hand-written expectations were wrong — the implementation
@@ -544,12 +550,55 @@ a phone viewport. The ones worth knowing about:
 - **Failure injection** (28 tests) — suites where the browser dies, the evaluator
   is down, the replay never arrives, and the run is cancelled.
 - **The real thing** — the Reference Agent driving real Chromium against the real
-  fixture, asserting on the *fixture's* state, including one test that asserts the
+  fixture, asserting on the _fixture's_ state, including one test that asserts the
   agent's self-report is not evidence.
 - **Product E2E** — the seeded dataset is re-created before the suite so the
   assertions are about the product rather than about whatever runs happen to be
   in the database, and one test checks the page does not scroll horizontally on
   a phone (it did, once).
+- **Deployment contract** (46 tests) — boots the real production artifacts as
+  two separate processes, the way Northflank runs them, and asserts what the
+  platform depends on: binding `0.0.0.0`, migrating before serving, migrating
+  idempotently across a restart, exiting cleanly on `SIGTERM`, a job enqueued by
+  the web service being claimed by a *different* process, and a credential
+  reaching neither the logs nor the API.
+
+---
+
+## What live infrastructure taught
+
+Every item below is a defect that local tests, CI and a green suite did not
+reproduce. They were found by deploying the thing and running it against real
+Solari infrastructure — which is, not coincidentally, the argument the product
+itself makes.
+
+| Found in production | Why local testing missed it |
+| --- | --- |
+| **A credential was disclosed through the public API.** A Playwright connect failure quotes the endpoint it was handed, that error was stored as a run's failure message, and the run page rendered it. Session endpoints are authorised by a signed path, so this was a live capability served to anyone with the URL. | Without a hosted benchmark site the run fails *before* it dials the browser, so no error ever quotes an endpoint. The local suite was green and empty. Scrubbing now happens on the way into Postgres, and migration `0004` cleans the rows written before the fix. |
+| **The SDK hides the public CDP endpoint behind a loopback proxy.** `sessions.create()` computes the public URL and discards it, returning `127.0.0.1`. An agent in a different VM cannot reach that. | Nothing local runs in a second VM. This contradicted the documentation and was only found by reading the SDK source; it made the whole repository-agent feature impossible until fixed. |
+| **A repeated `SIGTERM` abandoned three live browser sessions.** | A leaked session bills silently and has no local symptom at all. |
+| **Setup outside `try/finally` left a claim held**, wedging the suite in `preparing` and killing the worker. | The failure needs a crash between claiming and the first checkpoint. |
+| **A 429 failed the suite instead of waiting**, and one orphaned sandbox blocked the single free slot. | Concurrency caps do not exist locally. |
+| **`redactValue` flattened every non-plain object** — a logged `Date` became `{}`. | Silent, and harmless until the same function was used on a database patch, where it would have destroyed timestamps. |
+| **The Solari `base` sandbox runs Node 18**, so a caret on `playwright-core` resolved to a build demanding Node 20 and the agent died before acting. | The host runs Node 22. |
+| **A failing agent's stdout was collected and dropped** — the entire diagnosis was `Agent exited 1.` | Fixing this is what made the three findings above it findable. |
+
+The full write-up, including the ones that were merely embarrassing, is in
+[`docs/REAL_SOLARI_TEST.md`](docs/REAL_SOLARI_TEST.md).
+
+---
+
+## Project status
+
+**v1.0.0 — challenge release.** Built for the Pinetree Research / Solari SWE
+challenge and deployed publicly. It is a working system with real measurements
+behind it, not a production service with an SLA: the demo runs on a free plan,
+replay storage is ephemeral, and the public run controls are protected by a
+shared access code rather than real authentication.
+
+See [`CHANGELOG.md`](CHANGELOG.md) for what shipped,
+[`SECURITY.md`](SECURITY.md) for the capability model, and
+[`CONTRIBUTING.md`](CONTRIBUTING.md) to run it yourself.
 
 ---
 
