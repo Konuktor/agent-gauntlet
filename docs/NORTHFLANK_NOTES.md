@@ -101,6 +101,22 @@ literal branch), which strict JSON Schema counts as a failure. Every node here
 validates once that ambiguity is discounted; nothing validates under an
 unmodified strict `oneOf`, and no parameterised template could.
 
+### Two more things only the API tells you
+
+Both passed local schema validation and were rejected by the server:
+
+- **`healthChecks[].successThreshold` is required for a `readinessProbe`.**
+  The published schema lists it optional (`required` covers protocol, type,
+  initialDelaySeconds, periodSeconds, timeoutSeconds, failureThreshold). The
+  API answers `403 … "successThreshold" is required when 'type' is set to
+  'readinessProbe'`. It must be `1`.
+- **`billing.buildPlan` is a different class of plan from `deploymentPlan`.**
+  `list plans` returns a `type` array per plan: most are `["deployment"]` only,
+  and just the large ones (`nf-compute-400-16` and up) carry `"build"`. Passing
+  a deployment-only id yields `404 Build plan not found`. Omitting `buildPlan`
+  entirely lets Northflank choose the account's default, which is what a free
+  Sandbox should use — so the template does not name one.
+
 ## Addon (PostgreSQL)
 
 Create schema ([create-addon]): `name`, `type`, `version`, `billing`
