@@ -80,7 +80,14 @@ beforeEach(() => {
   contextStub.newPage.mockResolvedValue(pageStub)
 })
 
-const provider = () => new SolariBrowserProvider({ apiKey: "slr_live_test" })
+const provider = (options: Partial<ConstructorParameters<typeof SolariBrowserProvider>[0]> = {}) =>
+  // Capacity waits are milliseconds here; production waits ten seconds.
+  new SolariBrowserProvider({
+    apiKey: "slr_live_test",
+    capacityWaitAttempts: 3,
+    capacityWaitMs: 1,
+    ...options,
+  })
 
 describe("session creation", () => {
   it("enables recording per session, because it cannot be turned on later", async () => {
@@ -241,15 +248,27 @@ describe("retries", () => {
     expect(sessions.create).toHaveBeenCalledTimes(2)
   })
 
-  // Retrying a concurrency limit burns quota against a wall.
-  it("does not retry a concurrency limit", async () => {
+  // A 429 is a queue, not a verdict on the run: waiting for one of our own
+  // sessions to finish is the common case. Observed for real — a four-variant
+  // suite died outright because two of three plan slots were briefly held.
+  it("waits for a slot rather than failing the run outright", async () => {
+    sessions.create
+      .mockRejectedValueOnce(new FakeSolariError("cap", 429, "ConcurrencyLimitExceeded"))
+      .mockResolvedValueOnce(session)
+    await provider().create({ recording: false, stealth: false })
+    expect(sessions.create).toHaveBeenCalledTimes(2)
+  })
+
+  // But it must never become a tight loop against a wall: bounded, then give
+  // up with the real error so the run is classified honestly.
+  it("gives up after a bounded wait, with the concurrency error intact", async () => {
     sessions.create.mockRejectedValue(
       new FakeSolariError("cap", 429, "ConcurrencyLimitExceeded"),
     )
     await expect(provider().create({ recording: false, stealth: false })).rejects.toMatchObject({
       code: "solari_concurrency",
     })
-    expect(sessions.create).toHaveBeenCalledTimes(1)
+    expect(sessions.create).toHaveBeenCalledTimes(3)
   })
 })
 

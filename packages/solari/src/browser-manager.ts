@@ -8,6 +8,7 @@ import {
   newId,
   nullLogger,
   retry,
+  sleep,
   type BrowserEnvironment,
   type BrowserEnvironmentOptions,
   type BrowserProvider,
@@ -24,6 +25,10 @@ export interface SolariBrowserProviderOptions {
   logger?: Logger
   /** Attempts for the connect step only. Never used to retry an agent. */
   connectAttempts?: number
+  /** How many times to wait for a Solari slot before giving up on a 429. */
+  capacityWaitAttempts?: number
+  /** Base wait between those attempts; a little jitter is added on top. */
+  capacityWaitMs?: number
 }
 
 /**
@@ -48,12 +53,17 @@ export interface SolariBrowserProviderOptions {
  * in memory for the life of a run and are never persisted, logged or sent to
  * the frontend. Only the session id is.
  */
+/** How long to wait for a Solari slot before giving up, and how many times. */
+const CAPACITY_WAIT_ATTEMPTS = 6
+const CAPACITY_WAIT_MS = 10_000
 export class SolariBrowserProvider implements BrowserProvider {
   readonly mode = "solari" as const
 
   private readonly client: Solari
   private readonly logger: Logger
   private readonly liveSessions = new Set<string>()
+  private readonly capacityWaitAttempts: number
+  private readonly capacityWaitMs: number
 
   constructor(private readonly options: SolariBrowserProviderOptions) {
     this.client = new Solari({
@@ -61,6 +71,8 @@ export class SolariBrowserProvider implements BrowserProvider {
       ...(options.baseUrl ? { baseUrl: options.baseUrl } : {}),
     })
     this.logger = options.logger ?? nullLogger
+    this.capacityWaitAttempts = options.capacityWaitAttempts ?? CAPACITY_WAIT_ATTEMPTS
+    this.capacityWaitMs = options.capacityWaitMs ?? CAPACITY_WAIT_MS
   }
 
   async create(options: BrowserEnvironmentOptions): Promise<BrowserEnvironment> {
@@ -211,20 +223,45 @@ export class SolariBrowserProvider implements BrowserProvider {
     options: CreateSessionOptions,
     signal?: AbortSignal,
   ): Promise<Session> {
-    return retry(() => this.client.sessions.create(options), {
-      attempts: 2,
-      baseDelayMs: 750,
-      ...(signal ? { signal } : {}),
-      // Only genuine transients. A 429 is explicitly excluded: retrying a
-      // concurrency limit cannot succeed, it only burns quota.
-      shouldRetry: (error) => isRetryableInfrastructure(error),
-      onRetry: (error, attempt, delayMs) =>
-        this.logger.warn("retrying session create", {
+    const create = () =>
+      retry(() => this.client.sessions.create(options), {
+        attempts: 2,
+        baseDelayMs: 750,
+        ...(signal ? { signal } : {}),
+        // Only genuine transients here. A 429 is handled separately below,
+        // because a tight retry against a concurrency wall only burns quota.
+        shouldRetry: (error) => isRetryableInfrastructure(error),
+        onRetry: (error, attempt, delayMs) =>
+          this.logger.warn("retrying session create", {
+            attempt,
+            delayMs,
+            error: error instanceof Error ? error.message : String(error),
+          }),
+      })
+
+    // A 429 is not a failure of this run, it is a queue. Observed for real: a
+    // four-variant suite died outright because two of the plan's three slots
+    // were briefly held, when it could simply have run narrower for a minute.
+    // Retrying blindly would burn quota, so this waits for a slot to actually
+    // come free — one of ours finishing is the common case — and gives up with
+    // the original error when nothing frees.
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await create()
+      } catch (error) {
+        const atCapacity = mapSolariError(error, "internal").code === "solari_concurrency"
+        if (!atCapacity || attempt >= this.capacityWaitAttempts) throw error
+        const delay =
+          this.capacityWaitMs + Math.floor(Math.random() * (this.capacityWaitMs / 2 + 1))
+        this.logger.warn("at the Solari concurrency limit; waiting for a slot", {
           attempt,
-          delayMs,
-          error: error instanceof Error ? error.message : String(error),
-        }),
-    })
+          attempts: this.capacityWaitAttempts,
+          delayMs: delay,
+          ourLiveSessions: this.liveSessions.size,
+        })
+        await sleep(delay, signal)
+      }
+    }
   }
 
   private async connect(session: Session, signal?: AbortSignal): Promise<Browser> {
