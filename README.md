@@ -532,7 +532,7 @@ rather than a chaos-engineering exercise.
 
 ## Testing
 
-**363 unit and integration tests, 36 product E2E tests across desktop and a
+**366 unit and integration tests, 36 product E2E tests across desktop and a
 phone viewport, and 46 deployment-contract tests.** All of them run on free
 infrastructure — no test in CI can spend a Solari credit. The ones worth knowing
 about:
