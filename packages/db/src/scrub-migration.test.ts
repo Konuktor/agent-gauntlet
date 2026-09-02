@@ -18,9 +18,14 @@ const available = await databaseAvailable()
  *
  * Stopping new leaks is only half a fix: a capability already sitting in a
  * public API response stays there until something removes it. The sample below
- * is the exact shape found on the live deployment — the SDK's loopback-wrapped
+ * mirrors the shape found on the live deployment — the SDK's loopback-wrapped
  * form, whose path carries the same signed composite id as the public URL,
  * which is why the pattern deliberately ignores the host.
+ *
+ * Every part of it is synthetic. An earlier version of this fixture kept the
+ * real signature suffix and the real internal hostname from the production
+ * response it was copied from; a secret scanner flagged it, correctly. A test
+ * for a credential leak is a poor place to commit a fragment of one.
  */
 describe.skipIf(!available)("migration 0004 — scrubbing persisted endpoints", () => {
   let handle: DbHandle
