@@ -1,0 +1,372 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>AgentGauntlet — promo</title>
+<style>
+  :root {
+    --bg: #08090b;
+    --ink: #f2f4f7;
+    --ink2: #9aa3ad;
+    --ink3: #5e6873;
+    --blue: #3987e5;
+    --green: #34d399;
+    --red: #f87171;
+    --amber: #fbbf24;
+    --line: #1c2027;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); }
+  body { font-family: "Open Sans", "Noto Sans", sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+  .stage { position: absolute; inset: 0; }
+  .scene { position: absolute; inset: 0; opacity: 0; will-change: opacity, transform; }
+  .mono { font-family: "Fira Code", "DejaVu Sans Mono", monospace; }
+
+  /* ambient */
+  #grid { position: absolute; inset: -10%;
+    background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 68px 68px; opacity: .30; }
+  #glow { position: absolute; width: 1500px; height: 1500px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(57,135,229,.16) 0%, rgba(57,135,229,0) 62%);
+    left: 50%; top: 50%; transform: translate(-50%,-50%); }
+  #vignette { position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, transparent 42%, rgba(0,0,0,.72) 100%); }
+
+  .center { position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center; }
+  .wrap { width: 1560px; }
+
+  .kicker { font-size: 22px; letter-spacing: .32em; text-transform: uppercase;
+    color: var(--blue); font-weight: 600; }
+  h1 { font-size: 88px; font-weight: 800; letter-spacing: -.025em; line-height: 1.06; }
+  h2 { font-size: 62px; font-weight: 600; letter-spacing: -.02em; line-height: 1.14; }
+  .sub { font-size: 34px; font-weight: 300; color: var(--ink2); line-height: 1.45; }
+  .word { display: inline-block; white-space: pre; will-change: transform, opacity; }
+
+  /* problem list */
+  .plist { display: flex; flex-direction: column; gap: 30px; align-items: flex-start; }
+  .pitem { display: flex; align-items: center; gap: 26px; font-size: 46px; font-weight: 300; color: var(--ink); }
+  .dot { width: 13px; height: 13px; border-radius: 50%; background: var(--amber); flex: none; }
+
+  /* pipeline */
+  .pipe { display: flex; align-items: center; justify-content: center; gap: 0; }
+  .node { padding: 26px 38px; border: 1px solid var(--line); border-radius: 12px;
+    background: #0d1014; font-size: 28px; color: var(--ink); white-space: nowrap; }
+  .node small { display: block; font-size: 17px; color: var(--ink3); margin-top: 5px; }
+  .arrow { width: 74px; height: 1px; background: var(--line); position: relative; }
+  .arrow::after { content: ""; position: absolute; right: 0; top: -3px;
+    border-left: 7px solid var(--line); border-top: 3.5px solid transparent; border-bottom: 3.5px solid transparent; }
+
+  /* results table */
+  .rows { width: 1180px; margin: 0 auto; }
+  .row { display: grid; grid-template-columns: 1fr 150px 150px; align-items: center;
+    padding: 24px 34px; border-radius: 14px; border: 1px solid transparent;
+    font-size: 38px; will-change: transform, opacity; }
+  .row .name { text-align: left; font-weight: 300; }
+  .row .verdict { font-size: 26px; font-weight: 700; letter-spacing: .1em; }
+  .row .steps { text-align: right; font-weight: 600; }
+  .pass .verdict { color: var(--green); }
+  .fail .verdict { color: var(--red); }
+  .row.lit { background: #0e1319; border-color: #223042; }
+  .row.litred { background: #170f10; border-color: #43242a; }
+
+  .hero { position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; }
+  .heronum { font-size: 300px; font-weight: 800; letter-spacing: -.04em; line-height: 1; }
+  .herocap { font-size: 36px; font-weight: 300; color: var(--ink2); margin-top: 20px; }
+
+  img.shot { display: block; border-radius: 14px; border: 1px solid var(--line);
+    box-shadow: 0 40px 120px rgba(0,0,0,.65); }
+
+  .note { font-size: 27px; font-weight: 300; color: var(--ink3); }
+  .links { font-family: "Fira Code", monospace; font-size: 27px; color: var(--blue); line-height: 2.1; }
+  .bar { height: 3px; background: var(--blue); border-radius: 2px; }
+</style>
+
+<div class="stage">
+  <div id="grid"></div><div id="glow"></div>
+
+  <!-- 1 · cold open -->
+  <div class="scene" id="s1"><div class="center"><div class="wrap">
+    <h1 id="s1a"></h1>
+    <h2 id="s1b" style="margin-top:38px;color:var(--ink2);font-weight:300"></h2>
+  </div></div></div>
+
+  <!-- 2 · problem -->
+  <div class="scene" id="s2"><div class="center"><div class="wrap" style="display:flex;justify-content:center">
+    <div class="plist">
+      <div class="pitem" id="p1"><span class="dot"></span><span>A consent banner appears.</span></div>
+      <div class="pitem" id="p2"><span class="dot"></span><span>A modal steals focus.</span></div>
+      <div class="pitem" id="p3"><span class="dot"></span><span>The session expires mid-task.</span></div>
+    </div>
+  </div></div></div>
+
+  <!-- 3 · lockup -->
+  <div class="scene" id="s3"><div class="center"><div class="wrap">
+    <h1 id="s3a" style="font-size:126px"></h1>
+    <div class="bar" id="s3bar" style="width:0;margin:36px auto 34px"></div>
+    <div class="sub" id="s3b">Crash-test your browser agent before production does.</div>
+  </div></div></div>
+
+  <!-- 4 · pipeline -->
+  <div class="scene" id="s4"><div class="center"><div class="wrap">
+    <div class="kicker" id="s4k">how it works</div>
+    <div class="pipe" style="margin-top:58px">
+      <div class="node" id="n1">One task<small>checkout, 7 steps</small></div>
+      <div class="arrow" id="a1"></div>
+      <div class="node" id="n2">Ten environments<small>UI · network · viewport · state</small></div>
+      <div class="arrow" id="a2"></div>
+      <div class="node" id="n3">Solari browsers<small>real, recorded, disposable</small></div>
+      <div class="arrow" id="a3"></div>
+      <div class="node" id="n4">Independent verdict<small>read from server state</small></div>
+    </div>
+  </div></div></div>
+
+  <!-- 5 · results -->
+  <div class="scene" id="s5">
+    <div class="center"><div class="wrap">
+      <div class="kicker" id="s5k">one real run · four environments</div>
+      <div class="rows" id="rows" style="margin-top:54px">
+        <div class="row pass" id="r1"><span class="name">baseline</span><span class="verdict">PASS</span><span class="steps">7</span></div>
+        <div class="row pass" id="r2"><span class="name">cookie popup</span><span class="verdict">PASS</span><span class="steps">7</span></div>
+        <div class="row pass" id="r3"><span class="name">unexpected modal</span><span class="verdict">PASS</span><span class="steps" id="r3s">19</span></div>
+        <div class="row fail" id="r4"><span class="name">expired session</span><span class="verdict">FAIL</span><span class="steps">—</span></div>
+      </div>
+    </div></div>
+    <div class="hero" id="hero" style="opacity:0">
+      <div class="heronum" id="heronum">7</div>
+      <div class="herocap" id="herocap"></div>
+    </div>
+  </div>
+
+  <!-- 6 · evaluator -->
+  <div class="scene" id="s6"><div class="center"><div class="wrap">
+    <h2 id="s6a" style="font-size:50px">The verdict never comes from the agent.</h2>
+    <div class="sub" id="s6b" style="margin-top:18px;font-size:29px">It is read from the benchmark site's own server-side state.</div>
+    <div id="s6img" style="margin-top:44px;display:flex;justify-content:center">
+      <img class="shot" src="../docs/demo/assets/evaluator.png" style="width:1230px" />
+    </div>
+  </div></div></div>
+
+  <!-- 7 · sandbox -->
+  <div class="scene" id="s7"><div class="center"><div class="wrap">
+    <div class="kicker" id="s7k">bring your own agent</div>
+    <div class="pipe" id="s7pipe" style="margin-top:56px">
+      <div class="node" id="m1">Your repository<small>any framework, any model</small></div>
+      <div class="arrow" id="b1"></div>
+      <div class="node" id="m2" style="border-color:#2b3a4d">Solari Sandbox<small>isolated VM — never the host</small></div>
+      <div class="arrow" id="b2"></div>
+      <div class="node" id="m3">One scoped browser<small>a session, not an account</small></div>
+    </div>
+    <div class="note" id="s7n" style="margin-top:52px">Your code never receives the operator's API key.</div>
+  </div></div></div>
+
+  <!-- 8 · close -->
+  <div class="scene" id="s8"><div class="center"><div class="wrap" style="position:relative;height:460px">
+    <div id="s8top" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <div class="heronum" id="s8num" style="font-size:190px">75%</div>
+      <div class="mono" id="s8ci" style="font-size:30px;color:var(--ink3);margin-top:10px">95% CI  30.1% – 95.4%</div>
+      <div class="note" id="s8note" style="margin-top:26px;font-size:30px">Four runs is a demonstration, not a benchmark.</div>
+    </div>
+    <div id="s8end" style="opacity:0;position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <h1 style="font-size:112px">AgentGauntlet</h1>
+      <div class="sub" style="margin-top:20px;font-size:31px">Crash-test your browser agent before production does.</div>
+      <div class="links" style="margin-top:42px">
+        github.com/Konuktor/agent-gauntlet<br />http--agent-gauntlet-web--hjwypxsqnrjv.code.run
+      </div>
+    </div>
+  </div></div></div>
+
+  <div id="vignette"></div>
+  <div id="progress" style="position:absolute;left:0;bottom:0;height:2px;width:0;
+       background:linear-gradient(90deg,rgba(57,135,229,.25),var(--blue));opacity:.85"></div>
+</div>
+
+<script>
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v))
+  const pr = (t, s, d) => clamp((t - s) / d)
+  const eo = (x) => 1 - Math.pow(1 - x, 3)
+  const eio = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2)
+  const $ = (id) => document.getElementById(id)
+  const lerp = (a, b, x) => a + (b - a) * x
+
+  /** Split a heading into per-word spans so they can rise in with a stagger. */
+  function words(el, text) {
+    el.innerHTML = text
+      .split(" ")
+      .map((w) => (w === "|" ? "<br />" : `<span class="word">${w} </span>`))
+      .join("")
+    return [...el.querySelectorAll(".word")]
+  }
+  const s1a = words($("s1a"), "Your browser agent | passed its benchmark.")
+  const s1b = words($("s1b"), "That tells you almost nothing.")
+  const s3a = words($("s3a"), "AgentGauntlet")
+
+  /** Rise + fade a set of nodes with a per-index delay. */
+  function stagger(nodes, t, start, step = 0.075, dur = 0.62, rise = 34) {
+    nodes.forEach((n, i) => {
+      const k = eo(pr(t, start + i * step, dur))
+      n.style.opacity = k
+      n.style.transform = `translateY(${(1 - k) * rise}px)`
+    })
+  }
+  /** Fade a scene in and out, with a slight settle so cuts never feel static. */
+  function scene(el, t, inAt, outAt, fade = 0.45) {
+    const a = pr(t, inAt, fade)
+    const b = 1 - pr(t, outAt - fade, fade)
+    const o = clamp(Math.min(a, b))
+    el.style.opacity = o
+    el.style.transform = `scale(${lerp(1.012, 1, eo(a))})`
+    return o
+  }
+
+  window.seek = function (t) {
+    // ambient drift — keeps the frame alive without drawing attention
+    $("progress").style.width = `${clamp(t / 60) * 1920}px`
+    $("grid").style.transform = `translate(${-(t * 5) % 68}px, ${-(t * 3) % 68}px)`
+    $("glow").style.opacity = 0.55 + 0.45 * Math.sin(t * 0.55)
+    $("glow").style.transform = `translate(calc(-50% + ${Math.sin(t * 0.35) * 190}px), calc(-50% + ${Math.cos(t * 0.28) * 110}px))`
+
+    // 1 · cold open
+    if (scene($("s1"), t, 0.15, 4.2) > 0) {
+      stagger(s1a, t, 0.35, 0.055)
+      stagger(s1b, t, 1.95, 0.05)
+    }
+
+    // 2 · problem
+    if (scene($("s2"), t, 4.2, 9.1) > 0) {
+      ;[["p1", 4.5], ["p2", 5.25], ["p3", 6.0]].forEach(([id, s]) => {
+        const k = eo(pr(t, s, 0.55))
+        const el = $(id)
+        el.style.opacity = k
+        el.style.transform = `translateX(${(1 - k) * -30}px)`
+      })
+    }
+
+    // 3 · lockup
+    if (scene($("s3"), t, 9.1, 14.1) > 0) {
+      stagger(s3a, t, 9.4, 0.09, 0.7, 46)
+      $("s3bar").style.width = `${eio(pr(t, 10.1, 0.8)) * 460}px`
+      const k = eo(pr(t, 10.5, 0.7))
+      $("s3b").style.opacity = k
+      $("s3b").style.transform = `translateY(${(1 - k) * 22}px)`
+    }
+
+    // 4 · pipeline
+    if (scene($("s4"), t, 14.1, 20.1) > 0) {
+      const k0 = eo(pr(t, 14.4, 0.5))
+      $("s4k").style.opacity = k0
+      ;["n1", "a1", "n2", "a2", "n3", "a3", "n4"].forEach((id, i) => {
+        const k = eo(pr(t, 14.8 + i * 0.28, 0.5))
+        const el = $(id)
+        if (id[0] === "a") {
+          el.style.opacity = k
+          el.style.transform = `scaleX(${k})`
+          el.style.transformOrigin = "left center"
+        } else {
+          el.style.opacity = k
+          el.style.transform = `translateY(${(1 - k) * 26}px) scale(${lerp(0.965, 1, k)})`
+        }
+      })
+    }
+
+    // 5 · results
+    if (scene($("s5"), t, 20.1, 34.2) > 0) {
+      $("s5k").style.opacity = eo(pr(t, 20.4, 0.5))
+      const rows = ["r1", "r2", "r3", "r4"]
+      rows.forEach((id, i) => {
+        const k = eo(pr(t, 20.9 + i * 0.34, 0.55))
+        const el = $(id)
+        el.style.opacity = k
+        el.style.transform = `translateY(${(1 - k) * 30}px)`
+      })
+
+      // focus: the modal row — passed, and cost nearly three times the steps
+      const f1 = pr(t, 23.6, 0.6)
+      const f1out = pr(t, 27.3, 0.5)
+      const focus1 = clamp(f1 - f1out)
+      // focus: the failure
+      const f2 = pr(t, 27.6, 0.6)
+      const f2out = pr(t, 30.9, 0.5)
+      const focus2 = clamp(f2 - f2out)
+
+      $("r3").classList.toggle("lit", focus1 > 0.5)
+      $("r4").classList.toggle("litred", focus2 > 0.5)
+      rows.forEach((id, i) => {
+        const isF1 = i === 2, isF2 = i === 3
+        let dim = 0
+        if (focus1 > 0 && !isF1) dim = focus1
+        if (focus2 > 0 && !isF2) dim = Math.max(dim, focus2)
+        const el = $(id)
+        const base = Number(el.style.opacity) || 0
+        el.style.opacity = base * lerp(1, 0.22, dim)
+        const up = (isF1 ? focus1 : 0) + (isF2 ? focus2 : 0)
+        el.style.transform = `translateY(${(1 - Math.min(1, base)) * 30}px) scale(${lerp(1, 1.045, up)})`
+      })
+
+      // the number that carries the whole product
+      const hv = clamp(pr(t, 24.3, 0.35) - pr(t, 26.9, 0.4))
+      $("hero").style.opacity = hv
+      if (hv > 0) {
+        const c = eio(pr(t, 24.5, 1.5))
+        $("heronum").textContent = Math.round(lerp(7, 19, c))
+        $("heronum").style.color = c > 0.55 ? "var(--amber)" : "var(--ink)"
+        $("heronum").style.transform = `scale(${lerp(0.9, 1, eo(pr(t, 24.3, 0.5)))})`
+        $("herocap").textContent = "steps — for a task that takes 7"
+        $("herocap").style.opacity = eo(pr(t, 25.6, 0.5))
+        $("rows").style.filter = `blur(${hv * 7}px)`
+        $("rows").style.opacity = lerp(1, 0.25, hv)
+      } else {
+        $("rows").style.filter = "none"
+        $("rows").style.opacity = 1
+      }
+    }
+
+    // 6 · evaluator
+    if (scene($("s6"), t, 34.2, 42.2) > 0) {
+      const k = eo(pr(t, 34.5, 0.6))
+      $("s6a").style.opacity = k
+      $("s6a").style.transform = `translateY(${(1 - k) * 26}px)`
+      const k2 = eo(pr(t, 34.9, 0.6))
+      $("s6b").style.opacity = k2
+      const k3 = eo(pr(t, 35.4, 0.9))
+      $("s6img").style.opacity = k3
+      $("s6img").style.transform = `translateY(${(1 - k3) * 60}px) scale(${lerp(0.97, 1, k3)})`
+      $("s6img").style.clipPath = `inset(0 0 ${(1 - eio(pr(t, 35.4, 1.2))) * 100}% 0)`
+    }
+
+    // 7 · sandbox
+    if (scene($("s7"), t, 42.2, 50.2) > 0) {
+      $("s7k").style.opacity = eo(pr(t, 42.5, 0.5))
+      ;["m1", "b1", "m2", "b2", "m3"].forEach((id, i) => {
+        const k = eo(pr(t, 42.9 + i * 0.32, 0.55))
+        const el = $(id)
+        if (id[0] === "b") {
+          el.style.opacity = k
+          el.style.transform = `scaleX(${k})`
+          el.style.transformOrigin = "left center"
+        } else {
+          el.style.opacity = k
+          el.style.transform = `translateY(${(1 - k) * 26}px)`
+        }
+      })
+      const kn = eo(pr(t, 45.2, 0.6))
+      $("s7n").style.opacity = kn
+      $("s7n").style.transform = `translateY(${(1 - kn) * 20}px)`
+    }
+
+    // 8 · close
+    if (scene($("s8"), t, 50.2, 60.0, 0.5) > 0) {
+      const k = eo(pr(t, 50.5, 0.7))
+      $("s8num").style.opacity = k
+      $("s8num").style.transform = `scale(${lerp(0.9, 1, k)})`
+      $("s8ci").style.opacity = eo(pr(t, 51.2, 0.6))
+      $("s8note").style.opacity = eo(pr(t, 51.9, 0.6))
+      const swap = pr(t, 54.4, 0.7)
+      $("s8top").style.opacity = 1 - eo(swap)
+      $("s8top").style.transform = `translateY(${-eo(swap) * 40}px)`
+      const e = eo(pr(t, 54.8, 0.8))
+      $("s8end").style.opacity = e
+      $("s8end").style.transform = `translateY(${(1 - e) * 34}px)`
+    }
+  }
+  window.seek(0)
+</script>

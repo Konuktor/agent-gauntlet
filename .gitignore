@@ -17,3 +17,4 @@ test-results/
 # Demo renders. Attached to the GitHub release instead — see docs/demo/README.md.
 docs/demo/*.mp4
 docs/demo/*.webm
+.promo/

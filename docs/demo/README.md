@@ -1,45 +1,66 @@
 # Demo video
 
-A 60-second screen recording of the live deployment, following
-[`docs/DEMO_SCRIPT.md`](../DEMO_SCRIPT.md) beat for beat.
+Two films, for two different jobs.
 
-Everything on screen is real: the production URL, the four-run Solari gauntlet
-(`baseline` 7 steps, `cookie_popup` 7, `unexpected_modal` **19**,
-`expired_session` FAIL), and the evaluator's own assertion table. No live run was
-started to record it — the script deliberately uses run data that already exists,
-so it costs no Solari credits.
+| Файл                               | Что это                                              | Когда брать                                   |
+| ---------------------------------- | ---------------------------------------------------- | --------------------------------------------- |
+| **`agentgauntlet-promo.mp4`**      | Промо-ролик: моушн-дизайн, 1920×1080, 60 fps, 60.0 с | Для поста в LinkedIn / X. Читается без звука. |
+| `agentgauntlet-demo.mp4`           | Запись экрана живого деплоя, 1440×900, 60.0 с        | Показать продукт «как есть». Под озвучку.     |
+| `agentgauntlet-demo-captioned.mp4` | То же с вшитыми субтитрами                           | Если нужен именно интерфейс, но без голоса.   |
 
-## Files
+Оба ролика приложены к [релизу v1.0.1](https://github.com/Konuktor/agent-gauntlet/releases/tag/v1.0.1),
+а не лежат в git — чтобы клон репозитория оставался лёгким.
 
-| File                               | Use                                                                                          |
-| ---------------------------------- | -------------------------------------------------------------------------------------------- |
-| `agentgauntlet-demo.mp4`           | Clean cut, no captions. Narrate over this one.                                               |
-| `agentgauntlet-demo-captioned.mp4` | Burned-in captions. Post-ready, and works muted — which is how most social video is watched. |
-| `demo.srt`                         | The narration, as subtitles. Edit here if you want to reword.                                |
-| `demo.ass`                         | Styled build of the same, generated from the `.srt`.                                         |
+Текст для озвучки — [`VOICEOVER.md`](VOICEOVER.md), русский и английский,
+с таймингами под промо-ролик.
 
-Both cuts are 1440×900, 25 fps, H.264, 60.0 s, about 2 MB each. They are attached
-to the [v1.0.1 release](https://github.com/Konuktor/agent-gauntlet/releases/tag/v1.0.1)
-rather than committed, so cloning the repository stays cheap.
+## Промо-ролик
 
-## Rebuilding
+Восемь сцен за 60 секунд:
+
+| Время | Сцена                                                                    |
+| ----- | ------------------------------------------------------------------------ |
+| 0:00  | «Ваш агент прошёл бенчмарк. Это почти ничего не говорит.»                |
+| 0:04  | Три вещи, которые ломают агента в проде                                  |
+| 0:09  | Название и обещание продукта                                             |
+| 0:14  | Как это работает: задача → среды → браузеры Solari → независимый вердикт |
+| 0:20  | Результат настоящего прогона, и счётчик 7 → **19**                       |
+| 0:34  | Таблица утверждений эвалюатора — живой скриншот продакшена               |
+| 0:42  | Песочница: чужой код изолирован и ключа не получает                      |
+| 0:50  | 75%, доверительный интервал, и честная оговорка                          |
+
+Числа внутри — настоящие: прогон
+[`1e6db4ff`](https://http--agent-gauntlet-web--hjwypxsqnrjv.code.run/runs/1e6db4ff-6e36-4876-8abf-ab39acd13a52)
+на живом деплое. Скриншот таблицы эвалюатора снят оттуда же в 2×.
+
+Ролик самодостаточен без звука: смысл несёт типографика, а не закадровый голос.
+Голос его усиливает, но не требуется — а в ленте видео чаще смотрят без звука.
+
+### Как пересобрать
 
 ```bash
-# 1. record (drives the live site with Playwright)
-node scripts/record-demo.mjs
-
-# 2. burn the captions
-ffmpeg -i docs/demo/agentgauntlet-demo.mp4 -vf "subtitles=docs/demo/demo.ass" \
-  -c:v libx264 -preset slow -crf 20 -pix_fmt yuv420p -movflags +faststart \
-  -y docs/demo/agentgauntlet-demo-captioned.mp4
+FPS=60 DUR=60 node scripts/render-promo.mjs
+ffmpeg -framerate 60 -i .promo/frames/f%05d.jpg \
+  -c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p -movflags +faststart -r 60 \
+  -y docs/demo/agentgauntlet-promo.mp4
 ```
 
-The recorder pins the run ids it opens, so re-recording produces the same
-walkthrough. If the demo database is ever reseeded, update the ids at the top of
-`scripts/record-demo.mjs`.
+Анимация в [`scripts/promo-source.html`](../../scripts/promo-source.html) — это
+не CSS-анимация, а детерминированная функция `seek(t)`: каждый кадр вычисляется
+из времени. Поэтому рендер покадровый и в движении нет дрожания, которое даёт
+запись экрана. 3600 кадров ≈ 3 минуты и 460 МБ временного места.
 
-## A note on what is not in it
+## Запись экрана
 
-There is no voiceover. The captions carry the narration from the script, so the
-video is usable as-is; if you would rather speak it, use the clean cut and the
-script's timings, which the recording follows exactly.
+```bash
+node scripts/record-demo.mjs
+```
+
+Идёт по [`../DEMO_SCRIPT.md`](../DEMO_SCRIPT.md) бит в бит и **не запускает
+платных прогонов** — открывает уже существующие данные. Id прогонов
+зафиксированы в скрипте, так что пересъёмка даёт тот же результат.
+
+## Чего в роликах нет
+
+Голоса. Его нужно записать человеку — текст и тайминги в `VOICEOVER.md`,
+там же команда для сведения и нормализации громкости.
