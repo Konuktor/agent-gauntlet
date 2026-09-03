@@ -166,7 +166,7 @@ a `try/finally`; a single failed run never takes the suite down.
 | **Profiles / proxies / stealth** | Available behind opt-in config for authorised targets. The demo needs none of them.                                                                                         |
 
 The integration details — including the ones that cost real debugging time — are
-in **[docs/SOLARI_NOTES.md](docs/SOLARI_NOTES.md)**.
+in **[docs/REAL_SOLARI_TEST.md](docs/REAL_SOLARI_TEST.md)**.
 
 ---
 
@@ -600,11 +600,6 @@ shared access code rather than real authentication.
 See [`CHANGELOG.md`](CHANGELOG.md) for what shipped,
 [`SECURITY.md`](SECURITY.md) for the capability model, and
 [`CONTRIBUTING.md`](CONTRIBUTING.md) to run it yourself.
-
-[`docs/FINAL_RELEASE_STATUS.md`](docs/FINAL_RELEASE_STATUS.md) records the
-release audit, including the parts that do not flatter it: CI had never run once
-in this repository's history, the documented CLI command had never worked, and a
-secret scanner caught a credential fragment that my own history scan had missed.
 
 ---
 

@@ -1,9 +1,9 @@
 /**
  * Records the 60-second demo by driving the live deployment.
  *
- * It follows docs/DEMO_SCRIPT.md beat for beat, and deliberately opens run data
- * that already exists rather than starting a gauntlet: a live run spends Solari
- * credits and takes minutes, and the point of the video is the result.
+ * It deliberately opens run data that already exists rather than starting a
+ * gauntlet: a live run spends Solari credits and takes minutes, and the point of
+ * the video is the result, not the wait.
  *
  *   node scripts/record-demo.mjs
  *
