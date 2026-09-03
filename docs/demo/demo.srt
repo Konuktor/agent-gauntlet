@@ -1,0 +1,39 @@
+1
+00:00:00,300 --> 00:00:06,000
+Browser agents look reliable when we test whether they work once.
+AgentGauntlet tests whether they survive production.
+
+2
+00:00:06,000 --> 00:00:13,000
+Same task. Same agent. Four environments.
+Real Solari cloud browsers.
+
+3
+00:00:13,000 --> 00:00:21,000
+Baseline passes in 7 steps. Then the session expires
+mid-task — and the agent fails.
+
+4
+00:00:21,000 --> 00:00:30,000
+This one passed. It also went from 7 steps to 19.
+A pass/fail benchmark records that as identical to baseline.
+
+5
+00:00:30,000 --> 00:00:38,000
+We never trust the agent saying it's done. The evaluator reads
+the benchmark site's server-side state, which the agent can't fake.
+
+6
+00:00:38,000 --> 00:00:45,000
+Every failure is classified from evidence —
+this one is an auth failure the agent never recovered from.
+
+7
+00:00:45,000 --> 00:00:52,000
+Bring your own agent. Your repository runs inside an isolated
+Solari Sandbox, with a scoped browser endpoint — never the account key.
+
+8
+00:00:52,000 --> 00:00:59,800
+Four runs is a demonstration, not a benchmark —
+and the product shows the confidence interval to prove it.

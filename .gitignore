@@ -13,3 +13,7 @@ test-results/
 .pgdata/
 *.log
 .DS_Store
+
+# Demo renders. Attached to the GitHub release instead — see docs/demo/README.md.
+docs/demo/*.mp4
+docs/demo/*.webm
